@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bosba-drink-snack",
+  "compatibility_date": "2025-09-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "src/server.ts",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "bosbadrinksnack.com", "custom_domain": true },
+    { "pattern": "www.bosbadrinksnack.com", "custom_domain": true }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bosba-drink-snack",
+      "database_id": "",
+      "migrations_dir": "drizzle/migrations"
+    }
+  ]
+}

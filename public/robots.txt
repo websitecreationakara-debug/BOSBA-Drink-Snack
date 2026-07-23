@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /thank-you
+Disallow: /orders
+Disallow: /auth
+
+Sitemap: https://bosbadrinksnack.com/sitemap.xml

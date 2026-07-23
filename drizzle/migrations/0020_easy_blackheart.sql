@@ -1,0 +1,1 @@
+ALTER TABLE `orders` ADD `scheduled_at` text;

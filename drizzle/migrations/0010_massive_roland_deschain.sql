@@ -1,0 +1,1 @@
+ALTER TABLE `products` DROP COLUMN `parent_id`;

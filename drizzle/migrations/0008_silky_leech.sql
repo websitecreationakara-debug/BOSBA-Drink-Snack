@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `parent_id` text;
