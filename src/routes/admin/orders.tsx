@@ -13,6 +13,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { MapPin, Trash2, FileDown } from "lucide-react";
+import { formatShippingAddress } from "@/lib/utils";
 import { downloadInvoice } from "@/lib/invoice";
 
 export const Route = createFileRoute("/admin/orders")({ component: OrdersAdmin });
@@ -99,7 +100,7 @@ function OrdersAdmin() {
                   ) : (
                     (o.address || o.city || o.postal_code) && (
                       <div className="text-xs text-muted-foreground">
-                        {[o.address, o.city, o.postal_code].filter(Boolean).join(", ")}
+                        {formatShippingAddress(o.address, o.city, o.postal_code)}
                       </div>
                     )
                   )}

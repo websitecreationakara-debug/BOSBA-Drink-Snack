@@ -1,6 +1,7 @@
 // Client-side invoice PDF generation for admin orders. jspdf + autotable are
 // heavy and only needed on click, so they're imported dynamically — this keeps
 // them out of the storefront bundle entirely.
+import { formatShippingAddress } from "./utils";
 
 type InvoiceItem = { id?: string; title: string; qty: number; price: number };
 
@@ -114,7 +115,7 @@ export async function downloadInvoice(order: InvoiceOrder) {
     order.customer_phone,
     order.delivery_method === "pickup"
       ? "Pickup at store"
-      : [order.address, order.city, order.postal_code].filter(Boolean).join(", ") || null,
+      : formatShippingAddress(order.address, order.city, order.postal_code) || null,
   ].filter((l): l is string => Boolean(l));
   let y = billToY + 6;
   for (const line of billLines) {
