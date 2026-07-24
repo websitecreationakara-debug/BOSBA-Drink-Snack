@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "bosba-drink-snack",
-      "database_id": "",
+      "database_id": "8c9071e1-c1ce-4649-8b53-a05a8a0c50d5",
       "migrations_dir": "drizzle/migrations"
     }
   ]
