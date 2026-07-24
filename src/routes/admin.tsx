@@ -166,17 +166,17 @@ function AdminLayout() {
       >
         <Link
           to="/"
-          title="BOSBA Premium Foods"
+          title="BOSBA Drink Snack"
           className={cn("flex items-center gap-2 min-w-0", collapsed && "justify-center")}
         >
           <img
             src="/logo.png"
-            alt="BOSBA Premium Foods"
+            alt="BOSBA Drink Snack"
             className="size-9 rounded-lg object-contain shrink-0"
           />
           {!collapsed && (
             <span className="font-display text-base font-bold leading-tight text-sidebar-foreground">
-              BOSBA Premium Foods
+              BOSBA Drink Snack
             </span>
           )}
         </Link>

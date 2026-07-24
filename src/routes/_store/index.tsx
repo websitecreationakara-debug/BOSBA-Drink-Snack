@@ -9,7 +9,7 @@ import {
   useStoreSettings,
   useAllVariations,
 } from "@/hooks/use-products";
-import { ArrowRight, Truck, Fish, ShieldCheck, Snowflake } from "lucide-react";
+import { ArrowRight, Truck, Globe, ShieldCheck, PackageCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,15 +18,15 @@ import { groupVariations, productFromPrice } from "@/lib/variants";
 export const Route = createFileRoute("/_store/")({
   head: () => ({
     meta: [
-      { title: "BOSBA Premium Foods — Premium Japanese Seafood Delivered" },
+      { title: "BOSBA Drink Snack — Japanese Drinks & Snacks Delivered" },
       {
         name: "description",
         content:
-          "Premium quality seafood and foods from Japan — sashimi-grade tuna, salmon, uni, scallops and more, delivered chilled across Cambodia.",
+          "Japanese drinks and snacks — imported beverages, chips, candy and more, delivered across Cambodia.",
       },
-      { property: "og:url", content: "https://bosbapremiumfoods.com/" },
+      { property: "og:url", content: "https://bosbadrinksnack.com/" },
     ],
-    links: [{ rel: "canonical", href: "https://bosbapremiumfoods.com/" }],
+    links: [{ rel: "canonical", href: "https://bosbadrinksnack.com/" }],
   }),
   component: Home,
 });
@@ -40,24 +40,13 @@ function Home() {
   const { user } = useAuth();
   const { t } = useI18n();
   const variationsByProduct = groupVariations(variations);
-  // Featured section is pinned to the Sashimi Sets' category (2 rows), so it
-  // stays fixed as new products are added rather than drifting to the newest
-  // items. The category is found dynamically from the Sashimi Set products, with
-  // those shown first. Falls back to the newest products if none are found.
-  const isSashimiSet = (title: string) => {
-    const t = title.toLowerCase();
-    return t.includes("sashimi set") || t.includes("sasimi set");
-  };
-  const sashimiCatId = products.find((p) => isSashimiSet(p.title))?.category_id ?? null;
-  const featuredPool = sashimiCatId
-    ? products.filter((p) => p.category_id === sashimiCatId)
+  // Featured section shows admin-marked products (products.featured), newest
+  // first. Falls back to the newest products overall if none are marked yet.
+  const featuredPool = products.some((p) => p.featured)
+    ? products.filter((p) => p.featured)
     : products;
   const featured = [...featuredPool]
-    .sort(
-      (a, b) =>
-        Number(isSashimiSet(b.title)) - Number(isSashimiSet(a.title)) ||
-        a.title.localeCompare(b.title),
-    )
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 8);
   const offerSections = promotions
     .map((promo) => ({ promo, items: products.filter((p) => p.promotion_id === promo.id) }))
@@ -70,9 +59,9 @@ function Home() {
       title: t("feature.delivery.title"),
       body: t("feature.delivery.body", { threshold: shipThreshold }),
     },
-    { icon: Fish, title: t("feature.sashimi.title"), body: t("feature.sashimi.body") },
+    { icon: Globe, title: t("feature.sashimi.title"), body: t("feature.sashimi.body") },
     { icon: ShieldCheck, title: t("feature.quality.title"), body: t("feature.quality.body") },
-    { icon: Snowflake, title: t("feature.cold.title"), body: t("feature.cold.body") },
+    { icon: PackageCheck, title: t("feature.cold.title"), body: t("feature.cold.body") },
   ];
 
   return (
@@ -116,7 +105,7 @@ function Home() {
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
-                  <span className="text-4xl">{["🐟", "🍣", "🦐", "🦀", "🦑", "🐙"][i % 6]}</span>
+                  <span className="text-4xl">{["🍶", "🍺", "🌊", "🥢", "🍡", "🧂", "🍵", "🍱"][i % 8]}</span>
                 )}
               </div>
               <p className="font-display font-semibold text-base text-foreground">{c.name}</p>

@@ -45,7 +45,7 @@ const env: Record<string, string | undefined> = (() => {
 
 // Labels which site an alert came from — lets one bot/inbox serve many sites.
 // Each deployment overrides this via the SITE_NAME env var.
-const siteName = () => env.SITE_NAME?.trim() || "BOSBA Premium Foods";
+const siteName = () => env.SITE_NAME?.trim() || "BOSBA Drink Snack";
 
 const escapeHtml = (s: string) =>
   s.replace(
@@ -55,8 +55,8 @@ const escapeHtml = (s: string) =>
 
 // Email branding. The logo is served from the live site (email clients can't
 // bundle assets); overridable per deployment via SITE_LOGO_URL / SITE_URL.
-const logoUrl = () => env.SITE_LOGO_URL?.trim() || "https://bosbapremiumfoods.com/invoice-logo.png";
-const siteUrl = () => env.SITE_URL?.trim() || "https://bosbapremiumfoods.com";
+const logoUrl = () => env.SITE_LOGO_URL?.trim() || "https://bosbadrinksnack.com/invoice-logo.png";
+const siteUrl = () => env.SITE_URL?.trim() || "https://bosbadrinksnack.com";
 
 // Shared shell for every outgoing email: white card on a warm cream page with
 // a logo banner on top and a footer strip — receipt-like, consistent branding.
@@ -157,7 +157,7 @@ async function sendEmail(
   if (!env.RESEND_API_KEY || to.length === 0) return "skipped";
   try {
     const resend = new Resend(env.RESEND_API_KEY);
-    const from = env.RESEND_FROM ?? "BOSBA Premium Foods <onboarding@resend.dev>";
+    const from = env.RESEND_FROM ?? "BOSBA Drink Snack <onboarding@resend.dev>";
     const rows = itemRowsHtml(order.items);
     const html = emailShell(`
         <p style="margin:0 0 8px;font-size:13px;color:#888">🌐 ${escapeHtml(siteName())}</p>
@@ -200,7 +200,7 @@ export async function notifyOrderShipped(order: ShippedNotification): Promise<vo
   const short = order.id.slice(0, 8);
   try {
     const resend = new Resend(env.RESEND_API_KEY);
-    const from = env.RESEND_FROM ?? "BOSBA Premium Foods <onboarding@resend.dev>";
+    const from = env.RESEND_FROM ?? "BOSBA Drink Snack <onboarding@resend.dev>";
     const name = order.customer_name?.trim() || "there";
     const track = order.tracking_url?.trim();
     const html = emailShell(`
@@ -233,7 +233,7 @@ async function sendCustomerEmail(
   if (!env.RESEND_API_KEY || !to) return "skipped";
   try {
     const resend = new Resend(env.RESEND_API_KEY);
-    const from = env.RESEND_FROM ?? "BOSBA Premium Foods <onboarding@resend.dev>";
+    const from = env.RESEND_FROM ?? "BOSBA Drink Snack <onboarding@resend.dev>";
     const name = order.customer_name?.trim() || "there";
     const html = emailShell(`
         <h2 style="margin:0 0 4px">Thank you for your order, ${escapeHtml(name)}! 🙏</h2>

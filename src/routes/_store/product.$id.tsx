@@ -31,10 +31,10 @@ function relatedProducts(current: Product, all: Product[]): Product[] {
   return [...sameCat, ...rest].slice(0, RELATED_COUNT);
 }
 
-const SITE = "https://bosbapremiumfoods.com";
+const SITE = "https://bosbadrinksnack.com";
 
 const metaDescription = (p: Product) =>
-  (p.description?.trim() || `${p.title} — premium quality foods from BOSBA Premium Foods.`)
+  (p.description?.trim() || `${p.title} — premium quality foods from BOSBA Drink Snack.`)
     .replace(/\s+/g, " ")
     .slice(0, 160);
 
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_store/product/$id")({
     if (!product) {
       return {
         meta: [
-          { title: "Product not found — BOSBA Premium Foods" },
+          { title: "Product not found — BOSBA Drink Snack" },
           { name: "robots", content: "noindex" },
         ],
       };
@@ -54,7 +54,7 @@ export const Route = createFileRoute("/_store/product/$id")({
     const img = product.image_url ?? undefined;
     return {
       meta: [
-        { title: `${product.title} — BOSBA Premium Foods` },
+        { title: `${product.title} — BOSBA Drink Snack` },
         { name: "description", content: desc },
         { property: "og:title", content: product.title },
         { property: "og:description", content: desc },
@@ -83,7 +83,7 @@ function ProductJsonLd({ product }: { product: Product }) {
     name: product.title,
     image: product.image_url ?? undefined,
     description: product.description ?? undefined,
-    brand: { "@type": "Brand", name: "BOSBA Premium Foods" },
+    brand: { "@type": "Brand", name: "BOSBA Drink Snack" },
   };
   if (price > 0) {
     ld.offers = {

@@ -497,7 +497,7 @@ function MarketingAdmin() {
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Summer Sashimi Sale"
+                placeholder="Summer Beer Sale"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">

@@ -182,17 +182,17 @@ function AuthPage() {
           >
             <img
               src="/logo.png"
-              alt="BOSBA Premium Foods"
+              alt="BOSBA Drink Snack"
               className="size-12 rounded-xl object-contain"
             />
-            BOSBA Premium Foods
+            BOSBA Drink Snack
           </Link>
           <div className="mt-auto">
             <h2 className="font-display font-bold text-5xl text-foreground leading-tight">
-              Sashimi-grade seafood, <span className="italic text-brand">delivered.</span>
+              Japanese drinks & snacks, <span className="italic text-brand">delivered.</span>
             </h2>
             <p className="text-muted-foreground mt-4 max-w-sm">
-              Japanese seafood sourced at the market and shipped fresh on ice to your doorstep.
+              Genuine imports from Japan, shipped straight to your doorstep.
             </p>
           </div>
         </div>

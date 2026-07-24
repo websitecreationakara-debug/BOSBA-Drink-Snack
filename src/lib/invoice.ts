@@ -20,9 +20,9 @@ export type InvoiceOrder = {
 };
 
 const STORE = {
-  name: "BOSBA Premium Foods",
+  name: "BOSBA Drink Snack",
   phone: "+855 99 361 350",
-  site: "bosbapremiumfoods.com",
+  site: "bosbadrinksnack.com",
 };
 
 const BRAND: [number, number, number] = [201, 168, 76];

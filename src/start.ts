@@ -9,7 +9,7 @@ import { getDb } from "./db";
 import { media, products, categories } from "./db/schema";
 import { slugify } from "./lib/utils";
 
-const SITE = "https://bosbapremiumfoods.com";
+const SITE = "https://bosbadrinksnack.com";
 
 // Security response headers on every response. Outermost in the chain so it
 // stamps SSR pages, API, media, sitemap — whatever flows back through next().
@@ -78,7 +78,7 @@ const mediaMiddleware = createMiddleware().server(async ({ next }) => {
 // fingerprint(s) come from Play App Signing; set them as the comma-separated
 // ANDROID_CERT_SHA256 Worker var (no code change needed). Until set, this serves
 // an empty list, which is harmless.
-const ANDROID_PACKAGE = "com.bosbapremiumfoods.twa";
+const ANDROID_PACKAGE = "com.bosbadrinksnack.twa";
 const assetlinksMiddleware = createMiddleware().server(async ({ next }) => {
   const request = getRequest();
   if (new URL(request.url).pathname !== "/.well-known/assetlinks.json") return next();

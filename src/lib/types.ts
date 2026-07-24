@@ -14,6 +14,7 @@ export type Product = {
   pcs: number | null;
   type: string;
   sort_order: number;
+  featured: boolean;
   promotion_id: string | null;
   created_at: string;
   updated_at: string;

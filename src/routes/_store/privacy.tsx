@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const SITE = "https://bosbapremiumfoods.com";
+const SITE = "https://bosbadrinksnack.com";
 const UPDATED = "29 June 2026";
 
 export const Route = createFileRoute("/_store/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy Policy — BOSBA Premium Foods" },
+      { title: "Privacy Policy — BOSBA Drink Snack" },
       {
         name: "description",
-        content: "How BOSBA Premium Foods collects, uses, and protects your personal information.",
+        content: "How BOSBA Drink Snack collects, uses, and protects your personal information.",
       },
     ],
     links: [{ rel: "canonical", href: `${SITE}/privacy` }],
@@ -27,8 +27,8 @@ function Privacy() {
 
       <div className="mt-8 space-y-8 text-[15px] leading-relaxed text-muted-foreground [&_h2]:font-display [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:text-foreground [&_h2]:mt-8 [&_h2]:mb-2 [&_a]:text-brand [&_a]:underline">
         <p>
-          BOSBA Premium Foods (“we”, “us”) operates the website at{" "}
-          <a href={SITE}>bosbapremiumfoods.com</a> and its companion mobile app. This policy explains
+          BOSBA Drink Snack (“we”, “us”) operates the website at{" "}
+          <a href={SITE}>bosbadrinksnack.com</a> and its companion mobile app. This policy explains
           what information we collect, how we use it, and the choices you have. By using our store
           you agree to this policy.
         </p>
@@ -138,7 +138,7 @@ function Privacy() {
         <div>
           <h2>Contact us</h2>
           <p>
-            BOSBA Premium Foods
+            BOSBA Drink Snack
             <br />
             Sangkat Tuol Svay Prey Ti Muoy, Phnom Penh, Cambodia
             <br />

@@ -34,15 +34,15 @@ export const Route = createFileRoute("/_store/shop")({
   }),
   head: () => ({
     meta: [
-      { title: "Shop — BOSBA Premium Foods" },
+      { title: "Shop — BOSBA Drink Snack" },
       {
         name: "description",
         content:
-          "Browse premium Japanese seafood and foods — sashimi-grade tuna, salmon, uni, scallops and more, delivered chilled.",
+          "Browse Japanese drinks and snacks — beer, plum wine, seaweed, miso, sweets and more, delivered across Cambodia.",
       },
-      { property: "og:url", content: "https://bosbapremiumfoods.com/shop" },
+      { property: "og:url", content: "https://bosbadrinksnack.com/shop" },
     ],
-    links: [{ rel: "canonical", href: "https://bosbapremiumfoods.com/shop" }],
+    links: [{ rel: "canonical", href: "https://bosbadrinksnack.com/shop" }],
   }),
   component: Shop,
 });

@@ -3,13 +3,13 @@ import { ArrowRight } from "lucide-react";
 import { useHeroSlides } from "@/hooks/use-products";
 import type { HeroSlide } from "@/lib/types";
 
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?w=1600&q=80";
+const FALLBACK_IMAGE = "/logo.png";
 
 const FALLBACK_SLIDE: HeroSlide = {
   id: "fallback",
   eyebrow: null,
-  title_top: "Premium",
-  title_accent: "Bluefin Tuna",
+  title_top: "Japanese",
+  title_accent: "Drinks & Snacks",
   title_bottom: null,
   body: null,
   image_url: FALLBACK_IMAGE,

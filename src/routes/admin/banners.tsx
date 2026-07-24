@@ -196,7 +196,7 @@ function BannersAdmin() {
               <Input
                 value={form.eyebrow}
                 onChange={(e) => setForm({ ...form, eyebrow: e.target.value })}
-                placeholder="Sashimi Grade"
+                placeholder="New Arrivals"
               />
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -230,7 +230,7 @@ function BannersAdmin() {
               <Textarea
                 value={form.body}
                 onChange={(e) => setForm({ ...form, body: e.target.value })}
-                placeholder="Sashimi-grade seafood flown from Japanese waters to your door."
+                placeholder="Genuine Japanese drinks and snacks, delivered to your door."
               />
             </div>
             <div className="grid grid-cols-2 gap-4">

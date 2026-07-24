@@ -8,7 +8,7 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-const TITLE = "Install the BOSBA Premium Foods App";
+const TITLE = "Install the BOSBA Drink Snack App";
 const DISMISS_KEY = "bosba:install-dismissed";
 // Re-offer after a while rather than never showing again.
 const DISMISS_DAYS = 14;

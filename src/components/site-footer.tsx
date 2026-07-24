@@ -14,11 +14,11 @@ export function SiteFooter() {
           <div className="flex items-center gap-2">
             <img
               src="/logo.png"
-              alt="BOSBA Premium Foods"
+              alt="BOSBA Drink Snack"
               className="size-12 rounded-lg object-contain"
             />
             <span className="font-display text-xl font-bold tracking-tight">
-              BOSBA Premium Foods
+              BOSBA Drink Snack
             </span>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">{t("footer.tagline")}</p>
@@ -94,7 +94,7 @@ export function SiteFooter() {
           </div>
           <div className="flex items-center gap-3 mt-5 px-1">
             <a
-              href="https://www.facebook.com/bosbapremiumfoods"
+              href="#"
               target="_blank"
               rel="noreferrer"
               aria-label="Facebook"
@@ -103,7 +103,7 @@ export function SiteFooter() {
               <Facebook className="size-4" />
             </a>
             <a
-              href="https://www.instagram.com/bosbapremiumfoods/"
+              href="#"
               target="_blank"
               rel="noreferrer"
               aria-label="Instagram"
@@ -112,7 +112,7 @@ export function SiteFooter() {
               <Instagram className="size-4" />
             </a>
             <a
-              href="https://www.tiktok.com/@bosbapremiumfoods"
+              href="#"
               target="_blank"
               rel="noreferrer"
               aria-label="TikTok"
@@ -139,7 +139,7 @@ export function SiteFooter() {
 
       <div className="border-t border-border">
         <div className="mx-auto max-w-7xl px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>© 2026 BOSBA Premium Foods</span>
+          <span>© 2026 BOSBA Drink Snack</span>
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             <Link to="/privacy" className="hover:text-foreground transition-colors">
               {t("footer.privacy")}

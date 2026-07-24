@@ -8,14 +8,14 @@ import { groupVariations } from "@/lib/variants";
 export const Route = createFileRoute("/_store/offers")({
   head: () => ({
     meta: [
-      { title: "Offers — BOSBA Premium Foods" },
+      { title: "Offers — BOSBA Drink Snack" },
       {
         name: "description",
-        content: "Limited-time offers and seasonal deals on premium Japanese seafood and foods.",
+        content: "Limited-time offers and seasonal deals on Japanese drinks and snacks.",
       },
-      { property: "og:url", content: "https://bosbapremiumfoods.com/offers" },
+      { property: "og:url", content: "https://bosbadrinksnack.com/offers" },
     ],
-    links: [{ rel: "canonical", href: "https://bosbapremiumfoods.com/offers" }],
+    links: [{ rel: "canonical", href: "https://bosbadrinksnack.com/offers" }],
   }),
   component: Offers,
 });

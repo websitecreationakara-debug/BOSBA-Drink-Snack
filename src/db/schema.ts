@@ -72,6 +72,8 @@ export const products = sqliteTable("products", {
   type: text("type").notNull().default("simple"),
   // Manual display order (admin drag-to-reorder). Lower = earlier. Ties break by created_at.
   sort_order: integer("sort_order").notNull().default(0),
+  // Shown in the homepage "Featured" section when true. Admin-set, not inferred from title/category.
+  featured: integer("featured", { mode: "boolean" }).notNull().default(false),
   // Optional marketing offer this product belongs to. Cleared if the promotion is deleted.
   promotion_id: text("promotion_id").references(() => promotions.id, { onDelete: "set null" }),
   created_at: text("created_at").notNull().$defaultFn(nowIso),

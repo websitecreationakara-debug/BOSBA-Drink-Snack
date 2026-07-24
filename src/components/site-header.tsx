@@ -67,10 +67,10 @@ export function SiteHeader() {
             <Menu className="size-5" />
           </button>
 
-          <Link to="/" className="flex items-center shrink-0" aria-label="BOSBA Premium Foods">
+          <Link to="/" className="flex items-center shrink-0" aria-label="BOSBA Drink Snack">
             <img
               src="/logo.png"
-              alt="BOSBA Premium Foods"
+              alt="BOSBA Drink Snack"
               className="size-10 md:size-12 rounded-md object-contain"
             />
           </Link>
@@ -237,7 +237,7 @@ export function SiteHeader() {
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
         <SheetContent side="left" className="w-[86%] max-w-sm flex flex-col p-0">
           <SheetHeader className="px-5 py-4 border-b text-left">
-            <SheetTitle className="font-display text-lg text-brand">BOSBA Premium Foods</SheetTitle>
+            <SheetTitle className="font-display text-lg text-brand">BOSBA Drink Snack</SheetTitle>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">

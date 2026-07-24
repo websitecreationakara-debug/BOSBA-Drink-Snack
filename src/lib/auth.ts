@@ -31,7 +31,7 @@ export function getAuth() {
   if (_auth) return _auth;
 
   const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
-  const from = env.RESEND_FROM ?? "BOSBA Premium Foods <onboarding@resend.dev>";
+  const from = env.RESEND_FROM ?? "BOSBA Drink Snack <onboarding@resend.dev>";
 
   const sendEmail = async (to: string, subject: string, html: string, logLine: string) => {
     if (!resend) {
@@ -93,7 +93,7 @@ export function getAuth() {
       // TOTP authenticator-app 2FA. When a user has it enabled, sign-in returns
       // a twoFactorRedirect instead of a session until they enter a valid code.
       // "issuer" is the label shown in Google Authenticator etc.
-      twoFactor({ issuer: "BOSBA Premium Foods" }),
+      twoFactor({ issuer: "BOSBA Drink Snack" }),
       // Google reCAPTCHA v3 on sign-up, sign-in, and password-reset requests.
       // Only active when the secret is configured — otherwise auth runs without
       // a captcha (the client also skips the token when no site key is set).
