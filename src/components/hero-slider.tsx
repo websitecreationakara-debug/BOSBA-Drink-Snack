@@ -38,7 +38,7 @@ export function HeroSlider() {
   const ctaLink = s.cta_link || "/shop";
 
   return (
-    <section className="relative w-full overflow-hidden bg-muted">
+    <section className="lantern-glow relative w-full overflow-hidden bg-muted">
       <div className="relative aspect-[4/3] sm:aspect-[16/9] md:aspect-[2726/1135]">
         {list.map((slide, i) => (
           <img

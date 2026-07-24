@@ -34,7 +34,7 @@ export function ProductCard({
     <Link
       to="/product/$id"
       params={{ id: slugify(product.title) || product.id }}
-      className="group flex flex-col rounded-3xl bg-muted p-3 transition-colors hover:bg-accent"
+      className="group flex flex-col rounded-3xl bg-muted p-3 transition-all hover:bg-accent hover:shadow-lantern"
     >
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-background">
         {product.image_url ? (

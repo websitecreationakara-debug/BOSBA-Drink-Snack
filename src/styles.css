@@ -46,109 +46,109 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Kalam", "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 1.125rem;
   color-scheme: light;
 
-  /* LIGHT theme — matches the real logo: white + black + yellow */
-  --background: #ffffff;
-  --foreground: #141414;
-  --surface: #ffffff;
+  /* LIGHT theme — izakaya lantern warmth: paper cream + wood + lantern red + gold glow */
+  --background: #f8efe0;
+  --foreground: #2b1e14;
+  --surface: #fffaf1;
 
-  --card: #ffffff;
-  --card-foreground: #141414;
-  --popover: #ffffff;
-  --popover-foreground: #141414;
+  --card: #fffaf1;
+  --card-foreground: #2b1e14;
+  --popover: #fffaf1;
+  --popover-foreground: #2b1e14;
 
-  --brand: #f7c744;
-  --brand-foreground: #141414;
+  --brand: #a63a2a;
+  --brand-foreground: #fdf6ea;
 
-  --primary: #f7c744;
-  --primary-foreground: #141414;
+  --primary: #a63a2a;
+  --primary-foreground: #fdf6ea;
 
-  --secondary: #f4f4f2;
-  --secondary-foreground: #141414;
+  --secondary: #ecdec4;
+  --secondary-foreground: #2b1e14;
 
-  --muted: #f4f4f2;
-  --muted-foreground: #6e6e66;
+  --muted: #f1e6d3;
+  --muted-foreground: #7a6a52;
 
-  --accent: #fdf1cf;
-  --accent-foreground: #8a6a12;
-  --secondary-accent: #f7c744;
+  --accent: #f6dfa0;
+  --accent-foreground: #4a2e10;
+  --secondary-accent: #f0b429;
 
-  --destructive: #c23b2c;
-  --destructive-foreground: #ffffff;
+  --destructive: #d1453a;
+  --destructive-foreground: #fdf6ea;
 
-  --success: #2f7d5b;
-  --warning: #c17a1f;
+  --success: #4c7a4a;
+  --warning: #d68a1f;
 
-  --border: rgba(0, 0, 0, 0.1);
-  --input: rgba(0, 0, 0, 0.12);
-  --ring: #f7c744;
+  --border: rgba(43, 30, 20, 0.14);
+  --input: rgba(43, 30, 20, 0.16);
+  --ring: #f0b429;
 
-  --sidebar: #ffffff;
-  --sidebar-foreground: #141414;
-  --sidebar-primary: #f7c744;
-  --sidebar-primary-foreground: #141414;
-  --sidebar-accent: #f4f4f2;
-  --sidebar-accent-foreground: #141414;
-  --sidebar-border: rgba(0, 0, 0, 0.1);
-  --sidebar-ring: #f7c744;
+  --sidebar: #fffaf1;
+  --sidebar-foreground: #2b1e14;
+  --sidebar-primary: #a63a2a;
+  --sidebar-primary-foreground: #fdf6ea;
+  --sidebar-accent: #ecdec4;
+  --sidebar-accent-foreground: #2b1e14;
+  --sidebar-border: rgba(43, 30, 20, 0.14);
+  --sidebar-ring: #f0b429;
 }
 
 .dark {
-  /* DARK (default) — matches the real logo's black badge: near-black + yellow + white */
+  /* DARK (default) — izakaya at night: deep wood charcoal + glowing red lantern + gold light */
   /* Render native controls (date/time pickers, their calendar icons) in dark. */
   color-scheme: dark;
-  --background: #0d0d0d;
-  --foreground: #f7f7f2;
-  --surface: #141414;
+  --background: #1b140f;
+  --foreground: #f3e6d0;
+  --surface: #241b14;
 
-  --card: #141414;
-  --card-foreground: #f7f7f2;
-  --popover: #171717;
-  --popover-foreground: #f7f7f2;
+  --card: #241b14;
+  --card-foreground: #f3e6d0;
+  --popover: #291f16;
+  --popover-foreground: #f3e6d0;
 
-  --brand: #f7c744;
-  --brand-foreground: #141414;
+  --brand: #d9503c;
+  --brand-foreground: #1b140f;
 
-  --primary: #f7c744;
-  --primary-foreground: #141414;
+  --primary: #d9503c;
+  --primary-foreground: #f8ede0;
 
-  --secondary: #1a1a1a;
-  --secondary-foreground: #f7f7f2;
+  --secondary: #2c2119;
+  --secondary-foreground: #f3e6d0;
 
-  --muted: #1a1a1a;
-  --muted-foreground: #9a9a92;
+  --muted: #2c2119;
+  --muted-foreground: #a89478;
 
-  /* warm dark elevated surface for hover/active backgrounds; pale yellow for the text/highlight on top */
-  --accent: #201c10;
-  --accent-foreground: #ffe285;
-  --secondary-accent: #f7c744;
+  /* warm elevated surface for hover/active backgrounds; lantern gold for the text/highlight on top */
+  --accent: #3a2712;
+  --accent-foreground: #f4c65a;
+  --secondary-accent: #f0b429;
 
   --destructive: #e2574a;
-  --destructive-foreground: #f7f7f2;
+  --destructive-foreground: #f3e6d0;
 
-  --success: #4c9a7c;
-  --warning: #e0a83a;
+  --success: #5c9a5a;
+  --warning: #e3a458;
 
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.1);
-  --ring: #f7c744;
+  --border: rgba(243, 230, 208, 0.1);
+  --input: rgba(243, 230, 208, 0.12);
+  --ring: #f0b429;
 
-  --sidebar: #141414;
-  --sidebar-foreground: #f7f7f2;
-  --sidebar-primary: #f7c744;
-  --sidebar-primary-foreground: #141414;
-  --sidebar-accent: #201c10;
-  --sidebar-accent-foreground: #ffe285;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #f7c744;
+  --sidebar: #241b14;
+  --sidebar-foreground: #f3e6d0;
+  --sidebar-primary: #d9503c;
+  --sidebar-primary-foreground: #f8ede0;
+  --sidebar-accent: #3a2712;
+  --sidebar-accent-foreground: #f4c65a;
+  --sidebar-border: rgba(243, 230, 208, 0.1);
+  --sidebar-ring: #f0b429;
 }
 
 @layer base {
@@ -164,8 +164,37 @@
 
 @layer utilities {
   .bg-grid {
-    background-image: radial-gradient(rgba(247, 199, 68, 0.1) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(240, 180, 41, 0.12) 1px, transparent 1px);
     background-size: 24px 24px;
   }
   .text-balance { text-wrap: balance; }
+
+  /* Warm paper-lantern glow — a soft red/gold radial haze, like light through a
+     chochin lantern. Used behind hero/section headers as the site's signature
+     visual motif instead of a plain flat background. */
+  .lantern-glow {
+    position: relative;
+    isolation: isolate;
+  }
+  .lantern-glow::before {
+    content: "";
+    position: absolute;
+    inset: -20% -10% auto -10%;
+    height: 140%;
+    background: radial-gradient(
+      60% 55% at 50% 0%,
+      color-mix(in srgb, var(--secondary-accent) 35%, transparent) 0%,
+      color-mix(in srgb, var(--brand) 22%, transparent) 40%,
+      transparent 75%
+    );
+    filter: blur(8px);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Cozy tactile card shadow — warm-toned instead of neutral black, gives
+     product/category cards a lit-from-the-lantern feel on hover. */
+  .shadow-lantern {
+    box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--brand) 35%, transparent);
+  }
 }

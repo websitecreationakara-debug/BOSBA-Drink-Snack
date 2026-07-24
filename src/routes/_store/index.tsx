@@ -105,7 +105,7 @@ function Home() {
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
-                  <span className="text-4xl">{["🍶", "🍺", "🌊", "🥢", "🍡", "🧂", "🍵", "🍱"][i % 8]}</span>
+                  <span className="text-4xl">{["🍶", "🍺", "🏮", "🥢", "🍡", "🧂", "🍵", "🍱"][i % 8]}</span>
                 )}
               </div>
               <p className="font-display font-semibold text-base text-foreground">{c.name}</p>
@@ -170,7 +170,7 @@ function Home() {
 
       {/* CTA Banner — centered, soft fill. The Join button is hidden once logged in. */}
       <section className="mx-auto max-w-6xl px-6">
-        <div className="rounded-3xl bg-muted px-6 py-20 md:py-28 text-center">
+        <div className="lantern-glow rounded-3xl bg-muted px-6 py-20 md:py-28 text-center overflow-hidden">
           <p className="text-sm font-medium uppercase tracking-widest text-brand mb-4">
             {t("cta.member")}
           </p>
