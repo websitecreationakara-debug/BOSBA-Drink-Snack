@@ -6,12 +6,12 @@ type Ctx = { theme: Theme; toggle: () => void };
 const ThemeContext = createContext<Ctx | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Default light (cream brand theme). The class is also set on <html> in the
-  // shell so there's no flash before hydration.
-  const [theme, setTheme] = useState<Theme>("light");
+  // Default dark (matches the real logo's black badge). The class is also
+  // set on <html> in the shell so there's no flash before hydration.
+  const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    const saved = (localStorage.getItem("theme") as Theme | null) ?? "light";
+    const saved = (localStorage.getItem("theme") as Theme | null) ?? "dark";
     setTheme(saved);
     document.documentElement.classList.toggle("dark", saved === "dark");
   }, []);

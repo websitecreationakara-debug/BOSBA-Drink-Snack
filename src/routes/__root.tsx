@@ -124,7 +124,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { title: "BOSBA Premium Foods" },
       { name: "description", content: "Provides High Premium Quality Foods From Japan" },
-      { name: "theme-color", content: "#2b4a8c" },
+      { name: "theme-color", content: "#f7c744" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
@@ -167,7 +167,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
         <script dangerouslySetInnerHTML={{ __html: BIP_CAPTURE }} />

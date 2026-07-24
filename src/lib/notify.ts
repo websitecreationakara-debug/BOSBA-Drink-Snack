@@ -62,15 +62,15 @@ const siteUrl = () => env.SITE_URL?.trim() || "https://bosbapremiumfoods.com";
 // a logo banner on top and a footer strip — receipt-like, consistent branding.
 // The light band keeps the black wordmark readable in dark-mode inboxes too.
 export const emailShell = (content: string): string => `
-  <div style="margin:0;padding:0;background:#fdfaf3">
+  <div style="margin:0;padding:0;background:#f4f4f2">
     <div style="max-width:560px;margin:0 auto;padding:24px 16px">
-      <div style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e7e0d2">
-        <div style="background:#fbf7ee;padding:22px 0;text-align:center;border-bottom:1px solid #e7e0d2">
+      <div style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e5e2">
+        <div style="background:#141414;padding:22px 0;text-align:center;border-bottom:3px solid #f7c744">
           <img src="${logoUrl()}" alt="${escapeHtml(siteName())}" width="220" style="display:inline-block;max-width:220px;height:auto;border:0" />
         </div>
         <div style="font-family:system-ui,sans-serif;padding:28px 28px 24px">${content}</div>
-        <div style="background:#fbf8f1;border-top:1px solid #e7e0d2;padding:14px 28px;font-family:system-ui,sans-serif">
-          <p style="margin:0;font-size:12px;color:#7a7566">${escapeHtml(siteName())} · <a href="${siteUrl()}" style="color:#2b4a8c">${siteUrl().replace(/^https?:\/\//, "")}</a></p>
+        <div style="background:#faf8f0;border-top:1px solid #e5e5e2;padding:14px 28px;font-family:system-ui,sans-serif">
+          <p style="margin:0;font-size:12px;color:#767671">${escapeHtml(siteName())} · <a href="${siteUrl()}" style="color:#8a6a12">${siteUrl().replace(/^https?:\/\//, "")}</a></p>
         </div>
       </div>
     </div>

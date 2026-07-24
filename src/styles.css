@@ -55,100 +55,100 @@
   --radius: 0.875rem;
   color-scheme: light;
 
-  /* LIGHT theme (default) — cream + indigo + coral */
-  --background: #fdfaf3;
-  --foreground: #201d17;
+  /* LIGHT theme — matches the real logo: white + black + yellow */
+  --background: #ffffff;
+  --foreground: #141414;
   --surface: #ffffff;
 
   --card: #ffffff;
-  --card-foreground: #201d17;
+  --card-foreground: #141414;
   --popover: #ffffff;
-  --popover-foreground: #201d17;
+  --popover-foreground: #141414;
 
-  --brand: #2b4a8c;
-  --brand-foreground: #fdfaf3;
+  --brand: #f7c744;
+  --brand-foreground: #141414;
 
-  --primary: #2b4a8c;
-  --primary-foreground: #fdfaf3;
+  --primary: #f7c744;
+  --primary-foreground: #141414;
 
-  --secondary: #f1ece0;
-  --secondary-foreground: #201d17;
+  --secondary: #f4f4f2;
+  --secondary-foreground: #141414;
 
-  --muted: #f1ece0;
-  --muted-foreground: #716c5e;
+  --muted: #f4f4f2;
+  --muted-foreground: #6e6e66;
 
-  --accent: #fbe2da;
-  --accent-foreground: #a8402c;
-  --secondary-accent: #e6604a;
+  --accent: #fdf1cf;
+  --accent-foreground: #8a6a12;
+  --secondary-accent: #f7c744;
 
-  --destructive: #b3261e;
+  --destructive: #c23b2c;
   --destructive-foreground: #ffffff;
 
   --success: #2f7d5b;
   --warning: #c17a1f;
 
-  --border: rgba(43, 74, 140, 0.14);
-  --input: rgba(43, 74, 140, 0.16);
-  --ring: #2b4a8c;
+  --border: rgba(0, 0, 0, 0.1);
+  --input: rgba(0, 0, 0, 0.12);
+  --ring: #f7c744;
 
   --sidebar: #ffffff;
-  --sidebar-foreground: #201d17;
-  --sidebar-primary: #2b4a8c;
-  --sidebar-primary-foreground: #fdfaf3;
-  --sidebar-accent: #f1ece0;
-  --sidebar-accent-foreground: #201d17;
-  --sidebar-border: rgba(43, 74, 140, 0.14);
-  --sidebar-ring: #2b4a8c;
+  --sidebar-foreground: #141414;
+  --sidebar-primary: #f7c744;
+  --sidebar-primary-foreground: #141414;
+  --sidebar-accent: #f4f4f2;
+  --sidebar-accent-foreground: #141414;
+  --sidebar-border: rgba(0, 0, 0, 0.1);
+  --sidebar-ring: #f7c744;
 }
 
 .dark {
-  /* DARK — deep indigo + cream text + coral accent */
+  /* DARK (default) — matches the real logo's black badge: near-black + yellow + white */
   /* Render native controls (date/time pickers, their calendar icons) in dark. */
   color-scheme: dark;
-  --background: #10162a;
-  --foreground: #fdfaf3;
-  --surface: #141b33;
+  --background: #0d0d0d;
+  --foreground: #f7f7f2;
+  --surface: #141414;
 
-  --card: #141b33;
-  --card-foreground: #fdfaf3;
-  --popover: #171f3b;
-  --popover-foreground: #fdfaf3;
+  --card: #141414;
+  --card-foreground: #f7f7f2;
+  --popover: #171717;
+  --popover-foreground: #f7f7f2;
 
-  --brand: #7695d6;
-  --brand-foreground: #10162a;
+  --brand: #f7c744;
+  --brand-foreground: #141414;
 
-  --primary: #7695d6;
-  --primary-foreground: #10162a;
+  --primary: #f7c744;
+  --primary-foreground: #141414;
 
-  --secondary: #1b2340;
-  --secondary-foreground: #fdfaf3;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #f7f7f2;
 
-  --muted: #1b2340;
-  --muted-foreground: #9aa3c4;
+  --muted: #1a1a1a;
+  --muted-foreground: #9a9a92;
 
-  /* elevated indigo surface for hover/active backgrounds; coral for the text/highlight on top */
-  --accent: #2a1c18;
-  --accent-foreground: #f4977f;
-  --secondary-accent: #e6604a;
+  /* warm dark elevated surface for hover/active backgrounds; pale yellow for the text/highlight on top */
+  --accent: #201c10;
+  --accent-foreground: #ffe285;
+  --secondary-accent: #f7c744;
 
   --destructive: #e2574a;
-  --destructive-foreground: #fdfaf3;
+  --destructive-foreground: #f7f7f2;
 
   --success: #4c9a7c;
-  --warning: #e3a458;
+  --warning: #e0a83a;
 
-  --border: rgba(253, 250, 243, 0.1);
-  --input: rgba(253, 250, 243, 0.12);
-  --ring: #7695d6;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #f7c744;
 
-  --sidebar: #141b33;
-  --sidebar-foreground: #fdfaf3;
-  --sidebar-primary: #7695d6;
-  --sidebar-primary-foreground: #10162a;
-  --sidebar-accent: #2a1c18;
-  --sidebar-accent-foreground: #f4977f;
-  --sidebar-border: rgba(253, 250, 243, 0.1);
-  --sidebar-ring: #7695d6;
+  --sidebar: #141414;
+  --sidebar-foreground: #f7f7f2;
+  --sidebar-primary: #f7c744;
+  --sidebar-primary-foreground: #141414;
+  --sidebar-accent: #201c10;
+  --sidebar-accent-foreground: #ffe285;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #f7c744;
 }
 
 @layer base {
@@ -164,7 +164,7 @@
 
 @layer utilities {
   .bg-grid {
-    background-image: radial-gradient(rgba(43, 74, 140, 0.08) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(247, 199, 68, 0.1) 1px, transparent 1px);
     background-size: 24px 24px;
   }
   .text-balance { text-wrap: balance; }
