@@ -61,7 +61,7 @@ export async function downloadInvoice(order: InvoiceOrder) {
   let infoY = 20;
   if (logo) {
     const w = 50;
-    const h = w * (90 / 312); // preserve the logo's aspect ratio
+    const h = w * (248 / 440); // preserve the logo's aspect ratio
     doc.addImage(logo, "PNG", M, 12, w, h);
     infoY = 12 + h + 5;
   }

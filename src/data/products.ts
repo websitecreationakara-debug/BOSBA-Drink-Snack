@@ -20,6 +20,7 @@ type ProductInput = {
   weight: string | null;
   pcs: number | null;
   type: string;
+  featured: boolean;
   promotion_id: string | null;
 };
 

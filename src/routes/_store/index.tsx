@@ -15,6 +15,21 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { groupVariations, productFromPrice } from "@/lib/variants";
 
+// Fallback icon shown for a category with no image_url set, keyed by exact
+// category name (not position) so it actually matches what the category is.
+// Unknown/new categories (e.g. added later via admin) fall back to a lantern.
+const CATEGORY_EMOJI: Record<string, string> = {
+  "Plum Wine": "🍶",
+  Shochu: "🥃",
+  Seaweed: "🌿",
+  "Premium Beer": "🍺",
+  Ingredient: "🧂",
+  Miso: "🍲",
+  Dessert: "🍡",
+  Convenient: "🍱",
+};
+const categoryEmoji = (name: string) => CATEGORY_EMOJI[name] ?? "🏮";
+
 export const Route = createFileRoute("/_store/")({
   head: () => ({
     meta: [
@@ -90,7 +105,7 @@ function Home() {
           <p className="text-lg text-muted-foreground mt-3">{t("home.shopByCategorySub")}</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {categories.map((c, i) => (
+          {categories.map((c) => (
             <Link
               key={c.id}
               to="/shop"
@@ -105,7 +120,7 @@ function Home() {
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
-                  <span className="text-4xl">{["🍶", "🍺", "🏮", "🥢", "🍡", "🧂", "🍵", "🍱"][i % 8]}</span>
+                  <span className="text-4xl">{categoryEmoji(c.name)}</span>
                 )}
               </div>
               <p className="font-display font-semibold text-base text-foreground">{c.name}</p>

@@ -144,7 +144,7 @@ function Privacy() {
             <br />
             Phone: <a href="tel:+85599361350">+855 99 361 350</a>
             <br />
-            Telegram: <a href="https://t.me/bosbapremiumsfoods">@bosbapremiumsfoods</a>
+            Telegram: <a href="https://t.me/bosbadrinksnack">@bosbadrinksnack</a>
           </p>
         </div>
       </div>

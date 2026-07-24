@@ -205,7 +205,7 @@ function BannersAdmin() {
                 <Input
                   value={form.title_top}
                   onChange={(e) => setForm({ ...form, title_top: e.target.value })}
-                  placeholder="Ocean"
+                  placeholder="Japanese"
                 />
               </div>
               <div>
@@ -213,7 +213,7 @@ function BannersAdmin() {
                 <Input
                   value={form.title_accent}
                   onChange={(e) => setForm({ ...form, title_accent: e.target.value })}
-                  placeholder="Fresh"
+                  placeholder="Drinks & Snacks"
                 />
               </div>
               <div>

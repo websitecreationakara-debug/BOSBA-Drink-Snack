@@ -94,7 +94,7 @@ export function SiteFooter() {
           </div>
           <div className="flex items-center gap-3 mt-5 px-1">
             <a
-              href="#"
+              href="https://www.facebook.com/bosbadrinksnack"
               target="_blank"
               rel="noreferrer"
               aria-label="Facebook"
@@ -103,7 +103,7 @@ export function SiteFooter() {
               <Facebook className="size-4" />
             </a>
             <a
-              href="#"
+              href="https://www.instagram.com/bosbadrinksnack/"
               target="_blank"
               rel="noreferrer"
               aria-label="Instagram"
@@ -112,7 +112,7 @@ export function SiteFooter() {
               <Instagram className="size-4" />
             </a>
             <a
-              href="#"
+              href="https://www.tiktok.com/@bosbadrinksnack"
               target="_blank"
               rel="noreferrer"
               aria-label="TikTok"
@@ -123,7 +123,7 @@ export function SiteFooter() {
               </svg>
             </a>
             <a
-              href="https://t.me/bosbapremiumsfoods"
+              href="https://t.me/bosbadrinksnack"
               target="_blank"
               rel="noreferrer"
               aria-label="Telegram"
