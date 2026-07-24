@@ -12,7 +12,7 @@ export function renderErrorPage(): string {
       p { color: #888880; margin: 0 0 1.5rem; }
       .actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
       a, button { padding: 0.5rem 1rem; border-radius: 0.375rem; font: inherit; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
-      .primary { background: #c9a84c; color: #0a0a0a; }
+      .primary { background: #2b4a8c; color: #fdfaf3; }
       .secondary { background: transparent; color: #f0ede6; border-color: rgba(255,255,255,0.16); }
     </style>
   </head>
