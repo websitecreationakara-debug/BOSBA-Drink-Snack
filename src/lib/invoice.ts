@@ -25,7 +25,8 @@ const STORE = {
   site: "bosbadrinksnack.com",
 };
 
-const BRAND: [number, number, number] = [201, 168, 76];
+const BRAND: [number, number, number] = [166, 58, 42]; // #a63a2a lantern red
+const BRAND_TEXT: [number, number, number] = [253, 246, 234]; // #fdf6ea cream
 
 async function loadLogo(): Promise<string | null> {
   try {
@@ -84,18 +85,25 @@ export async function downloadInvoice(order: InvoiceOrder) {
   doc.text(`Date: ${new Date(order.created_at).toLocaleDateString()}`, pageW - M, 30, {
     align: "right",
   });
+  let rightBottom = 30;
   if (order.status) {
     doc.text(`Status: ${order.status}`, pageW - M, 34, { align: "right" });
+    rightBottom = 34;
   }
 
+  // Separator + "Bill To" adapt to however tall the logo/header block actually
+  // is, instead of assuming a fixed height (a taller logo used to overlap
+  // these when they were hardcoded).
+  const lineY = Math.max(infoY + 8, rightBottom + 6, 40);
   doc.setDrawColor(220);
-  doc.line(M, 40, pageW - M, 40);
+  doc.line(M, lineY, pageW - M, lineY);
 
   // ---- Bill To ----
+  const billToY = lineY + 10;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(30);
-  doc.text("Bill To", M, 50);
+  doc.text("Bill To", M, billToY);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
@@ -108,7 +116,7 @@ export async function downloadInvoice(order: InvoiceOrder) {
       ? "Pickup at store"
       : [order.address, order.city, order.postal_code].filter(Boolean).join(", ") || null,
   ].filter((l): l is string => Boolean(l));
-  let y = 56;
+  let y = billToY + 6;
   for (const line of billLines) {
     doc.text(line, M, y);
     y += 5;
@@ -128,8 +136,8 @@ export async function downloadInvoice(order: InvoiceOrder) {
       `$${it.price.toFixed(2)}`,
       `$${(it.price * it.qty).toFixed(2)}`,
     ]),
-    styles: { fontSize: 9, cellPadding: 3 },
-    headStyles: { fillColor: BRAND, textColor: [20, 20, 20], fontStyle: "bold" },
+    styles: { fontSize: 9, cellPadding: 3, textColor: [40, 40, 40] },
+    headStyles: { fillColor: BRAND, textColor: BRAND_TEXT, fontStyle: "bold" },
     columnStyles: {
       1: { halign: "center", cellWidth: 20 },
       2: { halign: "right", cellWidth: 32 },
