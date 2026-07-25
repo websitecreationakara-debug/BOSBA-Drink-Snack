@@ -2,6 +2,7 @@
 // emails the customer a confirmation. Reuses the same Resend setup as auth
 // emails. Never throws — a failed notification must not fail the order itself.
 import { Resend } from "resend";
+import { formatShippingAddress } from "./utils";
 
 type OrderItem = { id: string; title: string; qty: number; price: number };
 
@@ -89,14 +90,34 @@ const itemRowsHtml = (items: OrderItem[]): string =>
     )
     .join("");
 
+// Items carry the discounted-if-any line price already, so subtotal here is
+// what the customer was actually charged before shipping — same formula the
+// invoice PDF uses (order.total minus this is the delivery fee).
+const orderSubtotal = (order: OrderNotification): number =>
+  order.items.reduce((s, i) => s + i.price * i.qty, 0);
+const orderShipping = (order: OrderNotification): number =>
+  Math.max(0, Math.round((order.total - orderSubtotal(order)) * 100) / 100);
+
+// Shared Sub Total / Delivery Fee / Total block for both order-placed emails.
+const totalsHtml = (order: OrderNotification): string => {
+  const subtotal = orderSubtotal(order);
+  const shipping = orderShipping(order);
+  return `
+        <p style="margin:16px 0 0"><strong>Sub Total:</strong> $${subtotal.toFixed(2)}</p>
+        <p style="margin:2px 0 0"><strong>Delivery Fee:</strong> ${shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</p>
+        <p style="margin:6px 0 0;font-size:18px"><strong>Total: $${order.total.toFixed(2)}</strong></p>`;
+};
+
 export async function notifyNewOrder(order: OrderNotification): Promise<void> {
   const short = order.id.slice(0, 8);
   const isPickup = order.delivery_method === "pickup";
   const shipTo = isPickup
     ? "Pickup at store"
-    : [order.address, order.city, order.postal_code].filter(Boolean).join(", ");
+    : formatShippingAddress(order.address, order.city, order.postal_code);
   const mapLink = isPickup ? null : mapsUrl(order);
   const schedule = formatSchedule(order.scheduled_at);
+  const subtotal = orderSubtotal(order);
+  const shipping = orderShipping(order);
   const textSummary = [
     `Order #${short}`,
     `Customer: ${order.customer_name ?? "—"} (${order.customer_email ?? "—"})`,
@@ -106,6 +127,8 @@ export async function notifyNewOrder(order: OrderNotification): Promise<void> {
     ...(mapLink ? [`📍 Map: ${mapLink}`] : []),
     "Items:",
     ...order.items.map((i) => `  ${i.qty}× ${i.title} — $${(i.price * i.qty).toFixed(2)}`),
+    `Sub Total: $${subtotal.toFixed(2)}`,
+    `Delivery Fee: ${shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}`,
     `Total: $${order.total.toFixed(2)}`,
   ].join("\n");
 
@@ -170,7 +193,7 @@ async function sendEmail(
         ${formatSchedule(order.scheduled_at) ? `<p style="margin:0 0 2px"><strong>🗓️ Scheduled:</strong> ${escapeHtml(formatSchedule(order.scheduled_at)!)}</p>` : ""}
         ${order.delivery_method !== "pickup" && mapsUrl(order) ? `<p style="margin:0 0 16px"><strong>📍 Location:</strong> <a href="${mapsUrl(order)}">Open in Google Maps</a></p>` : ""}
         <table style="border-collapse:collapse;width:100%;border-top:1px solid #eee">${rows}</table>
-        <p style="margin:16px 0 0;font-size:18px"><strong>Total: $${order.total.toFixed(2)}</strong></p>`);
+        ${totalsHtml(order)}`);
     await resend.emails.send({
       from,
       to,
@@ -248,7 +271,7 @@ async function sendCustomerEmail(
         }
         ${formatSchedule(order.scheduled_at) ? `<p style="margin:0 0 16px"><strong>🗓️ Scheduled for:</strong> ${escapeHtml(formatSchedule(order.scheduled_at)!)}</p>` : ""}
         <table style="border-collapse:collapse;width:100%;border-top:1px solid #eee">${itemRowsHtml(order.items)}</table>
-        <p style="margin:16px 0 0;font-size:18px"><strong>Total: $${order.total.toFixed(2)}</strong></p>`);
+        ${totalsHtml(order)}`);
     await resend.emails.send({
       from,
       to,
