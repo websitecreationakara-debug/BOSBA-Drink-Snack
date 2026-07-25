@@ -1,4 +1,4 @@
-// Downloads a Bosba backup from Google Drive (gdrive:Bosba Premium Foods) and
+// Downloads a BOSBA Drink Snack backup from Google Drive (gdrive:BOSBA Drink Snack) and
 // unpacks the source snapshot for inspection. Does NOT touch the live
 // database — restoring overwrites production and can't be undone, so that
 // step is printed as a command for you to run yourself once you're sure.
@@ -10,10 +10,10 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const DB = "bosbapremiumfoods";
+const DB = "bosba-drink-snack";
 const RCLONE = "C:\\Users\\Demo\\.project-tracker\\bin\\rclone.exe";
-const DRIVE_REMOTE = "gdrive:Bosba Premium Foods";
-const RESTORE_DIR = "D:\\Backups\\bosba\\restore";
+const DRIVE_REMOTE = "gdrive:BOSBA Drink Snack";
+const RESTORE_DIR = "D:\\Backups\\bosba-drink-snack\\restore";
 
 const wantedDate = process.argv[2] ?? null;
 
@@ -62,6 +62,6 @@ if (srcFile) {
 
 console.log(`\nDatabase dump downloaded but NOT applied to: ${dbLocal}`);
 console.log("To restore it for real (THIS OVERWRITES PRODUCTION, cannot be undone), run:\n");
-console.log(`  cd "D:\\Ecommerce\\Bosba Premium Foods"`);
+console.log(`  cd "D:\\Ecommerce\\BOSBA Drink Snack"`);
 console.log(`  npx wrangler d1 execute ${DB} --remote --file "${dbLocal}"\n`);
 console.log("Consider restoring to a local D1 instance first (drop --remote) to sanity-check the dump.");

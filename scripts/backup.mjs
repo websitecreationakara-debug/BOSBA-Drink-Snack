@@ -4,29 +4,29 @@
 //   npm run backup
 //
 // Exports the ENTIRE remote D1 (schema + all rows, incl. media image BLOBs, users,
-// orders) to a timestamped .sql file under D:\Backups\bosba\, and archives the
-// current git HEAD to a matching .zip there too. Lives outside the project
-// folder (as a sibling of D:\Backups\phsar-ichiba\) so backups for the two
-// sites never mix, and so it's not tied to this repo's gitignore. These dumps
+// orders) to a timestamped .sql file under D:\Backups\bosba-drink-snack\, and archives
+// the current git HEAD to a matching .zip there too. Lives outside the project
+// folder (sibling of D:\Backups\bosba\ and D:\Backups\phsar-ichiba\) so backups for
+// each site never mix, and so it's not tied to this repo's gitignore. These dumps
 // contain OAuth tokens and password hashes — never commit or share them.
 // Restore the database with:
-//   wrangler d1 execute bosbapremiumfoods --remote --file <that-file>.sql
+//   wrangler d1 execute bosba-drink-snack --remote --file <that-file>.sql
 //
 // Old dumps/snapshots are pruned automatically, keeping the most recent KEEP of each,
-// both locally and in the Google Drive mirror (gdrive:Bosba Premium Foods).
+// both locally and in the Google Drive mirror (gdrive:BOSBA Drink Snack).
 
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const DB = "bosbapremiumfoods";
+const DB = "bosba-drink-snack";
 const KEEP = 8; // how many dumps to retain (weekly cadence -> ~2 months of history)
 const RCLONE = "C:\\Users\\Demo\\.project-tracker\\bin\\rclone.exe";
-const DRIVE_REMOTE = "gdrive:Bosba Premium Foods";
+const DRIVE_REMOTE = "gdrive:BOSBA Drink Snack";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const dir = "D:\\Backups\\bosba";
+const dir = "D:\\Backups\\bosba-drink-snack";
 fs.mkdirSync(dir, { recursive: true });
 
 const existing = (pattern) =>

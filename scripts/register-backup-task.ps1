@@ -1,4 +1,4 @@
-# One-time setup: registers the Bosba D1 + source backup as a Windows
+# One-time setup: registers the BOSBA Drink Snack D1 + source backup as a Windows
 # Scheduled Task. Run this once (as the Demo user, no admin rights needed).
 #
 # Triggers daily at 3:00 AM, but backup.mjs --auto only actually backs up
@@ -10,8 +10,8 @@
 # is skipped for that day if the machine is off or logged out at trigger
 # time (the next day's trigger will pick it back up).
 
-$TaskName = "Bosba-DailyBackupCheck"
-$ScriptPath = "D:\Ecommerce\Bosba Premium Foods\scripts\backup.cmd"
+$TaskName = "BosbaDrinkSnack-DailyBackupCheck"
+$ScriptPath = "D:\Ecommerce\BOSBA Drink Snack\scripts\backup.cmd"
 
 $Action = New-ScheduledTaskAction -Execute $ScriptPath
 
@@ -26,7 +26,7 @@ Register-ScheduledTask -TaskName $TaskName `
   -Action $Action `
   -Trigger $Trigger `
   -Settings $Settings `
-  -Description "Daily check (weekly-cadence, self-healing) D1 database export + source snapshot for Bosba Premium Foods, saved to D:\Ecommerce\Bosba Premium Foods\backups" `
+  -Description "Daily check (weekly-cadence, self-healing) D1 database export + source snapshot for BOSBA Drink Snack, saved to D:\Backups\bosba-drink-snack" `
   -Force
 
 Write-Output "Registered scheduled task '$TaskName' - checks daily at 3:00 AM, backs up roughly weekly."
