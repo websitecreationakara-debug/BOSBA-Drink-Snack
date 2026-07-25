@@ -123,7 +123,7 @@ export function SiteFooter() {
               </svg>
             </a>
             <a
-              href="https://t.me/bosbadrinksnack"
+              href="https://t.me/bosbadrinksnack_bot"
               target="_blank"
               rel="noreferrer"
               aria-label="Telegram"
