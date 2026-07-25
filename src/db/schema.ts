@@ -101,6 +101,9 @@ export const product_variations = sqliteTable("product_variations", {
   weight: text("weight").notNull(),
   price: real("price").notNull().default(0),
   sale_price: real("sale_price"),
+  // Optional per-variation photo (sizes often look visibly different, e.g. a
+  // 1.8L vs 720ml bottle). Null = fall back to the parent product's image_url.
+  image_url: text("image_url"),
   // null = stock untracked (always available); a number = tracked count (0 = out of stock).
   stock: integer("stock"),
   // Pieces per box for this weight, when sold by count. Null = N/A.

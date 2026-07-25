@@ -152,7 +152,10 @@ function ProductDetail() {
   const variationsByProduct = groupVariations(allVariations);
 
   // Cover first, then gallery photos; clicking a thumbnail swaps the big image.
-  const images = [product.image_url, ...galleryImages.map((g) => g.url)].filter(
+  // Sizes often look visibly different (e.g. a 1.8L vs 720ml bottle), so a
+  // variation with its own photo overrides the product's default cover.
+  const coverImage = (variable && selected?.image_url) || product.image_url;
+  const images = [coverImage, ...galleryImages.map((g) => g.url)].filter(
     (u): u is string => !!u,
   );
   const mainImage = activeImage && images.includes(activeImage) ? activeImage : images[0];
@@ -273,6 +276,7 @@ function ProductDetail() {
                     onClick={() => {
                       setSelectedId(v.id);
                       setQty(1);
+                      setActiveImage(null);
                     }}
                     className={cn(
                       "rounded-full border px-4 py-2 text-sm font-medium transition-colors",

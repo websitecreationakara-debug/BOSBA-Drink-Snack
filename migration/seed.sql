@@ -89,10 +89,10 @@ INSERT INTO store_settings (id, banner_text, global_discount_pct, free_shipping_
 -- Merge same-product different-size listings into variable products with variations.
 UPDATE products SET type = 'variable' WHERE id IN ('eb4ddfeb-a45f-47db-84d3-e5e4c3f42384', '6ed4f32c-a5dc-4441-a760-90dd8cfcb73d', '8bd9f957-fb93-4020-ac52-f836bef56cbe');
 
-INSERT INTO product_variations (id, product_id, weight, price, sort_order, created_at) VALUES
-  ('ac4c49e2-78d9-4b13-a921-f1e264d69729', 'eb4ddfeb-a45f-47db-84d3-e5e4c3f42384', '1.8L', 40.5, 0, '2026-07-25T06:02:40.457Z'),
-  ('39eae5ec-d19a-471c-a1f8-cb1f267a6df2', 'eb4ddfeb-a45f-47db-84d3-e5e4c3f42384', '720ml', 25, 1, '2026-07-25T06:02:40.457Z'),
-  ('24765690-a7f7-4ea0-8f30-71c4cc160c6e', '6ed4f32c-a5dc-4441-a760-90dd8cfcb73d', '500ml', 15, 0, '2026-07-25T06:02:40.457Z'),
-  ('d771fe07-a1d1-4420-a72b-5758f7df63b9', '6ed4f32c-a5dc-4441-a760-90dd8cfcb73d', '180ml', 5.5, 1, '2026-07-25T06:02:40.457Z'),
-  ('a88d31ab-4842-4540-ad83-56a1ea1d34c8', '8bd9f957-fb93-4020-ac52-f836bef56cbe', '500ml', 15, 0, '2026-07-25T06:02:40.457Z'),
-  ('0a40cfba-55f9-4283-9390-edc3f0b10009', '8bd9f957-fb93-4020-ac52-f836bef56cbe', '180ml', 5.5, 1, '2026-07-25T06:02:40.457Z');
+INSERT INTO product_variations (id, product_id, weight, price, sort_order, image_url, created_at) VALUES
+  ('ac4c49e2-78d9-4b13-a921-f1e264d69729', 'eb4ddfeb-a45f-47db-84d3-e5e4c3f42384', '1.8L', 40.5, 0, '/products/kurokirishima-shochu-imo-2.jpg', '2026-07-25T06:02:40.457Z'),
+  ('39eae5ec-d19a-471c-a1f8-cb1f267a6df2', 'eb4ddfeb-a45f-47db-84d3-e5e4c3f42384', '720ml', 25, 1, '/products/kurokirishima-shochu-imo.jpg', '2026-07-25T06:02:40.457Z'),
+  ('24765690-a7f7-4ea0-8f30-71c4cc160c6e', '6ed4f32c-a5dc-4441-a760-90dd8cfcb73d', '500ml', 15, 0, '/products/momohime-torokoku-plum-wine-peach-500ml.jpg', '2026-07-25T06:02:40.457Z'),
+  ('d771fe07-a1d1-4420-a72b-5758f7df63b9', '6ed4f32c-a5dc-4441-a760-90dd8cfcb73d', '180ml', 5.5, 1, '/products/momohime-torokoku-plum-wine-peach-180ml.jpg', '2026-07-25T06:02:40.457Z'),
+  ('a88d31ab-4842-4540-ad83-56a1ea1d34c8', '8bd9f957-fb93-4020-ac52-f836bef56cbe', '500ml', 15, 0, '/products/ringohime-torokoku-plum-wine-apple-500ml.jpg', '2026-07-25T06:02:40.457Z'),
+  ('0a40cfba-55f9-4283-9390-edc3f0b10009', '8bd9f957-fb93-4020-ac52-f836bef56cbe', '180ml', 5.5, 1, '/products/ringohime-torokoku-plum-wine-apple-500ml-2.jpg', '2026-07-25T06:02:40.457Z');
