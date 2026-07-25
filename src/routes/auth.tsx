@@ -170,7 +170,7 @@ function AuthPage() {
     <div className="min-h-screen grid md:grid-cols-2 bg-background">
       <div className="hidden md:block relative overflow-hidden bg-surface">
         <img
-          src="https://bosbadrinksnack.com/wp-content/uploads/2025/09/abashiri-ryuhyo-draft-blue-1.jpg"
+          src="/auth-banner.jpg"
           alt=""
           className="absolute inset-0 w-full h-full object-cover opacity-40"
         />
