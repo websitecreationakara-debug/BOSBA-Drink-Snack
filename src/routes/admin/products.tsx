@@ -110,6 +110,10 @@ function ProductsAdmin() {
   const [gallery, setGallery] = useState<string[]>([]);
   const [galleryUploading, setGalleryUploading] = useState(false);
   const [galleryPicker, setGalleryPicker] = useState(false);
+  // Per-variation photo upload: one shared hidden input, tracked by which row triggered it.
+  const varFileRef = useRef<HTMLInputElement>(null);
+  const [varUploadTarget, setVarUploadTarget] = useState<number | null>(null);
+  const [varUploading, setVarUploading] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [catFilter, setCatFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -208,6 +212,24 @@ function ProductsAdmin() {
     } finally {
       setGalleryUploading(false);
       if (galleryRef.current) galleryRef.current.value = "";
+    }
+  };
+
+  const onVariationUpload = async (index: number, file: File | undefined) => {
+    if (!file) return;
+    setVarUploading(index);
+    try {
+      const fd = new FormData();
+      fd.append("file", await compressImage(file));
+      const { url } = await uploadMedia({ data: fd });
+      setVars((rows) => rows.map((r, j) => (j === index ? { ...r, image_url: url } : r)));
+      qc.invalidateQueries({ queryKey: ["media"] });
+      toast.success("Image uploaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setVarUploading(null);
+      if (varFileRef.current) varFileRef.current.value = "";
     }
   };
 
@@ -936,11 +958,37 @@ function ProductsAdmin() {
                               )
                             }
                           />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2 shrink-0"
+                            disabled={varUploading === i}
+                            onClick={() => {
+                              setVarUploadTarget(i);
+                              varFileRef.current?.click();
+                            }}
+                          >
+                            {varUploading === i ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <Upload className="size-3.5" />
+                            )}
+                          </Button>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
+                <input
+                  ref={varFileRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    if (varUploadTarget != null) onVariationUpload(varUploadTarget, e.target.files?.[0]);
+                  }}
+                />
               </div>
             )}
 
