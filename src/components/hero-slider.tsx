@@ -21,10 +21,14 @@ const FALLBACK_SLIDE: HeroSlide = {
 };
 
 export function HeroSlider() {
-  const { data: slides = [] } = useHeroSlides();
+  const { data: slides = [], isPending } = useHeroSlides();
   const [active, setActive] = useState(0);
 
-  const list = slides.length > 0 ? slides : [FALLBACK_SLIDE];
+  // Only fall back to the logo/text slide once the fetch has genuinely
+  // settled with zero results — showing it while still loading meant every
+  // visit briefly flashed the square logo stretched across the wide banner
+  // before the real hero photo swapped in.
+  const list = slides.length > 0 ? slides : isPending ? [] : [FALLBACK_SLIDE];
 
   useEffect(() => {
     if (list.length <= 1) return;
@@ -32,6 +36,14 @@ export function HeroSlider() {
     const id = setInterval(() => setActive((a) => (a + 1) % list.length), 6500);
     return () => clearInterval(id);
   }, [list.length]);
+
+  if (list.length === 0) {
+    return (
+      <section className="relative w-full overflow-hidden bg-muted">
+        <div className="aspect-[4/3] sm:aspect-[16/9] md:aspect-[2726/1135] animate-pulse" />
+      </section>
+    );
+  }
 
   const s = list[active] ?? list[0];
   const ctaLabel = s.cta_label || "Shop now";
