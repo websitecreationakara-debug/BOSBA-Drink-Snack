@@ -79,6 +79,7 @@ type VariationInput = {
   stock: number | null;
   pcs: number | null;
   sort_order: number;
+  image_url: string | null;
 };
 
 export const listProducts = createServerFn({ method: "GET" })
@@ -165,6 +166,7 @@ export const saveVariations = createServerFn({ method: "POST" })
         stock: v.stock,
         pcs: v.pcs,
         sort_order: v.sort_order,
+        image_url: v.image_url,
       };
       if (v.id)
         await db.update(product_variations).set(fields).where(eq(product_variations.id, v.id));

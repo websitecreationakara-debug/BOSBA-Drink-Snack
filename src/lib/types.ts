@@ -52,6 +52,7 @@ export type ProductVariation = {
   stock: number | null;
   pcs: number | null;
   sort_order: number;
+  image_url: string | null;
   created_at: string;
 };
 
