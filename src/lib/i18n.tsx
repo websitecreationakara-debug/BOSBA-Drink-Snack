@@ -54,7 +54,7 @@ const en = {
   "product.from": "from",
   "product.selectOptions": "Select options",
   // shop
-  "shop.title": "BOSBA Drink Snack",
+  "shop.title": "BOSBA Drink&Snack",
   "shop.count": "{n} products",
   "shop.filters": "Filters",
   "shop.clearAll": "Clear all",
