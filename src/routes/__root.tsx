@@ -138,12 +138,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         property: "og:image",
         content:
-          "https://bosbadrinksnack.com/logo.png",
+          "https://bosbadrinksnack.com/og-image.jpg",
       },
+      { property: "og:image:width", content: "2726" },
+      { property: "og:image:height", content: "1135" },
       {
         name: "twitter:image",
         content:
-          "https://bosbadrinksnack.com/logo.png",
+          "https://bosbadrinksnack.com/og-image.jpg",
       },
       { name: "twitter:card", content: "summary_large_image" },
     ],
