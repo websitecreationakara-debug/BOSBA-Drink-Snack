@@ -58,7 +58,7 @@ export function HeroSlider() {
             src={slide.image_url || FALLBACK_IMAGE}
             alt=""
             loading={i === 0 ? "eager" : "lazy"}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+            className={`absolute inset-0 h-full w-full object-cover object-left sm:object-center transition-opacity duration-1000 ${
               i === active ? "opacity-100" : "opacity-0"
             }`}
           />
