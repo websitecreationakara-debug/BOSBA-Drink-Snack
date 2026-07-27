@@ -16,6 +16,8 @@ import {
   Menu,
   Globe,
   Check,
+  ArrowLeftRight,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
@@ -370,6 +372,24 @@ export function SiteHeader() {
                 {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
                 {theme === "dark" ? t("theme.light") : t("theme.dark")}
               </button>
+            </div>
+
+            <div className="border-t pt-4">
+              <a
+                href="https://bosbapremiumfoods.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg border border-dashed p-3 hover:bg-muted transition-colors"
+              >
+                <ArrowLeftRight className="size-4 shrink-0 text-brand" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-medium">BOSBA Premium Foods</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {t("nav.sisterSiteHint")}
+                  </span>
+                </span>
+                <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" />
+              </a>
             </div>
           </div>
 
