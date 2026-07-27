@@ -5,6 +5,16 @@
 //
 //   node scripts/restore-backup.mjs                  # most recent backup
 //   node scripts/restore-backup.mjs 2026-07-14        # a specific date (matches the ISO stamp's date part)
+//
+// KNOWN LIMITATION (found during the 2026-07-27 restore drill): `wrangler d1
+// execute --file` on the full dump fails with "no such table" errors because
+// it doesn't reliably preserve statement order across the whole file — split
+// the dump into a schema-only pass (CREATE/PRAGMA/DROP lines) run first, then
+// a data-only pass (INSERT lines, prefixed with `PRAGMA defer_foreign_keys=TRUE;`)
+// run second. Separately, the `media` table stores admin-uploaded images as
+// raw BLOBs in D1 — a single row's INSERT can exceed SQLite/D1's max statement
+// size ("statement too long: SQLITE_TOOBIG") and must be excluded from the
+// data-only pass and restored some other way if it's ever actually needed.
 
 import { execSync } from "node:child_process";
 import fs from "node:fs";
