@@ -100,6 +100,7 @@ const en = {
   "footer.terms": "Terms",
   "footer.sitemap": "Sitemap",
   "nav.sisterSiteHint": "Shop our seafood store",
+  "nav.sisterSiteHintSora": "Shop our Japanese sake store",
 } as const;
 
 export type I18nKey = keyof typeof en;
@@ -190,6 +191,7 @@ const km: Dict = {
   "footer.terms": "លក្ខខណ្ឌ",
   "footer.sitemap": "ផែនទីគេហទំព័រ",
   "nav.sisterSiteHint": "ទស្សនាហាងសមុទ្របងប្អូនរបស់យើង",
+  "nav.sisterSiteHintSora": "ទស្សនាហាងស្រាសាកេជប៉ុនបងប្អូនរបស់យើង",
 };
 
 const ja: Dict = {
@@ -277,6 +279,7 @@ const ja: Dict = {
   "footer.terms": "利用規約",
   "footer.sitemap": "サイトマップ",
   "nav.sisterSiteHint": "姉妹店の海鮮専門店もチェック",
+  "nav.sisterSiteHintSora": "姉妹店（日本酒専門店）もチェック",
 };
 
 const DICTS: Record<Locale, Dict> = { en, km, ja };

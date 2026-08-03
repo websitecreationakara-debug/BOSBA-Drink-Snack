@@ -374,7 +374,7 @@ export function SiteHeader() {
               </button>
             </div>
 
-            <div className="border-t pt-4">
+            <div className="border-t pt-4 space-y-2">
               <a
                 href="https://bosbapremiumfoods.com"
                 target="_blank"
@@ -386,6 +386,21 @@ export function SiteHeader() {
                   <span className="block text-sm font-medium">BOSBA Premium Foods</span>
                   <span className="block text-xs text-muted-foreground">
                     {t("nav.sisterSiteHint")}
+                  </span>
+                </span>
+                <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" />
+              </a>
+              <a
+                href="https://sorasake.wine"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg border border-dashed p-3 hover:bg-muted transition-colors"
+              >
+                <ArrowLeftRight className="size-4 shrink-0 text-brand" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-medium">SORA SAKE</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {t("nav.sisterSiteHintSora")}
                   </span>
                 </span>
                 <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" />
