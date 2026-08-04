@@ -1,4 +1,4 @@
-// Downloads a BOSBA Drink Snack backup from Google Drive (gdrive:BOSBA Drink Snack) and
+// Downloads a BOSBA Drink Snack backup from Google Drive (gdrive:Backups/BOSBA Drink Snack) and
 // unpacks the source snapshot for inspection. Does NOT touch the live
 // database — restoring overwrites production and can't be undone, so that
 // step is printed as a command for you to run yourself once you're sure.
@@ -22,7 +22,7 @@ import path from "node:path";
 
 const DB = "bosba-drink-snack";
 const RCLONE = "C:\\Users\\Demo\\.project-tracker\\bin\\rclone.exe";
-const DRIVE_REMOTE = "gdrive:BOSBA Drink Snack";
+const DRIVE_REMOTE = "gdrive:Backups/BOSBA Drink Snack";
 const RESTORE_DIR = "D:\\Backups\\bosba-drink-snack\\restore";
 
 const wantedDate = process.argv[2] ?? null;

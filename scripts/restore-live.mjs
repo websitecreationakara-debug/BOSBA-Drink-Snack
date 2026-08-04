@@ -12,13 +12,13 @@ import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline/promises";
 
-const DB = "bosbapremiumfoods";
+const DB = "bosba-drink-snack";
 const RCLONE = "C:\\Users\\Demo\\.project-tracker\\bin\\rclone.exe";
-const DRIVE_REMOTE = "gdrive:Bosba Premium Foods";
-const RESTORE_DIR = "D:\\Backups\\bosba\\restore";
-const PROJECT_DIR = "D:\\Ecommerce\\Bosba Premium Foods";
+const DRIVE_REMOTE = "gdrive:Backups/BOSBA Drink Snack";
+const RESTORE_DIR = "D:\\Backups\\bosba-drink-snack\\restore";
+const PROJECT_DIR = "D:\\Ecommerce\\BOSBA Drink Snack";
 
-console.log("=== Bosba Premium Foods: Restore Live Database from Backup ===\n");
+console.log("=== BOSBA Drink Snack: Restore Live Database from Backup ===\n");
 
 const wantedDate = process.argv[2] ?? null;
 
@@ -55,7 +55,7 @@ const sizeKb = (fs.statSync(dbLocal).size / 1024).toFixed(1);
 console.log(`Local file ready: ${dbLocal} (${sizeKb} KB)\n`);
 
 console.log("!! WARNING !!");
-console.log("This will OVERWRITE the LIVE production database for Bosba Premium Foods");
+console.log("This will OVERWRITE the LIVE production database for BOSBA Drink Snack");
 console.log(`with the ${dbFile.Name} backup. Any orders or changes made after that backup`);
 console.log("was taken will be permanently LOST. This cannot be undone.\n");
 
