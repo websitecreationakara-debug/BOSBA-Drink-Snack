@@ -211,6 +211,27 @@
       "when": 1784960007081,
       "tag": "0029_sad_oracle",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1785733744737,
+      "tag": "0030_luxuriant_swarm",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1785735470536,
+      "tag": "0031_open_millenium_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1785739562104,
+      "tag": "0032_wild_mojo",
+      "breakpoints": true
     }
   ]
 }

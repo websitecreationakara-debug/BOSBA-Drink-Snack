@@ -1,10 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { env } from "cloudflare:workers";
 import { requireAdmin } from "./_auth";
+import { logAdminAction } from "@/lib/audit";
 
 // Cloudflare account/database identifiers — stable, matches wrangler.jsonc.
 const ACCOUNT_ID = "a83815bcb10b7056fc34d19071b3b3eb";
-const DATABASE_ID = "7ba2d42f-28f8-4fa2-bde6-8f7b4f65327b";
+// FIXED: this was carrying Bosba Premium Foods' database id (fork-copy bug,
+// never updated) — a restore here would have silently overwritten the
+// SIBLING site's production database instead of this one's. Now matches
+// this project's own wrangler.jsonc d1_databases[0].database_id.
+const DATABASE_ID = "8c9071e1-c1ce-4649-8b53-a05a8a0c50d5";
 
 type D1ApiResponse = {
   success: boolean;
@@ -25,7 +30,7 @@ export const restoreDatabase = createServerFn({ method: "POST" })
     return d;
   })
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const user = await requireAdmin();
 
     const confirm = data.get("confirm");
     if (confirm !== "RESTORE") {
@@ -35,6 +40,11 @@ export const restoreDatabase = createServerFn({ method: "POST" })
     const file = data.get("file");
     if (!(file instanceof File)) throw new Error("No backup file provided");
     if (!file.name.endsWith(".sql")) throw new Error("Expected a .sql backup file");
+
+    // Log before running the restore itself, so an attempted-but-failed
+    // restore is still recorded — this is the single most destructive action
+    // in the app and previously had zero audit trail.
+    await logAdminAction(user, "db_restore", { fileName: file.name, fileSizeBytes: file.size });
 
     const sql = await file.text();
     if (!sql.trim()) throw new Error("Uploaded file is empty");

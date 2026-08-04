@@ -71,7 +71,7 @@ export function HeroSlider() {
         <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-5 pb-10 md:pb-14">
           <a
             href={ctaLink}
-            className="inline-flex items-center gap-2 rounded-full bg-brand px-8 py-3.5 text-sm font-semibold text-brand-foreground shadow-lg transition-colors hover:bg-secondary-accent"
+            className="inline-flex items-center gap-2 rounded-full bg-brand px-6 py-2.5 text-sm font-semibold text-brand-foreground shadow-lg transition-colors hover:bg-secondary-accent sm:px-8 sm:py-3.5"
           >
             {ctaLabel} <ArrowRight className="size-4" />
           </a>

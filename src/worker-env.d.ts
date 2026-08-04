@@ -37,6 +37,10 @@ declare global {
       // Cloudflare API token (Account > D1 > Edit) used by src/data/restore.ts
       // to apply an uploaded backup via the D1 HTTP API. Admin-only, irreversible.
       CLOUDFLARE_D1_RESTORE_TOKEN?: string;
+      // Cross-site security dashboard (see src/lib/audit.ts) — same token/URL
+      // shared across all e-commerce sites and the to-do app that receives them.
+      SECURITY_EVENTS_URL?: string;
+      SECURITY_EVENTS_API_TOKEN?: string;
     }
   }
 

@@ -1,10 +1,13 @@
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { createAuthMiddleware } from "better-auth/api";
 import { admin, captcha, emailOTP, twoFactor } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { Resend } from "resend";
 import { getDb, schema } from "@/db";
 import { emailShell } from "@/lib/notify";
+import { logAdminLogin } from "@/lib/audit";
+import type { SessionUser } from "@/data/_auth";
 
 const env: Record<string, string | undefined> = (() => {
   if (typeof process !== "undefined" && typeof process.env !== "undefined") {
@@ -88,6 +91,26 @@ export function getAuth() {
             },
           }
         : undefined,
+    hooks: {
+      // Security dashboard: log every staff/admin login (any path — covers
+      // email sign-in, 2FA verification, social login — not just customer
+      // accounts, which always have role "user" and are excluded).
+      after: createAuthMiddleware(async (ctx) => {
+        const session = ctx.context.newSession;
+        if (!session?.user) return;
+        const role = (session.user as { role?: string | null }).role;
+        if (role && role !== "user") {
+          // Must be awaited: Cloudflare Workers can terminate the execution
+          // context the instant the response is sent, killing an unawaited
+          // fire-and-forget call before its DB write/fetch finish.
+          try {
+            await logAdminLogin(session.user as SessionUser);
+          } catch (e) {
+            console.error("[login-hook] logAdminLogin failed", e);
+          }
+        }
+      }),
+    },
     plugins: [
       admin(),
       // TOTP authenticator-app 2FA. When a user has it enabled, sign-in returns
