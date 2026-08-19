@@ -11,6 +11,7 @@ import {
   getProductImages,
   saveProductImages,
   setProductStatus,
+  setProductStock,
 } from "@/data/products";
 import { listMedia, uploadMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
@@ -125,6 +126,12 @@ function ProductsAdmin() {
   const [page, setPage] = useState(1);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  // Inline stock edit in the list — simple products only. Empty string while
+  // editing means "leave untracked" (∞), matching stock == null semantics.
+  const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
+  // Escape unmounts the input, which still fires a native blur — this skips
+  // the blur-triggered save that would otherwise persist the abandoned edit.
+  const skipStockBlurSave = useRef(false);
 
   const variationsByProduct = groupVariations(allVariations);
 
@@ -353,6 +360,29 @@ function ProductsAdmin() {
       return;
     }
     toast.success(next === "published" ? "Product enabled" : "Product disabled");
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
+
+  const saveStock = async (p: Product, raw: string) => {
+    const trimmed = raw.trim();
+    const next = trimmed === "" ? null : Number(trimmed);
+    setEditingStock(null);
+    if (next != null && (!Number.isFinite(next) || next < 0)) {
+      toast.error("Stock must be a positive number, or blank for unlimited");
+      return;
+    }
+    if (next === p.stock) return;
+    qc.setQueryData(["products", "all"], (rows: Product[] = []) =>
+      rows.map((r) => (r.id === p.id ? { ...r, stock: next } : r)),
+    );
+    try {
+      await setProductStock({ data: { id: p.id, stock: next } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update stock");
+      qc.invalidateQueries({ queryKey: ["products"] });
+      return;
+    }
+    toast.success("Stock updated");
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
@@ -591,7 +621,45 @@ function ProductsAdmin() {
                 </td>
                 <td className="px-6 py-3 font-bold">{priceLabel(p)}</td>
                 <td className="px-6 py-3 text-muted-foreground">{weightLabel(p)}</td>
-                <td className="px-6 py-3">{stockLabel(p)}</td>
+                <td className="px-6 py-3">
+                  {p.type === "variable" ? (
+                    stockLabel(p)
+                  ) : editingStock?.id === p.id ? (
+                    <Input
+                      autoFocus
+                      type="number"
+                      min={0}
+                      value={editingStock.value}
+                      onChange={(e) => setEditingStock({ id: p.id, value: e.target.value })}
+                      onBlur={(e) => {
+                        if (skipStockBlurSave.current) {
+                          skipStockBlurSave.current = false;
+                          return;
+                        }
+                        saveStock(p, e.currentTarget.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") {
+                          skipStockBlurSave.current = true;
+                          setEditingStock(null);
+                        }
+                      }}
+                      className="h-7 w-20 px-2 py-1 text-sm"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditingStock({ id: p.id, value: p.stock == null ? "" : String(p.stock) })
+                      }
+                      title="Click to edit stock"
+                      className="-mx-1.5 rounded px-1.5 py-0.5 transition-colors hover:bg-muted"
+                    >
+                      {stockLabel(p)}
+                    </button>
+                  )}
+                </td>
                 <td className="px-6 py-3">
                   <span className="px-2 py-0.5 bg-muted rounded text-xs font-bold uppercase">
                     {p.status}

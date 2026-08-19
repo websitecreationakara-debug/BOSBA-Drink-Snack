@@ -235,6 +235,19 @@ export const setProductStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Quick inline stock edit from the admin list — simple products only (variable
+// products carry stock per-variation, edited via saveVariations instead).
+export const setProductStock = createServerFn({ method: "POST" })
+  .inputValidator((d: { id: string; stock: number | null }) => d)
+  .handler(async ({ data }) => {
+    await requireManager();
+    await getDb()
+      .update(products)
+      .set({ stock: data.stock, updated_at: new Date().toISOString() })
+      .where(eq(products.id, data.id));
+    return { ok: true };
+  });
+
 // Persist a new global product order from admin drag-and-drop: sort_order
 // becomes each id's position in the array. Ids not passed keep their old value.
 export const reorderProducts = createServerFn({ method: "POST" })
