@@ -222,6 +222,19 @@ export const updateProduct = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Quick publish/hide toggle from the admin list — doesn't require the full
+// product payload the way updateProduct does.
+export const setProductStatus = createServerFn({ method: "POST" })
+  .inputValidator((d: { id: string; status: string }) => d)
+  .handler(async ({ data }) => {
+    await requireManager();
+    await getDb()
+      .update(products)
+      .set({ status: data.status, updated_at: new Date().toISOString() })
+      .where(eq(products.id, data.id));
+    return { ok: true };
+  });
+
 // Persist a new global product order from admin drag-and-drop: sort_order
 // becomes each id's position in the array. Ids not passed keep their old value.
 export const reorderProducts = createServerFn({ method: "POST" })

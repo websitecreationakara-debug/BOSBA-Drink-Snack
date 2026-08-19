@@ -10,6 +10,7 @@ import {
   saveVariations,
   getProductImages,
   saveProductImages,
+  setProductStatus,
 } from "@/data/products";
 import { listMedia, uploadMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
@@ -41,6 +42,8 @@ import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -337,6 +340,22 @@ function ProductsAdmin() {
     setOpen(false);
   };
 
+  const toggleStatus = async (p: Product) => {
+    const next = p.status === "published" ? "draft" : "published";
+    qc.setQueryData(["products", "all"], (rows: Product[] = []) =>
+      rows.map((r) => (r.id === p.id ? { ...r, status: next } : r)),
+    );
+    try {
+      await setProductStatus({ data: { id: p.id, status: next } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update status");
+      qc.invalidateQueries({ queryKey: ["products"] });
+      return;
+    }
+    toast.success(next === "published" ? "Product enabled" : "Product disabled");
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
+
   const del = async (id: string) => {
     if (!confirm("Delete this product?")) return;
     try {
@@ -587,6 +606,23 @@ function ProductsAdmin() {
                       aria-label="Edit"
                     >
                       <Pencil className="size-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleStatus(p)}
+                      aria-label={p.status === "published" ? "Disable product" : "Enable product"}
+                      title={
+                        p.status === "published"
+                          ? "Published — click to disable"
+                          : "Draft — click to enable"
+                      }
+                    >
+                      {p.status === "published" ? (
+                        <Eye className="size-4" />
+                      ) : (
+                        <EyeOff className="size-4 text-muted-foreground/50" />
+                      )}
                     </Button>
                     <Button
                       variant="ghost"
