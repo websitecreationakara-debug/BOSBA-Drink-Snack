@@ -16,6 +16,8 @@ export type Product = {
   sort_order: number;
   featured: boolean;
   promotion_id: string | null;
+  // Optional YouTube link shown as an autoplaying clip in the product gallery.
+  video_url: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -232,6 +232,13 @@
       "when": 1785739562104,
       "tag": "0032_wild_mojo",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1787140388373,
+      "tag": "0033_short_mikhail_rasputin",
+      "breakpoints": true
     }
   ]
 }

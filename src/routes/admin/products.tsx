@@ -45,9 +45,11 @@ import {
   GripVertical,
   Eye,
   EyeOff,
+  Youtube,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { extractYoutubeId, youtubeThumbnail } from "@/lib/youtube";
 import type { Product, Media } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/products")({
@@ -71,6 +73,7 @@ const empty = {
   type: "simple",
   featured: false,
   promotion_id: "",
+  video_url: "",
 };
 
 type VarRow = {
@@ -106,6 +109,7 @@ function ProductsAdmin() {
   const [vars, setVars] = useState<VarRow[]>([]);
   const editing = !!form.id;
   const isVariable = form.type === "variable";
+  const videoId = form.video_url.trim() ? extractYoutubeId(form.video_url) : null;
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [picker, setPicker] = useState(false);
@@ -277,6 +281,7 @@ function ProductsAdmin() {
       type: p.type,
       featured: p.featured,
       promotion_id: p.promotion_id ?? "",
+      video_url: p.video_url ?? "",
     });
     setOpen(true);
     if (p.type === "variable") {
@@ -331,6 +336,7 @@ function ProductsAdmin() {
       type: form.type,
       featured: form.featured,
       promotion_id: form.promotion_id || null,
+      video_url: form.video_url.trim() === "" ? null : form.video_url.trim(),
     };
     try {
       let productId = form.id;
@@ -420,6 +426,7 @@ function ProductsAdmin() {
           type: p.type,
           featured: p.featured,
           promotion_id: p.promotion_id,
+          video_url: p.video_url,
         },
       });
       if (p.type === "variable") {
@@ -1316,6 +1323,39 @@ function ProductsAdmin() {
                 </div>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label>YouTube video (optional)</Label>
+              <p className="text-xs text-muted-foreground">
+                Shown as an autoplaying, looping clip in the product gallery.
+              </p>
+              <div className="flex items-start gap-3">
+                <div className="size-20 rounded-lg border bg-muted overflow-hidden shrink-0 grid place-items-center">
+                  {videoId ? (
+                    <img
+                      src={youtubeThumbnail(videoId)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Youtube className="size-6 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Input
+                    value={form.video_url}
+                    onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                  {form.video_url.trim() !== "" && !videoId && (
+                    <p className="text-xs text-destructive">
+                      Doesn't look like a valid YouTube link.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <Button type="submit" className="w-full">
               {editing ? "Save changes" : "Create product"}
             </Button>

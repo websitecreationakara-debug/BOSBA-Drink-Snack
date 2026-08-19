@@ -22,6 +22,7 @@ type ProductInput = {
   type: string;
   featured: boolean;
   promotion_id: string | null;
+  video_url: string | null;
 };
 
 type ProductRow = typeof products.$inferSelect;

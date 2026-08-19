@@ -76,6 +76,8 @@ export const products = sqliteTable("products", {
   featured: integer("featured", { mode: "boolean" }).notNull().default(false),
   // Optional marketing offer this product belongs to. Cleared if the promotion is deleted.
   promotion_id: text("promotion_id").references(() => promotions.id, { onDelete: "set null" }),
+  // Optional YouTube link shown as an autoplaying clip in the product gallery.
+  video_url: text("video_url"),
   created_at: text("created_at").notNull().$defaultFn(nowIso),
   updated_at: text("updated_at").notNull().$defaultFn(nowIso),
 });

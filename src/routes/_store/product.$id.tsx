@@ -14,8 +14,9 @@ import { useWishlist } from "@/hooks/use-wishlist";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product-card";
 import { productFromPrice, groupVariations } from "@/lib/variants";
-import { Star, ShoppingBag, Minus, Plus, ArrowLeft, Truck, Heart } from "lucide-react";
+import { Star, ShoppingBag, Minus, Plus, ArrowLeft, Truck, Heart, Play } from "lucide-react";
 import { cn, slugify } from "@/lib/utils";
+import { extractYoutubeId, youtubeThumbnail, youtubeEmbedSrc } from "@/lib/youtube";
 
 const RELATED_COUNT = 4;
 
@@ -113,6 +114,8 @@ function ProductDetail() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Which gallery photo is enlarged; null = the cover image.
   const [activeImage, setActiveImage] = useState<string | null>(null);
+  // True when the video thumbnail is selected instead of a photo.
+  const [showVideo, setShowVideo] = useState(false);
   const shipThreshold = Number(settings?.free_shipping_threshold ?? 50);
 
   const variable = product?.type === "variable";
@@ -159,6 +162,7 @@ function ProductDetail() {
     (u): u is string => !!u,
   );
   const mainImage = activeImage && images.includes(activeImage) ? activeImage : images[0];
+  const videoId = product.video_url ? extractYoutubeId(product.video_url) : null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 md:px-6 py-8 md:py-10">
@@ -173,7 +177,16 @@ function ProductDetail() {
       <div className="grid md:grid-cols-2 gap-6 md:gap-10">
         <div>
           <div className="relative aspect-square rounded-3xl overflow-hidden bg-muted">
-            {mainImage ? (
+            {showVideo && videoId ? (
+              <iframe
+                key={videoId}
+                src={youtubeEmbedSrc(videoId)}
+                title={product.title}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : mainImage ? (
               <img src={mainImage} alt={product.title} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full grid place-items-center text-muted-foreground text-sm">
@@ -201,18 +214,46 @@ function ProductDetail() {
               )}
             </div>
           </div>
-          {images.length > 1 && (
+          {(images.length > 1 || videoId) && (
             <div className="mt-3 grid grid-cols-4 gap-3">
+              {videoId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowVideo(true);
+                  }}
+                  aria-label="Play product video"
+                  aria-pressed={showVideo}
+                  className={cn(
+                    "relative aspect-square rounded-xl overflow-hidden bg-muted border-2 transition-colors",
+                    showVideo ? "border-brand" : "border-transparent hover:border-brand/50",
+                  )}
+                >
+                  <img
+                    src={youtubeThumbnail(videoId)}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute inset-0 grid place-items-center bg-black/30">
+                    <Play className="size-6 text-white fill-white" />
+                  </span>
+                </button>
+              )}
               {images.map((url) => (
                 <button
                   key={url}
                   type="button"
-                  onClick={() => setActiveImage(url)}
+                  onClick={() => {
+                    setActiveImage(url);
+                    setShowVideo(false);
+                  }}
                   aria-label="View product photo"
-                  aria-pressed={url === mainImage}
+                  aria-pressed={!showVideo && url === mainImage}
                   className={cn(
                     "aspect-square rounded-xl overflow-hidden bg-muted border-2 transition-colors",
-                    url === mainImage ? "border-brand" : "border-transparent hover:border-brand/50",
+                    !showVideo && url === mainImage
+                      ? "border-brand"
+                      : "border-transparent hover:border-brand/50",
                   )}
                 >
                   <img src={url} alt="" className="w-full h-full object-cover" />
