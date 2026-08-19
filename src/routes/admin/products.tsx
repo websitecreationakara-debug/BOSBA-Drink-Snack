@@ -118,6 +118,8 @@ function ProductsAdmin() {
   const varFileRef = useRef<HTMLInputElement>(null);
   const [varUploadTarget, setVarUploadTarget] = useState<number | null>(null);
   const [varUploading, setVarUploading] = useState<number | null>(null);
+  // Which variation row's media-library picker is open, if any.
+  const [varPickerTarget, setVarPickerTarget] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [catFilter, setCatFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -1079,7 +1081,51 @@ function ProductsAdmin() {
                               <Upload className="size-3.5" />
                             )}
                           </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2 shrink-0"
+                            onClick={() =>
+                              setVarPickerTarget((t) => (t === i ? null : i))
+                            }
+                          >
+                            <ImageIcon className="size-3.5" />
+                          </Button>
                         </div>
+                        {varPickerTarget === i && (
+                          <div className="border rounded-lg p-2 max-h-40 overflow-y-auto">
+                            {mediaItems.length === 0 ? (
+                              <p className="text-xs text-muted-foreground p-2">
+                                No media yet — upload an image first.
+                              </p>
+                            ) : (
+                              <div className="grid grid-cols-6 gap-2">
+                                {mediaItems.map((m) => (
+                                  <button
+                                    key={m.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setVars((rows) =>
+                                        rows.map((r, j) =>
+                                          j === i ? { ...r, image_url: m.url } : r,
+                                        ),
+                                      );
+                                      setVarPickerTarget(null);
+                                    }}
+                                    className="aspect-square rounded-md overflow-hidden border hover:ring-2 ring-brand"
+                                  >
+                                    <img
+                                      src={m.url}
+                                      alt={m.filename}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
