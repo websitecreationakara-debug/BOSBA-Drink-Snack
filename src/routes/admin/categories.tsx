@@ -7,12 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -244,7 +239,10 @@ function CategoriesAdmin() {
           placeholder="New category name"
           className="flex-1 min-w-[200px]"
         />
-        <Select value={parentId || "none"} onValueChange={(v) => setParentId(v === "none" ? "" : v)}>
+        <Select
+          value={parentId || "none"}
+          onValueChange={(v) => setParentId(v === "none" ? "" : v)}
+        >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Top level" />
           </SelectTrigger>

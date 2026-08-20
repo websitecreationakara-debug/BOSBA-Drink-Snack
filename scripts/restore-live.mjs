@@ -60,7 +60,9 @@ console.log(`with the ${dbFile.Name} backup. Any orders or changes made after th
 console.log("was taken will be permanently LOST. This cannot be undone.\n");
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const answer = await rl.question("Type RESTORE (all caps, exactly) to proceed, or anything else to cancel: ");
+const answer = await rl.question(
+  "Type RESTORE (all caps, exactly) to proceed, or anything else to cancel: ",
+);
 rl.close();
 
 if (answer !== "RESTORE") {
@@ -69,6 +71,9 @@ if (answer !== "RESTORE") {
 }
 
 console.log("\nRestoring to the live database...");
-execSync(`npx wrangler d1 execute ${DB} --remote --file "${dbLocal}"`, { stdio: "inherit", cwd: PROJECT_DIR });
+execSync(`npx wrangler d1 execute ${DB} --remote --file "${dbLocal}"`, {
+  stdio: "inherit",
+  cwd: PROJECT_DIR,
+});
 
 console.log("\nRestore complete. The live site now reflects this backup.");

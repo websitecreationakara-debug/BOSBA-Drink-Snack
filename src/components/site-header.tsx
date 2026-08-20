@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Search,
   ShoppingBag,
@@ -18,6 +18,7 @@ import {
   Check,
   ArrowLeftRight,
   ExternalLink,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
@@ -50,16 +51,85 @@ export function SiteHeader() {
 
   const { theme, toggle } = useTheme();
   const { locale, setLocale, t } = useI18n();
+  const navigate = useNavigate();
+
+  // Debounced so results update live as you type (e.g. "stra" already narrows
+  // down to "Strawberry Daifuku") without spamming navigation on every keystroke.
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    },
+    [],
+  );
 
   const runSearch = (value: string) => {
     const v = value.trim();
-    if (v) window.location.href = `/shop?q=${encodeURIComponent(v)}`;
+    navigate({ to: "/shop", search: { q: v || undefined }, replace: true });
+  };
+
+  const onSearchInput = (value: string) => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => runSearch(value), 250);
+  };
+
+  const flushSearch = (value: string) => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    runSearch(value);
   };
 
   return (
     <>
-      {/* Apple-style single nav bar */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b">
+        {/* Utility bar — help line + language/theme, desktop only */}
+        <div className="hidden md:block border-b bg-muted/40">
+          <div className="mx-auto max-w-7xl px-4 md:px-6 h-9 grid grid-cols-2 lg:grid-cols-3 items-center text-xs text-muted-foreground">
+            <a
+              href="tel:+85599361350"
+              className="justify-self-start flex items-center gap-1.5 hover:text-foreground transition-colors"
+            >
+              <Phone className="size-3.5" />
+              <span>
+                {t("bar.needHelp")}{" "}
+                <span className="text-foreground font-medium">+855 99 361 350</span>
+              </span>
+            </a>
+
+            <span className="hidden lg:block justify-self-center whitespace-nowrap">
+              {t("bar.freeDelivery", { threshold: shipThreshold })}
+            </span>
+
+            <div className="justify-self-end flex items-center gap-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-full px-2 py-1 hover:bg-muted hover:text-foreground transition-colors">
+                  <Globe className="size-3.5" />
+                  {LOCALES.find((l) => l.code === locale)?.label}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {LOCALES.map((l) => (
+                    <DropdownMenuItem
+                      key={l.code}
+                      onClick={() => setLocale(l.code)}
+                      className="justify-between gap-6"
+                    >
+                      {l.label}
+                      {locale === l.code && <Check className="size-4" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <button
+                onClick={toggle}
+                aria-label={theme === "dark" ? t("theme.light") : t("theme.dark")}
+                className="grid size-7 place-items-center rounded-full hover:bg-muted hover:text-foreground transition-colors"
+              >
+                {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main bar */}
         <div className="mx-auto max-w-7xl px-4 md:px-6 h-14 md:h-16 flex items-center gap-3">
           <button
             onClick={() => setMenuOpen(true)}
@@ -77,30 +147,56 @@ export function SiteHeader() {
             />
           </Link>
 
-          {/* Centered category links */}
-          <nav className="hidden lg:flex flex-1 min-w-0 items-center justify-center gap-x-5 xl:gap-x-7 px-2 text-[13px] text-foreground/80">
-            <Link to="/shop" className="hover:text-foreground transition-colors whitespace-nowrap">
-              {t("nav.allProducts")}
-            </Link>
-            {hasOffers && (
-              <Link
-                to="/offers"
-                className="font-medium text-brand hover:text-brand/80 transition-colors whitespace-nowrap"
-              >
-                {t("nav.offers")}
-              </Link>
-            )}
-            {categories.map((c) => (
-              <Link
-                key={c.id}
-                to="/shop"
-                search={{ category: c.slug }}
-                className="hover:text-foreground transition-colors whitespace-nowrap"
-              >
-                {c.name}
-              </Link>
-            ))}
-          </nav>
+          {/* Shop By dropdown. modal={false} so the page keeps scrolling while
+              the menu is open — Radix's default locks body scroll and puts
+              pointer-events:none on everything behind the menu. */}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <button className="hidden lg:flex items-center gap-1.5 shrink-0 rounded-full border px-4 h-9 text-sm font-medium hover:bg-muted transition-colors">
+                {t("nav.shopBy")}
+                <ChevronDown className="size-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            {/* collisionPadding keeps the menu off the viewport edge, which is
+                also what sizes --radix-dropdown-menu-content-available-height
+                (the max-height the content scrolls within). */}
+            <DropdownMenuContent align="start" collisionPadding={16} className="w-56">
+              <DropdownMenuItem asChild>
+                <Link to="/shop">{t("nav.allProducts")}</Link>
+              </DropdownMenuItem>
+              {hasOffers && (
+                <DropdownMenuItem asChild>
+                  <Link to="/offers" className="text-brand font-medium">
+                    {t("nav.offers")}
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {categories.length > 0 && <DropdownMenuSeparator />}
+              {categories.map((c) => (
+                <DropdownMenuItem asChild key={c.id}>
+                  <Link to="/shop" search={{ category: c.slug }}>
+                    {c.name}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Search — persistent bar on desktop */}
+          <div className="hidden lg:flex flex-1 min-w-0">
+            <div className="relative w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <input
+                type="search"
+                placeholder={t("nav.searchPlaceholder")}
+                className="w-full h-10 pl-11 pr-4 rounded-full bg-muted border border-transparent text-sm text-foreground outline-none focus:bg-background focus:border-border transition-all"
+                onChange={(e) => onSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") flushSearch((e.target as HTMLInputElement).value);
+                }}
+              />
+            </div>
+          </div>
 
           {/* Right icons */}
           <div className="flex items-center gap-0.5 ml-auto lg:ml-0">
@@ -108,7 +204,7 @@ export function SiteHeader() {
               onClick={() => setSearchOpen((o) => !o)}
               aria-label={t("nav.searchPlaceholder")}
               aria-expanded={searchOpen}
-              className="grid size-9 place-items-center rounded-full hover:bg-muted transition-colors"
+              className="lg:hidden grid size-9 place-items-center rounded-full hover:bg-muted transition-colors"
             >
               <Search className="size-[18px]" />
             </button>
@@ -124,79 +220,64 @@ export function SiteHeader() {
               </Link>
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-foreground size-9">
-                  <User className="size-[18px]" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {user ? (
-                  <>
-                    <DropdownMenuLabel className="truncate max-w-[200px]">
-                      {user.email}
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/account">
-                        <User className="size-4 mr-2" /> {t("nav.account")}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/orders">
-                        <Package className="size-4 mr-2" /> {t("nav.myOrders")}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/addresses">
-                        <MapPin className="size-4 mr-2" /> {t("nav.myAddresses")}
-                      </Link>
-                    </DropdownMenuItem>
-                    {isAdmin && (
-                      <DropdownMenuItem asChild>
-                        <Link to="/admin">
-                          <LayoutDashboard className="size-4 mr-2" /> {t("nav.adminDashboard")}
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => signOut()}>
-                      <LogOut className="size-4 mr-2" /> {t("nav.signOut")}
-                    </DropdownMenuItem>
-                  </>
-                ) : (
+            {/* Signed out there's only one thing the profile icon can do, so it
+                goes straight to /auth instead of opening a one-item menu. */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full bg-brand text-brand-foreground hover:bg-brand/90 hover:text-brand-foreground size-9"
+                    aria-label={t("nav.account")}
+                  >
+                    <User className="size-[18px]" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="truncate max-w-[200px]">
+                    {user.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/auth">
-                      <User className="size-4 mr-2" /> {t("nav.signIn")}
+                    <Link to="/account">
+                      <User className="size-4 mr-2" /> {t("nav.account")}
                     </Link>
                   </DropdownMenuItem>
-                )}
-
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Globe className="size-3.5" /> {LOCALES.find((l) => l.code === locale)?.label}
-                </DropdownMenuLabel>
-                {LOCALES.map((l) => (
-                  <DropdownMenuItem
-                    key={l.code}
-                    onClick={() => setLocale(l.code)}
-                    className="justify-between gap-6"
-                  >
-                    {l.label}
-                    {locale === l.code && <Check className="size-4" />}
+                  <DropdownMenuItem asChild>
+                    <Link to="/orders">
+                      <Package className="size-4 mr-2" /> {t("nav.myOrders")}
+                    </Link>
                   </DropdownMenuItem>
-                ))}
-
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={toggle}>
-                  {theme === "dark" ? (
-                    <Sun className="size-4 mr-2" />
-                  ) : (
-                    <Moon className="size-4 mr-2" />
+                  <DropdownMenuItem asChild>
+                    <Link to="/addresses">
+                      <MapPin className="size-4 mr-2" /> {t("nav.myAddresses")}
+                    </Link>
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">
+                        <LayoutDashboard className="size-4 mr-2" /> {t("nav.adminDashboard")}
+                      </Link>
+                    </DropdownMenuItem>
                   )}
-                  {theme === "dark" ? t("theme.light") : t("theme.dark")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuItem onClick={() => signOut()}>
+                    <LogOut className="size-4 mr-2" /> {t("nav.signOut")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="rounded-full bg-brand text-brand-foreground hover:bg-brand/90 hover:text-brand-foreground size-9"
+              >
+                <Link to="/auth" aria-label={t("nav.signIn")}>
+                  <User className="size-[18px]" />
+                </Link>
+              </Button>
+            )}
 
             <button
               onClick={() => setDrawerOpen(true)}
@@ -224,8 +305,9 @@ export function SiteHeader() {
                   autoFocus
                   placeholder={t("nav.searchPlaceholder")}
                   className="w-full h-11 pl-10 pr-4 rounded-full bg-muted border border-transparent text-sm text-foreground outline-none focus:bg-background focus:border-border transition-all"
+                  onChange={(e) => onSearchInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") runSearch((e.target as HTMLInputElement).value);
+                    if (e.key === "Enter") flushSearch((e.target as HTMLInputElement).value);
                     if (e.key === "Escape") setSearchOpen(false);
                   }}
                 />

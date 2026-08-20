@@ -17,6 +17,7 @@ import { productFromPrice, groupVariations } from "@/lib/variants";
 import { Star, ShoppingBag, Minus, Plus, ArrowLeft, Truck, Heart, Play } from "lucide-react";
 import { cn, slugify } from "@/lib/utils";
 import { extractYoutubeId, youtubeThumbnail, youtubeEmbedSrc } from "@/lib/youtube";
+import { useI18n } from "@/lib/i18n";
 
 const RELATED_COUNT = 4;
 
@@ -110,6 +111,7 @@ function ProductDetail() {
   const { data: settings } = useStoreSettings();
   const { add } = useCart();
   const { has: inWishlist, toggle: toggleWishlist } = useWishlist();
+  const { t } = useI18n();
   const [qty, setQty] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Which gallery photo is enlarged; null = the cover image.
@@ -158,9 +160,7 @@ function ProductDetail() {
   // Sizes often look visibly different (e.g. a 1.8L vs 720ml bottle), so a
   // variation with its own photo overrides the product's default cover.
   const coverImage = (variable && selected?.image_url) || product.image_url;
-  const images = [coverImage, ...galleryImages.map((g) => g.url)].filter(
-    (u): u is string => !!u,
-  );
+  const images = [coverImage, ...galleryImages.map((g) => g.url)].filter((u): u is string => !!u);
   const mainImage = activeImage && images.includes(activeImage) ? activeImage : images[0];
   const videoId = product.video_url ? extractYoutubeId(product.video_url) : null;
 
@@ -215,7 +215,7 @@ function ProductDetail() {
             </div>
           </div>
           {(images.length > 1 || videoId) && (
-            <div className="mt-3 grid grid-cols-4 gap-3">
+            <div className="mt-3 grid grid-cols-4 gap-2 sm:gap-3">
               {videoId && (
                 <button
                   type="button"
@@ -264,11 +264,11 @@ function ProductDetail() {
         </div>
 
         <div className="flex flex-col">
-          <h1 className="font-display font-semibold tracking-tight text-3xl md:text-4xl leading-tight">
+          <h1 className="font-display font-semibold tracking-tight text-2xl sm:text-3xl md:text-4xl leading-tight">
             {product.title}
           </h1>
 
-          <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Star className="size-4 fill-warning text-warning" />
               {product.rating ?? 4.5}
@@ -337,7 +337,9 @@ function ProductDetail() {
             <p className="text-muted-foreground mt-5 leading-relaxed">{product.description}</p>
           )}
 
-          <div className="flex items-center gap-3 mt-8">
+          {/* Narrow phones can't fit stepper + button + wishlist on one line, so
+              the button drops to its own full-width row below them. */}
+          <div className="flex flex-wrap items-center gap-3 mt-8">
             <div className="flex items-center border rounded-full">
               <button
                 type="button"
@@ -362,7 +364,7 @@ function ProductDetail() {
               size="lg"
               disabled={addDisabled}
               onClick={() => add(product, variable ? selected : null, qty)}
-              className="flex-1 rounded-full font-bold"
+              className="order-last w-full sm:order-0 sm:w-auto sm:flex-1 rounded-full font-bold"
             >
               <ShoppingBag className="size-4 mr-2" />
               {soldOut ? "Out of Stock" : "Add to Cart"}
@@ -372,7 +374,7 @@ function ProductDetail() {
               onClick={() => toggleWishlist(product.id)}
               aria-pressed={inWishlist(product.id)}
               aria-label={inWishlist(product.id) ? "Remove from wishlist" : "Save to wishlist"}
-              className="grid size-12 shrink-0 place-items-center rounded-full border transition-colors hover:bg-muted"
+              className="grid size-12 shrink-0 place-items-center rounded-full border transition-colors hover:bg-muted ml-auto sm:ml-0"
             >
               <Heart
                 className={cn(
@@ -385,7 +387,7 @@ function ProductDetail() {
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-6 border-t pt-6">
             <Truck className="size-4 text-brand" />
-            {`Free chilled delivery on orders over $${shipThreshold}.`}
+            {t("product.freeDelivery", { threshold: shipThreshold })}
           </div>
         </div>
       </div>
@@ -393,7 +395,7 @@ function ProductDetail() {
       {related.length > 0 && (
         <section className="mt-16 md:mt-20">
           <h2 className="font-display font-semibold tracking-tight text-2xl md:text-3xl mb-6">
-            You might also like
+            {t("product.youMightAlsoLike")}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {related.map((p) => (

@@ -41,7 +41,9 @@ export function TwoFactorSetup({
 
   useEffect(() => {
     if (!totpUri) return setQrSvg("");
-    QRCode.toString(totpUri, { type: "svg", margin: 1, width: 200 }).then(setQrSvg, () => setQrSvg(""));
+    QRCode.toString(totpUri, { type: "svg", margin: 1, width: 200 }).then(setQrSvg, () =>
+      setQrSvg(""),
+    );
   }, [totpUri]);
 
   const reset = () => {
@@ -70,7 +72,8 @@ export function TwoFactorSetup({
     setBusy(true);
     const res = await authClient.twoFactor.verifyTotp({ code: code.trim() });
     setBusy(false);
-    if (res.error) return setError(res.error.message ?? "Invalid code — check the 6 digits and try again");
+    if (res.error)
+      return setError(res.error.message ?? "Invalid code — check the 6 digits and try again");
     reset();
     onChanged?.();
   };
@@ -117,7 +120,9 @@ export function TwoFactorSetup({
   if (phase === "disable") {
     return (
       <div className="max-w-sm space-y-3">
-        <p className="text-sm">Enter your account password to turn off two-factor authentication.</p>
+        <p className="text-sm">
+          Enter your account password to turn off two-factor authentication.
+        </p>
         <Input
           type="password"
           autoComplete="current-password"
@@ -147,8 +152,8 @@ export function TwoFactorSetup({
           <span className="font-semibold">Two-factor authentication is off</span>
         </div>
         <p className="text-sm text-muted-foreground">
-          Add a second step at sign-in using an authenticator app (Google Authenticator, Authy, etc.). Even if your
-          password is stolen, no one can sign in without your phone.
+          Add a second step at sign-in using an authenticator app (Google Authenticator, Authy,
+          etc.). Even if your password is stolen, no one can sign in without your phone.
         </p>
         <Button onClick={() => setPhase("password")}>Set up 2FA</Button>
       </div>
@@ -191,13 +196,17 @@ export function TwoFactorSetup({
             {qrSvg ? (
               <div className="size-[200px]" dangerouslySetInnerHTML={{ __html: qrSvg }} />
             ) : (
-              <div className="grid size-[200px] place-items-center text-muted-foreground">Loading…</div>
+              <div className="grid size-[200px] place-items-center text-muted-foreground">
+                Loading…
+              </div>
             )}
           </div>
           {manualSecret && (
             <p className="mt-2 text-xs text-muted-foreground">
               Can't scan? Enter this key manually:{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">{manualSecret}</code>
+              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                {manualSecret}
+              </code>
             </p>
           )}
         </li>

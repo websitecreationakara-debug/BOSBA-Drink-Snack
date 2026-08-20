@@ -46,7 +46,9 @@ if (process.argv.includes("--auto")) {
   const newest = existing(DB_PATTERN)[0];
   if (newest && Date.now() - newest.t < 6.5 * 24 * 60 * 60 * 1000) {
     const days = ((Date.now() - newest.t) / 86_400_000).toFixed(1);
-    console.log(`\nSkipping: newest backup is ${days} day(s) old (weekly cadence). \`npm run backup\` forces one.\n`);
+    console.log(
+      `\nSkipping: newest backup is ${days} day(s) old (weekly cadence). \`npm run backup\` forces one.\n`,
+    );
     process.exit(0);
   }
 }
@@ -56,7 +58,10 @@ const dbOut = path.join(dir, `d1-backup-${stamp}.sql`);
 const srcOut = path.join(dir, `source-${stamp}.zip`);
 
 console.log(`\nExporting remote D1 "${DB}" -> ${dbOut}\n`);
-execSync(`npx wrangler d1 export ${DB} --remote --output "${dbOut}"`, { stdio: "inherit", cwd: root });
+execSync(`npx wrangler d1 export ${DB} --remote --output "${dbOut}"`, {
+  stdio: "inherit",
+  cwd: root,
+});
 const dbBytes = fs.statSync(dbOut).size;
 console.log(`\n✓ Database backup written (${(dbBytes / 1024 / 1024).toFixed(2)} MB)`);
 
