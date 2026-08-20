@@ -1,5 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { Facebook, Instagram, MapPin, Phone, Truck } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ExternalLink,
+  Facebook,
+  Instagram,
+  MapPin,
+  Phone,
+  Truck,
+} from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useStoreSettings } from "@/hooks/use-products";
 
@@ -17,9 +25,7 @@ export function SiteFooter() {
               alt="BOSBA Drink Snack"
               className="size-12 rounded-lg object-contain"
             />
-            <span className="font-display text-xl font-bold tracking-tight">
-              BOSBA Drink Snack
-            </span>
+            <span className="font-display text-xl font-bold tracking-tight">BOSBA Drink Snack</span>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">{t("footer.tagline")}</p>
           <div className="space-y-2 text-sm text-muted-foreground pt-1">
@@ -30,12 +36,13 @@ export function SiteFooter() {
               <MapPin className="size-4 shrink-0" /> Sangkat Tuol Svay Prey Ti Muoy, Phnom Penh
             </p>
             <p className="flex items-center gap-2">
-              <Truck className="size-4 shrink-0" /> {t("bar.delivery", { threshold: shipThreshold })}
+              <Truck className="size-4 shrink-0" />{" "}
+              {t("bar.delivery", { threshold: shipThreshold })}
             </p>
           </div>
         </div>
 
-        <div>
+        <div className="col-span-2 md:col-span-1">
           <h4 className="font-display font-semibold mb-5 text-sm">{t("footer.marketplace")}</h4>
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li>
@@ -61,30 +68,40 @@ export function SiteFooter() {
           </ul>
         </div>
 
-        <div>
-          <h4 className="font-display font-semibold mb-5 text-sm">{t("footer.company")}</h4>
-          <ul className="space-y-3 text-sm text-muted-foreground">
-            <li>
-              <a className="hover:text-secondary-accent transition-colors" href="#">
-                {t("footer.mission")}
-              </a>
-            </li>
-            <li>
-              <a className="hover:text-secondary-accent transition-colors" href="#">
-                {t("footer.fisheries")}
-              </a>
-            </li>
-            <li>
-              <a className="hover:text-secondary-accent transition-colors" href="#">
-                {t("footer.sustainability")}
-              </a>
-            </li>
-            <li>
-              <a className="hover:text-secondary-accent transition-colors" href="#">
-                {t("footer.careers")}
-              </a>
-            </li>
-          </ul>
+        <div className="col-span-2 md:col-span-1">
+          <h4 className="font-display font-semibold mb-5 text-sm">{t("footer.alsoVisit")}</h4>
+          <div className="space-y-2">
+            <a
+              href="https://bosbapremiumfoods.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-lg border border-dashed border-border p-3 hover:bg-muted transition-colors"
+            >
+              <ArrowLeftRight className="size-4 shrink-0 text-brand" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-medium">BOSBA Premium Foods</span>
+                <span className="block text-xs text-muted-foreground">
+                  {t("nav.sisterSiteHint")}
+                </span>
+              </span>
+              <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" />
+            </a>
+            <a
+              href="https://sorasake.wine/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-lg border border-dashed border-border p-3 hover:bg-muted transition-colors"
+            >
+              <ArrowLeftRight className="size-4 shrink-0 text-brand" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-medium">SORA SAKE</span>
+                <span className="block text-xs text-muted-foreground">
+                  {t("nav.sisterSiteHintSora")}
+                </span>
+              </span>
+              <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" />
+            </a>
+          </div>
         </div>
 
         <div className="col-span-2 md:col-span-1">

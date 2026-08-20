@@ -45,7 +45,8 @@ const nav = [
 ] as const;
 
 function AdminLayout() {
-  const { user, isAdmin, isSales, isMarketing, isStaff, canAccessAdmin, loading, signOut } = useAuth();
+  const { user, isAdmin, isSales, isMarketing, isStaff, canAccessAdmin, loading, signOut } =
+    useAuth();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
 

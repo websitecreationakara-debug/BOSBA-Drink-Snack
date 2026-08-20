@@ -56,17 +56,23 @@ fs.mkdirSync(RESTORE_DIR, { recursive: true });
 
 const dbLocal = path.join(RESTORE_DIR, dbFile.Name);
 console.log(`Downloading ${dbFile.Name} ...`);
-execSync(`"${RCLONE}" copy "${DRIVE_REMOTE}/${dbFile.Name}" "${RESTORE_DIR}" -q --progress`, { stdio: "inherit" });
+execSync(`"${RCLONE}" copy "${DRIVE_REMOTE}/${dbFile.Name}" "${RESTORE_DIR}" -q --progress`, {
+  stdio: "inherit",
+});
 
 if (srcFile) {
   const srcLocal = path.join(RESTORE_DIR, srcFile.Name);
   console.log(`Downloading ${srcFile.Name} ...`);
-  execSync(`"${RCLONE}" copy "${DRIVE_REMOTE}/${srcFile.Name}" "${RESTORE_DIR}" -q --progress`, { stdio: "inherit" });
+  execSync(`"${RCLONE}" copy "${DRIVE_REMOTE}/${srcFile.Name}" "${RESTORE_DIR}" -q --progress`, {
+    stdio: "inherit",
+  });
 
   const unzipDir = path.join(RESTORE_DIR, `source_${stamp}`);
   console.log(`Unpacking source snapshot to ${unzipDir} ...`);
   fs.mkdirSync(unzipDir, { recursive: true });
-  execSync(`"C:\\Windows\\System32\\tar.exe" -xf "${srcLocal}" -C "${unzipDir}"`, { stdio: "inherit" });
+  execSync(`"C:\\Windows\\System32\\tar.exe" -xf "${srcLocal}" -C "${unzipDir}"`, {
+    stdio: "inherit",
+  });
   console.log(`\nSource code browsable at: ${unzipDir}`);
 }
 
@@ -74,4 +80,6 @@ console.log(`\nDatabase dump downloaded but NOT applied to: ${dbLocal}`);
 console.log("To restore it for real (THIS OVERWRITES PRODUCTION, cannot be undone), run:\n");
 console.log(`  cd "D:\\Ecommerce\\BOSBA Drink Snack"`);
 console.log(`  npx wrangler d1 execute ${DB} --remote --file "${dbLocal}"\n`);
-console.log("Consider restoring to a local D1 instance first (drop --remote) to sanity-check the dump.");
+console.log(
+  "Consider restoring to a local D1 instance first (drop --remote) to sanity-check the dump.",
+);

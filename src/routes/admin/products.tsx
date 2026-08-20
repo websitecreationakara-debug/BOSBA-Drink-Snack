@@ -1143,7 +1143,8 @@ function ProductsAdmin() {
                   accept="image/*"
                   hidden
                   onChange={(e) => {
-                    if (varUploadTarget != null) onVariationUpload(varUploadTarget, e.target.files?.[0]);
+                    if (varUploadTarget != null)
+                      onVariationUpload(varUploadTarget, e.target.files?.[0]);
                   }}
                 />
               </div>

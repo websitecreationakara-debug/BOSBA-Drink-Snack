@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useCategories, useProducts } from "@/hooks/use-products";
 import { ProductCard } from "@/components/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
@@ -14,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useI18n } from "@/lib/i18n";
 import { useAllVariations } from "@/hooks/use-products";
@@ -128,21 +127,6 @@ function Shop() {
             {t("shop.clearAll")}
           </Button>
         )}
-      </div>
-
-      <div>
-        <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
-          {t("shop.search")}
-        </label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("shop.searchPlaceholder")}
-            className="pl-9 rounded-full"
-          />
-        </div>
       </div>
 
       <div>

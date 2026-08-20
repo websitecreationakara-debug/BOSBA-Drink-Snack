@@ -21,7 +21,10 @@ for (const size of [192, 512]) {
 // (circle/squircle) never clips the artwork.
 const maskSize = 512;
 const inner = Math.round(maskSize * 0.7);
-const logo = await sharp(src).resize(inner, inner, { fit: "contain", background: white }).png().toBuffer();
+const logo = await sharp(src)
+  .resize(inner, inner, { fit: "contain", background: white })
+  .png()
+  .toBuffer();
 await sharp({ create: { width: maskSize, height: maskSize, channels: 4, background: white } })
   .composite([{ input: logo, gravity: "center" }])
   .png()

@@ -10,7 +10,7 @@ import { listCategories } from "@/data/categories";
 import { listHeroSlides } from "@/data/banners";
 import { listPromotions } from "@/data/promotions";
 import { getSettings } from "@/data/settings";
-import { countPendingOrders, listMyOrders } from "@/data/orders";
+import { countPendingOrders, countShippedOrders, listMyOrders } from "@/data/orders";
 import { listMyAddresses } from "@/data/addresses";
 import type {
   Product,
@@ -103,6 +103,16 @@ export function useMyAddresses(enabled: boolean) {
     queryKey: ["my-addresses"],
     queryFn: () => listMyAddresses() as Promise<Address[]>,
     enabled,
+  });
+}
+
+// Homepage stats banner. Rarely changes and isn't worth refetching on focus,
+// so it's cached for an hour.
+export function useShippedOrderCount() {
+  return useQuery({
+    queryKey: ["orders-shipped-count"],
+    queryFn: () => countShippedOrders() as Promise<number>,
+    staleTime: 60 * 60 * 1000,
   });
 }
 

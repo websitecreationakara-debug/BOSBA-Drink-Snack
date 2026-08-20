@@ -62,9 +62,9 @@ function RestorePage() {
       <div className="flex gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4">
         <ShieldAlert className="size-5 shrink-0 text-destructive" />
         <p className="text-sm text-destructive-foreground/90">
-          This <strong>overwrites the live production database</strong> with the uploaded backup. Any
-          orders or changes made after that backup was taken will be permanently lost. This cannot be
-          undone. Download the backup file from Google Drive first, then upload it below.
+          This <strong>overwrites the live production database</strong> with the uploaded backup.
+          Any orders or changes made after that backup was taken will be permanently lost. This
+          cannot be undone. Download the backup file from Google Drive first, then upload it below.
         </p>
       </div>
 
@@ -89,7 +89,9 @@ function RestorePage() {
             onDrop={onDrop}
             className={cn(
               "mt-1 flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors",
-              dragActive ? "border-primary bg-accent" : "border-border bg-muted/30 hover:border-primary/50 hover:bg-accent/50",
+              dragActive
+                ? "border-primary bg-accent"
+                : "border-border bg-muted/30 hover:border-primary/50 hover:bg-accent/50",
             )}
           >
             <input
@@ -110,8 +112,12 @@ function RestorePage() {
             ) : (
               <>
                 <UploadCloud className="size-8 text-muted-foreground" />
-                <p className="text-sm font-medium">Click to choose a file, or drag and drop it here</p>
-                <p className="text-xs text-muted-foreground">.sql backup file downloaded from Google Drive</p>
+                <p className="text-sm font-medium">
+                  Click to choose a file, or drag and drop it here
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  .sql backup file downloaded from Google Drive
+                </p>
               </>
             )}
           </div>

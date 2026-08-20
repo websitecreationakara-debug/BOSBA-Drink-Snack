@@ -325,6 +325,17 @@ export const countPendingOrders = createServerFn({ method: "GET" }).handler(asyn
   return r?.n ?? 0;
 });
 
+// Public on purpose: the homepage stats banner shows this to anonymous
+// visitors. Returns a bare count only — no order rows, no customer data — so
+// there is nothing here that requires a session.
+export const countShippedOrders = createServerFn({ method: "GET" }).handler(async () => {
+  const [r] = await getDb()
+    .select({ n: count() })
+    .from(orders)
+    .where(inArray(orders.status, ["shipped", "completed"]));
+  return r?.n ?? 0;
+});
+
 export const updateOrderStatus = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; status: string }) => d)
   .handler(async ({ data }) => {

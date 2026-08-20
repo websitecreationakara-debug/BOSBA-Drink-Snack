@@ -130,22 +130,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "BOSBA" },
       { property: "og:title", content: "BOSBA Drink Snack" },
-      { property: "og:description", content: "Japanese drinks and snacks, delivered across Cambodia." },
+      {
+        property: "og:description",
+        content: "Japanese drinks and snacks, delivered across Cambodia.",
+      },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "BOSBA Drink Snack" },
       { name: "twitter:title", content: "BOSBA Drink Snack" },
-      { name: "twitter:description", content: "Japanese drinks and snacks, delivered across Cambodia." },
+      {
+        name: "twitter:description",
+        content: "Japanese drinks and snacks, delivered across Cambodia.",
+      },
       {
         property: "og:image",
-        content:
-          "https://bosbadrinksnack.com/og-image.jpg",
+        content: "https://bosbadrinksnack.com/og-image.jpg",
       },
       { property: "og:image:width", content: "2726" },
       { property: "og:image:height", content: "1135" },
       {
         name: "twitter:image",
-        content:
-          "https://bosbadrinksnack.com/og-image.jpg",
+        content: "https://bosbadrinksnack.com/og-image.jpg",
       },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -158,7 +162,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Battambang:wght@100;300;400;700;900&family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600&display=swap",
       },
     ],
   }),

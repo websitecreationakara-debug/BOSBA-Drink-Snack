@@ -21,7 +21,10 @@ type AuthCtx = {
   canAccessAdmin: boolean;
   // `twoFactorRequired` is true when the password was correct but a TOTP code is
   // still needed — the caller should prompt for it and call verifyTotp.
-  signIn: (email: string, password: string) => Promise<{ error: string | null; twoFactorRequired?: boolean }>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: string | null; twoFactorRequired?: boolean }>;
   verifyTotp: (code: string) => Promise<{ error: string | null }>;
   signUp: (
     email: string,
@@ -47,10 +50,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data, isPending } = authClient.useSession();
 
   const u = data?.user as
-    | { id: string; email: string; name?: string | null; role?: string | null; twoFactorEnabled?: boolean | null }
+    | {
+        id: string;
+        email: string;
+        name?: string | null;
+        role?: string | null;
+        twoFactorEnabled?: boolean | null;
+      }
     | undefined;
   const user: AuthUser = u
-    ? { id: u.id, email: u.email, name: u.name ?? null, role: u.role ?? null, twoFactorEnabled: !!u.twoFactorEnabled }
+    ? {
+        id: u.id,
+        email: u.email,
+        name: u.name ?? null,
+        role: u.role ?? null,
+        twoFactorEnabled: !!u.twoFactorEnabled,
+      }
     : null;
 
   const signIn: AuthCtx["signIn"] = async (email, password) => {
@@ -61,7 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     // With 2FA enabled, better-auth returns twoFactorRedirect and withholds the
     // session until a valid TOTP code is supplied via verifyTotp.
-    const twoFactorRequired = !!(res.data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect;
+    const twoFactorRequired = !!(res.data as { twoFactorRedirect?: boolean } | null)
+      ?.twoFactorRedirect;
     return { error: res.error?.message ?? null, twoFactorRequired };
   };
 

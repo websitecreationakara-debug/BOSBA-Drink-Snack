@@ -153,12 +153,7 @@ function MediaAdmin() {
                 >
                   <Pencil className="size-3.5" />
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="size-7"
-                  onClick={() => copy(m)}
-                >
+                <Button variant="secondary" size="icon" className="size-7" onClick={() => copy(m)}>
                   <Copy className="size-3.5" />
                 </Button>
                 <Button variant="secondary" size="icon" className="size-7" onClick={() => del(m)}>
