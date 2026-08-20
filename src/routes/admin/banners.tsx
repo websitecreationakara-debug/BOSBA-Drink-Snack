@@ -9,12 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -351,7 +346,11 @@ function BannersAdmin() {
                           }}
                           className="aspect-square rounded-md overflow-hidden border hover:ring-2 ring-brand"
                         >
-                          <img src={m.url} alt={m.filename} className="w-full h-full object-cover" />
+                          <img
+                            src={m.url}
+                            alt={m.filename}
+                            className="w-full h-full object-cover"
+                          />
                         </button>
                       ))}
                     </div>

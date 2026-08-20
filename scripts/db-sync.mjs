@@ -39,10 +39,13 @@ if (dir === "push" && !confirmed) {
 }
 
 const readRows = (flag, table) => {
-  const out = execSync(`npx wrangler d1 execute ${DB} ${flag} --json --command "SELECT * FROM ${table}"`, {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-  });
+  const out = execSync(
+    `npx wrangler d1 execute ${DB} ${flag} --json --command "SELECT * FROM ${table}"`,
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    },
+  );
   try {
     return JSON.parse(out)[0].results;
   } catch {
@@ -51,7 +54,11 @@ const readRows = (flag, table) => {
 };
 
 const esc = (v) =>
-  v === null || v === undefined ? "NULL" : typeof v === "number" ? String(v) : `'${String(v).replace(/'/g, "''")}'`;
+  v === null || v === undefined
+    ? "NULL"
+    : typeof v === "number"
+      ? String(v)
+      : `'${String(v).replace(/'/g, "''")}'`;
 
 const insertsFor = (table, rows) =>
   rows
@@ -90,5 +97,7 @@ const applyPath = path.join(os.tmpdir(), `dbsync-apply-${stamp}.sql`);
 fs.writeFileSync(applyPath, buildReplaceSql(src));
 execSync(`npx wrangler d1 execute ${DB} ${dstFlag} --file "${applyPath}"`, { stdio: "inherit" });
 
-console.log(`\n✓ ${dstName} now matches ${srcName} (${TABLES.map((t) => `${t}:${src[t].length}`).join(", ")}).`);
+console.log(
+  `\n✓ ${dstName} now matches ${srcName} (${TABLES.map((t) => `${t}:${src[t].length}`).join(", ")}).`,
+);
 if (dir === "pull") console.log("  Refresh your browser — React Query may still show cached data.");

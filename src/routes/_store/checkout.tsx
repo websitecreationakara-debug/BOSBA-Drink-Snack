@@ -73,6 +73,11 @@ const LEAD_MINUTES = 30;
 // Temporarily hide the KHQR/COD payment selector until online payment goes live.
 // When false, every order is Cash on Delivery. Flip back to true to re-enable.
 const PAYMENT_METHODS_ENABLED = false;
+
+// Taller form controls on phones (44px touch target), back to the compact
+// default from sm up.
+const FIELD_H = "h-11 sm:h-9";
+
 const localToday = () => {
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -357,11 +362,16 @@ function Checkout() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12 grid lg:grid-cols-[1fr_400px] gap-10">
-      <form onSubmit={placeOrder} className="space-y-6">
-        <h1 className="font-display font-semibold tracking-tight text-3xl">Checkout</h1>
+    <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-12 grid lg:grid-cols-[1fr_400px] gap-6 lg:gap-10">
+      {/* On phones the summary sits above the form so the cart can be reviewed
+          and adjusted before filling in details; the heading spans both columns
+          so it stays first either way. */}
+      <h1 className="order-1 lg:col-span-2 font-display font-semibold tracking-tight text-2xl sm:text-3xl">
+        Checkout
+      </h1>
 
-        <section className="space-y-4 bg-muted rounded-2xl p-6">
+      <form onSubmit={placeOrder} className="order-3 lg:order-2 space-y-6">
+        <section className="space-y-4 bg-muted rounded-2xl p-4 sm:p-6">
           <h2 className="font-display font-semibold text-lg">Delivery Details</h2>
 
           <div className="grid grid-cols-2 gap-2">
@@ -427,7 +437,7 @@ function Checkout() {
                       applyAddress(a);
                     }}
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                      "max-w-full truncate rounded-full border px-3 py-2 text-sm transition-colors",
                       selectedAddressId === a.id
                         ? "border-brand bg-brand/10 text-brand"
                         : "border-border hover:bg-background",
@@ -444,7 +454,7 @@ function Checkout() {
                     clearAddressFields();
                   }}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                    "rounded-full border px-3 py-2 text-sm transition-colors",
                     selectedAddressId === null
                       ? "border-brand bg-brand/10 text-brand"
                       : "border-border hover:bg-background",
@@ -458,7 +468,9 @@ function Checkout() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <Label>Full name</Label>
-              <Input ref={nameRef} required defaultValue={user?.name ?? ""} />
+              {/* h-11 keeps fields a comfortable touch target on phones; the
+                  tighter h-9 default returns from sm up. */}
+              <Input ref={nameRef} required defaultValue={user?.name ?? ""} className={FIELD_H} />
             </div>
             <div>
               <Label>
@@ -469,22 +481,29 @@ function Checkout() {
                 required={!!user}
                 type="email"
                 defaultValue={user?.email ?? ""}
+                className={FIELD_H}
               />
             </div>
             <div className="sm:col-span-2">
               <Label>Phone</Label>
-              <Input ref={phoneRef} required type="tel" placeholder="+855 12 345 678" />
+              <Input
+                ref={phoneRef}
+                required
+                type="tel"
+                placeholder="+855 12 345 678"
+                className={FIELD_H}
+              />
             </div>
             {deliveryMethod === "delivery" && (
               <>
                 <div className="sm:col-span-2">
                   <Label>Address</Label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Input
                       ref={addressRef}
                       required
                       placeholder="123 Phnom Penh"
-                      className="flex-1 min-w-0"
+                      className={cn("flex-1 min-w-0", FIELD_H)}
                       onChange={() => {
                         addressDirty.current = true;
                       }}
@@ -494,7 +513,7 @@ function Checkout() {
                       variant="outline"
                       onClick={captureLocation}
                       disabled={locating}
-                      className="shrink-0 gap-2"
+                      className={cn("w-full sm:w-auto shrink-0 gap-2", FIELD_H)}
                     >
                       <MapPin className="size-4" />
                       {locating ? "Locating…" : coords ? "Pinned" : "Pin location"}
@@ -520,6 +539,7 @@ function Checkout() {
                   <Input
                     ref={cityRef}
                     required
+                    className={FIELD_H}
                     onChange={() => {
                       cityDirty.current = true;
                     }}
@@ -540,7 +560,9 @@ function Checkout() {
             )}
             <div className="sm:col-span-2">
               <Label>Delivery time</Label>
-              <div className="mt-1.5 grid grid-cols-2 gap-2">
+              {/* One per row on phones — "As soon as possible" doesn't fit in a
+                  half-width button at 360px. */}
+              <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {(
                   [
                     { key: "asap", label: "As soon as possible", icon: Zap },
@@ -581,7 +603,7 @@ function Checkout() {
                         }
                         setSchedDate(v);
                       }}
-                      className="bg-background"
+                      className={cn("bg-background", FIELD_H)}
                     />
                   </div>
                   <div>
@@ -591,7 +613,7 @@ function Checkout() {
                       onValueChange={setSchedTime}
                       disabled={!schedDate || availableSlots.length === 0}
                     >
-                      <SelectTrigger className="bg-background">
+                      <SelectTrigger className={cn("bg-background", FIELD_H)}>
                         <SelectValue placeholder="Pick a time" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
@@ -621,7 +643,7 @@ function Checkout() {
         </section>
 
         {PAYMENT_METHODS_ENABLED && (
-          <section className="space-y-4 bg-muted rounded-2xl p-6">
+          <section className="space-y-4 bg-muted rounded-2xl p-4 sm:p-6">
             <h2 className="font-display font-semibold text-lg">Payment Method</h2>
             <div className="grid sm:grid-cols-2 gap-3">
               {(
@@ -673,14 +695,17 @@ function Checkout() {
         </Button>
       </form>
 
-      <aside className="bg-muted rounded-2xl p-6 h-fit sticky top-28 space-y-4">
+      <aside className="order-2 lg:order-3 bg-muted rounded-2xl p-4 sm:p-6 h-fit lg:sticky lg:top-28 space-y-4">
         <h2 className="font-display font-semibold text-lg">Order Summary</h2>
-        <div className="space-y-3 max-h-80 overflow-y-auto">
+        <div className="space-y-3 max-h-72 sm:max-h-80 overflow-y-auto">
           {items.map((item) => {
             const key = itemKey(item);
             const unit = itemUnitPrice(item);
             return (
-              <div key={key} className="flex items-center gap-2 text-sm">
+              // Two rows per item: thumbnail + title/line-total on top, unit
+              // price + stepper below. A single row can't fit all six controls
+              // on a phone-width summary without squeezing the title to nothing.
+              <div key={key} className="flex gap-3 text-sm">
                 <button
                   type="button"
                   onClick={() =>
@@ -689,7 +714,7 @@ function Checkout() {
                   }
                   disabled={!item.product.image_url}
                   title={item.product.image_url ? `View ${item.product.title} image` : undefined}
-                  className="size-10 rounded-lg bg-background overflow-hidden shrink-0 hover:ring-2 hover:ring-brand transition-shadow disabled:cursor-default"
+                  className="size-12 rounded-lg bg-background overflow-hidden shrink-0 hover:ring-2 hover:ring-brand transition-shadow disabled:cursor-default"
                 >
                   {item.product.image_url && (
                     <img
@@ -701,39 +726,44 @@ function Checkout() {
                   )}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate font-medium">
-                    {item.product.title}
-                    {item.variation ? ` (${item.variation.weight})` : ""}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">${unit.toFixed(2)} each</p>
+                  <div className="flex items-start gap-2">
+                    <p className="flex-1 min-w-0 font-medium leading-snug line-clamp-2">
+                      {item.product.title}
+                      {item.variation ? ` (${item.variation.weight})` : ""}
+                    </p>
+                    <span className="font-bold shrink-0">${(unit * item.qty).toFixed(2)}</span>
+                    <button
+                      type="button"
+                      onClick={() => remove(key)}
+                      aria-label={`Remove ${item.product.title} from cart`}
+                      className="mt-0.5 text-muted-foreground hover:text-destructive shrink-0"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">${unit.toFixed(2)} each</p>
+                    <div className="flex items-center gap-1 border rounded-full shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setQty(key, item.qty - 1)}
+                        aria-label="Decrease quantity"
+                        className="size-8 grid place-items-center hover:bg-background rounded-full"
+                      >
+                        <Minus className="size-3" />
+                      </button>
+                      <span className="text-xs font-semibold w-5 text-center">{item.qty}</span>
+                      <button
+                        type="button"
+                        onClick={() => setQty(key, item.qty + 1)}
+                        aria-label="Increase quantity"
+                        className="size-8 grid place-items-center hover:bg-background rounded-full"
+                      >
+                        <Plus className="size-3" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 border rounded-full shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setQty(key, item.qty - 1)}
-                    className="size-7 grid place-items-center hover:bg-background rounded-full"
-                  >
-                    <Minus className="size-3" />
-                  </button>
-                  <span className="text-xs font-semibold w-5 text-center">{item.qty}</span>
-                  <button
-                    type="button"
-                    onClick={() => setQty(key, item.qty + 1)}
-                    className="size-7 grid place-items-center hover:bg-background rounded-full"
-                  >
-                    <Plus className="size-3" />
-                  </button>
-                </div>
-                <span className="font-bold w-16 text-right shrink-0">
-                  ${(unit * item.qty).toFixed(2)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => remove(key)}
-                  className="text-muted-foreground hover:text-destructive shrink-0"
-                >
-                  <Trash2 className="size-4" />
-                </button>
               </div>
             );
           })}
@@ -767,14 +797,14 @@ function Checkout() {
                   }
                 }}
                 placeholder="Promo code"
-                className="flex-1 min-w-0 uppercase"
+                className={cn("flex-1 min-w-0 uppercase", FIELD_H)}
               />
               <Button
                 type="button"
                 variant="outline"
                 onClick={applyCode}
                 disabled={checking || !code.trim()}
-                className="shrink-0"
+                className={cn("shrink-0", FIELD_H)}
               >
                 {checking ? "…" : "Apply"}
               </Button>
@@ -804,7 +834,7 @@ function Checkout() {
       </aside>
 
       <Dialog open={!!preview} onOpenChange={(open) => !open && setPreview(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-lg rounded-xl">
           <DialogHeader>
             <DialogTitle>{preview?.title}</DialogTitle>
           </DialogHeader>
