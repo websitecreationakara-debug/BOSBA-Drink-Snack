@@ -65,7 +65,15 @@ function UsersAdmin() {
     const res = await authClient.admin.setRole({ userId, role: role as "user" | "admin" });
     if (res.error) return toast.error(res.error.message ?? "Failed to change role");
     recordAdminAction({
-      data: { action: "role_change", detail: { targetUserId: userId, targetEmail: target?.email, oldRole: target?.role, newRole: role } },
+      data: {
+        action: "role_change",
+        detail: {
+          targetUserId: userId,
+          targetEmail: target?.email,
+          oldRole: target?.role,
+          newRole: role,
+        },
+      },
     }).catch(() => {});
     toast.success("Role updated");
     refresh();
@@ -77,7 +85,10 @@ function UsersAdmin() {
       : await authClient.admin.banUser({ userId: u.id });
     if (res.error) return toast.error(res.error.message ?? "Failed to update");
     recordAdminAction({
-      data: { action: "user_ban", detail: { targetUserId: u.id, targetEmail: u.email, banned: !u.banned } },
+      data: {
+        action: "user_ban",
+        detail: { targetUserId: u.id, targetEmail: u.email, banned: !u.banned },
+      },
     }).catch(() => {});
     toast.success(u.banned ? "User unbanned" : "User banned");
     refresh();
@@ -98,7 +109,10 @@ function UsersAdmin() {
     const res = await authClient.admin.removeUser({ userId: u.id });
     if (res.error) return toast.error(res.error.message ?? "Failed to delete");
     recordAdminAction({
-      data: { action: "user_delete", detail: { targetUserId: u.id, targetEmail: u.email, role: u.role } },
+      data: {
+        action: "user_delete",
+        detail: { targetUserId: u.id, targetEmail: u.email, role: u.role },
+      },
     }).catch(() => {});
     toast.success("User deleted");
     refresh();
@@ -198,6 +212,7 @@ function UsersAdmin() {
                         <SelectItem value="user">User</SelectItem>
                         <SelectItem value="sales">Sales</SelectItem>
                         <SelectItem value="marketing">Marketing</SelectItem>
+                        <SelectItem value="stock">Stock</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>
                     </Select>
@@ -334,6 +349,7 @@ function UsersAdmin() {
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="sales">Sales</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
+                  <SelectItem value="stock">Stock</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>

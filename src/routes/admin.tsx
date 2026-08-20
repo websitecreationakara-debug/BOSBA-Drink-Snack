@@ -45,7 +45,17 @@ const nav = [
 ] as const;
 
 function AdminLayout() {
-  const { user, isAdmin, isSales, isMarketing, isStaff, canAccessAdmin, loading, signOut } = useAuth();
+  const {
+    user,
+    isAdmin,
+    isSales,
+    isMarketing,
+    isStock,
+    isStaff,
+    canAccessAdmin,
+    loading,
+    signOut,
+  } = useAuth();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
 
@@ -95,11 +105,18 @@ function AdminLayout() {
   ];
   const marketingBlocked =
     isMarketing && !isAdmin && path !== "/admin" && !marketingPaths.some((p) => path.startsWith(p));
+  // Stock manages the catalog (products/categories/media) and can view orders,
+  // but not the marketing/promotions page.
+  const stockPaths = ["/admin/products", "/admin/categories", "/admin/media", "/admin/orders"];
+  const stockBlocked =
+    isStock && !isAdmin && path !== "/admin" && !stockPaths.some((p) => path.startsWith(p));
   const visibleNav = isAdmin
     ? nav
     : isMarketing
       ? nav.filter((n) => n.to === "/admin" || marketingPaths.includes(n.to))
-      : nav.filter((n) => n.to === "/admin/orders");
+      : isStock
+        ? nav.filter((n) => n.to === "/admin" || stockPaths.includes(n.to))
+        : nav.filter((n) => n.to === "/admin/orders");
 
   useEffect(() => {
     if (!loading && (!user || !canAccessAdmin)) navigate({ to: "/" });
@@ -107,8 +124,8 @@ function AdminLayout() {
 
   useEffect(() => {
     if (salesBlocked) navigate({ to: "/admin/orders" });
-    else if (marketingBlocked) navigate({ to: "/admin" });
-  }, [salesBlocked, marketingBlocked, navigate]);
+    else if (marketingBlocked || stockBlocked) navigate({ to: "/admin" });
+  }, [salesBlocked, marketingBlocked, stockBlocked, navigate]);
 
   useEffect(() => {
     // Alert only on an actual increase, never on first load.
@@ -243,7 +260,7 @@ function AdminLayout() {
         </div>
       </aside>
       <main className="flex-1 bg-background p-8 overflow-x-auto">
-        {salesBlocked || marketingBlocked ? (
+        {salesBlocked || marketingBlocked || stockBlocked ? (
           <div className="text-muted-foreground">Redirecting…</div>
         ) : (
           <Outlet />

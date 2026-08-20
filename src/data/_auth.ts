@@ -21,12 +21,14 @@ export async function requireAdmin(): Promise<SessionUser> {
   return user;
 }
 
-// Catalog/marketing manager: admin or marketing. Gates the writes the marketing
-// role is allowed to perform — products, categories, media, promotions, promo
-// codes — while keeping users/settings/banners/orders admin-only.
+// Catalog manager: admin, marketing, or stock. Gates the writes these roles
+// are allowed to perform — products, categories, media, promotions, promo
+// codes — while keeping users/settings/banners/orders admin-only. Stock's
+// admin UI only exposes products/categories/media (not the marketing/promo
+// pages), so in practice stock only ever calls the catalog subset of this.
 export async function requireManager(): Promise<SessionUser> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "marketing")
+  if (user.role !== "admin" && user.role !== "marketing" && user.role !== "stock")
     throw new Error("Forbidden: manager only");
   return user;
 }
@@ -38,11 +40,16 @@ export async function requireStaff(): Promise<SessionUser> {
   return user;
 }
 
-// Read-only order access for the dashboard: admin, sales, or marketing. Order
-// mutations stay on requireStaff/requireAdmin — marketing can view, not manage.
+// Read-only order access for the dashboard: admin, sales, marketing, or stock.
+// Order mutations stay on requireStaff/requireAdmin — these roles can view, not manage.
 export async function requireOrderViewer(): Promise<SessionUser> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "sales" && user.role !== "marketing")
+  if (
+    user.role !== "admin" &&
+    user.role !== "sales" &&
+    user.role !== "marketing" &&
+    user.role !== "stock"
+  )
     throw new Error("Forbidden");
   return user;
 }
