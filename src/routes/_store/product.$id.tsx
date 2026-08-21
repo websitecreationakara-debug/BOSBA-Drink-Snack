@@ -15,8 +15,19 @@ import { useWishlist } from "@/hooks/use-wishlist";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product-card";
 import { productFromPrice, groupVariations } from "@/lib/variants";
-import { Star, ShoppingBag, Minus, Plus, ArrowLeft, Truck, Heart, Play } from "lucide-react";
+import {
+  Star,
+  ShoppingBag,
+  Minus,
+  Plus,
+  ArrowLeft,
+  Truck,
+  Heart,
+  Play,
+  MessageCircle,
+} from "lucide-react";
 import { cn, slugify } from "@/lib/utils";
+import { preOrderChatUrl } from "@/lib/sales-chat";
 import { extractYoutubeId, youtubeThumbnail, youtubeEmbedSrc } from "@/lib/youtube";
 import { useI18n } from "@/lib/i18n";
 
@@ -349,35 +360,50 @@ function ProductDetail() {
           {/* Narrow phones can't fit stepper + button + wishlist on one line, so
               the button drops to its own full-width row below them. */}
           <div className="flex flex-wrap items-center gap-3 mt-8">
-            <div className="flex items-center border rounded-full">
-              <button
-                type="button"
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="size-10 grid place-items-center text-muted-foreground hover:text-foreground disabled:opacity-40"
-                disabled={qty <= 1}
-                aria-label="Decrease quantity"
+            {!preOrder && (
+              <div className="flex items-center border rounded-full">
+                <button
+                  type="button"
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  className="size-10 grid place-items-center text-muted-foreground hover:text-foreground disabled:opacity-40"
+                  disabled={qty <= 1}
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="size-4" />
+                </button>
+                <span className="w-10 text-center font-bold">{qty}</span>
+                <button
+                  type="button"
+                  onClick={() => setQty((q) => Math.min(activeStock ?? 99, q + 1))}
+                  className="size-10 grid place-items-center text-muted-foreground hover:text-foreground"
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="size-4" />
+                </button>
+              </div>
+            )}
+            {preOrder ? (
+              <Button
+                asChild
+                size="lg"
+                className="order-last w-full sm:order-0 sm:w-auto sm:flex-1 rounded-full font-bold"
               >
-                <Minus className="size-4" />
-              </button>
-              <span className="w-10 text-center font-bold">{qty}</span>
-              <button
-                type="button"
-                onClick={() => setQty((q) => Math.min(preOrder ? 99 : (activeStock ?? 99), q + 1))}
-                className="size-10 grid place-items-center text-muted-foreground hover:text-foreground"
-                aria-label="Increase quantity"
+                <a href={preOrderChatUrl(product.title)} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="size-4 mr-2" />
+                  Chat to Pre-Order
+                </a>
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                disabled={addDisabled}
+                onClick={() => add(product, variable ? selected : null, qty)}
+                className="order-last w-full sm:order-0 sm:w-auto sm:flex-1 rounded-full font-bold"
               >
-                <Plus className="size-4" />
-              </button>
-            </div>
-            <Button
-              size="lg"
-              disabled={addDisabled}
-              onClick={() => add(product, variable ? selected : null, qty)}
-              className="order-last w-full sm:order-0 sm:w-auto sm:flex-1 rounded-full font-bold"
-            >
-              <ShoppingBag className="size-4 mr-2" />
-              {preOrder ? "Pre-Order" : soldOut ? "Out of Stock" : "Add to Cart"}
-            </Button>
+                <ShoppingBag className="size-4 mr-2" />
+                {soldOut ? "Out of Stock" : "Add to Cart"}
+              </Button>
+            )}
             <button
               type="button"
               onClick={() => toggleWishlist(product.id)}

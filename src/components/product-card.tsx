@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingBag, SlidersHorizontal, Heart } from "lucide-react";
+import { ShoppingBag, SlidersHorizontal, Heart, MessageCircle } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useI18n } from "@/lib/i18n";
 import { slugify } from "@/lib/utils";
+import { preOrderChatUrl } from "@/lib/sales-chat";
 import type { Product } from "@/lib/types";
 
 export function ProductCard({
@@ -124,6 +125,19 @@ export function ProductCard({
             >
               <SlidersHorizontal className="size-4" />
             </span>
+          ) : product.pre_order ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(preOrderChatUrl(product.title), "_blank", "noopener,noreferrer");
+              }}
+              aria-label="Chat to pre-order"
+              className="grid size-9 shrink-0 place-items-center rounded-full border border-brand bg-background text-brand transition-colors hover:bg-brand hover:text-brand-foreground"
+            >
+              <MessageCircle className="size-4" />
+            </button>
           ) : (
             <button
               disabled={soldOut}

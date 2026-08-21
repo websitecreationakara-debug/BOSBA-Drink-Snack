@@ -24,6 +24,10 @@ declare global {
       TELEGRAM_BOT_TOKEN?: string;
       TELEGRAM_CHAT_ID?: string;
       TELEGRAM_TOPIC_ID?: string;
+      // Validates incoming Telegram webhook calls (X-Telegram-Bot-Api-Secret-Token
+      // header) — see src/server.ts's /api/telegram-webhook handler, which relays
+      // customer messages sent to the bot into TELEGRAM_CHAT_ID.
+      TELEGRAM_WEBHOOK_SECRET?: string;
       // KHQR payment gateway (PPCBank). Absent in mock mode — see src/lib/payment.ts.
       PPCBANK_BASE_URL?: string;
       PPCBANK_MERCHANT_CODE?: string;

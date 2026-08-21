@@ -60,6 +60,88 @@ function withSecurityHeaders(response: Response): Response {
   });
 }
 
+const TELEGRAM_WEBHOOK_PATH = "/api/telegram-webhook";
+
+// Relays messages customers send to @bosbadrinksnack_bot (e.g. the "Chat to
+// Pre-Order" product-page button) into the same admin Telegram chat/topic
+// that order alerts already go to (src/lib/notify.ts). The bot's token can
+// only *send* — Telegram has to be told to POST incoming messages here via
+// `setWebhook` (one-time, see scripts/register-telegram-webhook — not run
+// automatically). Registered with a secret_token so this endpoint rejects
+// anything that isn't really from Telegram.
+async function handleTelegramWebhook(request: Request, env: Cloudflare.Env): Promise<Response> {
+  const expectedSecret = env.TELEGRAM_WEBHOOK_SECRET;
+  const token = env.TELEGRAM_BOT_TOKEN;
+  const chatId = env.TELEGRAM_CHAT_ID;
+  if (!expectedSecret || !token || !chatId) return new Response("Not configured", { status: 404 });
+
+  const providedSecret = request.headers.get("x-telegram-bot-api-secret-token");
+  if (providedSecret !== expectedSecret) return new Response("Unauthorized", { status: 401 });
+
+  let update: unknown;
+  try {
+    update = await request.json();
+  } catch {
+    return new Response("Bad Request", { status: 400 });
+  }
+
+  const message = (
+    update as {
+      message?: { text?: string; from?: { first_name?: string; username?: string } };
+    }
+  ).message;
+  const text = message?.text?.trim();
+  // Ignore updates with nothing to relay (stickers, plain /start, edited-message pings).
+  if (text) {
+    const from = message?.from;
+    const who = from?.username ? `@${from.username}` : (from?.first_name ?? "A customer");
+    const payload: Record<string, unknown> = {
+      chat_id: chatId,
+      text: `💬 Pre-order chat — ${who}:\n\n${text}`,
+      disable_web_page_preview: true,
+    };
+    if (env.TELEGRAM_TOPIC_ID) payload.message_thread_id = Number(env.TELEGRAM_TOPIC_ID);
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  }
+
+  // Any 2xx tells Telegram the update was delivered; body content is ignored.
+  return new Response("ok", { status: 200 });
+}
+
+const TELEGRAM_WEBHOOK_REGISTER_PATH = "/api/telegram-webhook/register";
+
+// One-time setup helper: tells Telegram to start POSTing updates for this bot
+// to handleTelegramWebhook above. Run once after TELEGRAM_WEBHOOK_SECRET is
+// set (`GET /api/telegram-webhook/register?secret=<TELEGRAM_WEBHOOK_SECRET>`)
+// — idempotent, safe to re-run. Exists so this can be triggered without ever
+// exposing TELEGRAM_BOT_TOKEN outside the Worker (secrets are write-only via
+// `wrangler secret put`).
+async function handleRegisterTelegramWebhook(request: Request, env: Cloudflare.Env): Promise<Response> {
+  const expectedSecret = env.TELEGRAM_WEBHOOK_SECRET;
+  const token = env.TELEGRAM_BOT_TOKEN;
+  if (!expectedSecret || !token) return new Response("Not configured", { status: 404 });
+
+  const url = new URL(request.url);
+  if (url.searchParams.get("secret") !== expectedSecret) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const webhookUrl = `${url.origin}${TELEGRAM_WEBHOOK_PATH}`;
+  const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ url: webhookUrl, secret_token: expectedSecret }),
+  });
+  return new Response(await res.text(), {
+    status: res.status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
@@ -125,6 +207,14 @@ export default {
     // single host (BETTER_AUTH_URL is the non-www origin). Without this, signing in
     // on www sets the cookie on the apex and the user appears logged out on www.
     const url = new URL(request.url);
+
+    if (url.pathname === TELEGRAM_WEBHOOK_PATH && request.method === "POST") {
+      return handleTelegramWebhook(request, env as Cloudflare.Env);
+    }
+    if (url.pathname === TELEGRAM_WEBHOOK_REGISTER_PATH && request.method === "GET") {
+      return handleRegisterTelegramWebhook(request, env as Cloudflare.Env);
+    }
+
     if (url.hostname === "www.bosbadrinksnack.com") {
       url.hostname = "bosbadrinksnack.com";
       return withSecurityHeaders(Response.redirect(url.toString(), 301));
