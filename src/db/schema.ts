@@ -311,3 +311,15 @@ export const verification = sqliteTable("verification", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
+
+// Telegram chats allowed to have their messages relayed to the admin chat
+// (see src/server.ts's telegram webhook). A chat is added the first time it
+// sends a message starting with the "Chat to Pre-Order" button's exact
+// prefilled text — every later message from that chat is trusted without
+// re-checking, so a real conversation isn't broken by follow-up replies that
+// don't repeat the phrase. Cold-DM spam/scams sent straight to the public bot
+// never match on their first message, so they're dropped and never allowlisted.
+export const pre_order_chat_allowlist = sqliteTable("pre_order_chat_allowlist", {
+  chat_id: text("chat_id").primaryKey(),
+  created_at: text("created_at").notNull().$defaultFn(nowIso),
+});

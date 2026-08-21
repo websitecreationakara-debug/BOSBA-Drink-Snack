@@ -1,7 +1,10 @@
 import "./lib/error-capture";
 
+import { eq } from "drizzle-orm";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { getDb } from "./db";
+import { pre_order_chat_allowlist } from "./db/schema";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -87,27 +90,49 @@ async function handleTelegramWebhook(request: Request, env: Cloudflare.Env): Pro
 
   const message = (
     update as {
-      message?: { text?: string; from?: { first_name?: string; username?: string } };
+      message?: {
+        text?: string;
+        chat?: { id?: number };
+        from?: { first_name?: string; username?: string };
+      };
     }
   ).message;
   const text = message?.text?.trim();
-  // Ignore updates with nothing to relay (stickers, plain /start, edited-message pings)
-  // and drop anything containing a link — real pre-order questions don't need one, and
-  // this is the exact shape of the "track your delivery" phishing spam public bots draw.
-  if (text && !/https?:\/\//i.test(text)) {
-    const from = message?.from;
-    const who = from?.username ? `@${from.username}` : (from?.first_name ?? "A customer");
-    const payload: Record<string, unknown> = {
-      chat_id: chatId,
-      text: `💬 Pre-order chat — ${who}:\n\n${text}`,
-      disable_web_page_preview: true,
-    };
-    if (env.TELEGRAM_TOPIC_ID) payload.message_thread_id = Number(env.TELEGRAM_TOPIC_ID);
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    }).catch(() => {});
+  const senderChatId = message?.chat?.id;
+
+  // Ignore updates with nothing to relay (stickers, plain /start, edited-message pings).
+  if (text && senderChatId != null) {
+    const db = getDb();
+    const chatIdStr = String(senderChatId);
+    const [known] = await db
+      .select({ chat_id: pre_order_chat_allowlist.chat_id })
+      .from(pre_order_chat_allowlist)
+      .where(eq(pre_order_chat_allowlist.chat_id, chatIdStr));
+
+    // A chat earns trust once, by opening with the exact text the "Chat to
+    // Pre-Order" button pre-fills — cold DMs (delivery-tracking phishing,
+    // impersonation/petty-cash scams, etc.) never match this on their first
+    // message, so they're dropped and that chat is never allowlisted.
+    const looksLikePreOrderStart = /^i.d like to pre-?order:/i.test(text);
+
+    if (known || looksLikePreOrderStart) {
+      if (!known) {
+        await db.insert(pre_order_chat_allowlist).values({ chat_id: chatIdStr }).onConflictDoNothing();
+      }
+      const from = message?.from;
+      const who = from?.username ? `@${from.username}` : (from?.first_name ?? "A customer");
+      const payload: Record<string, unknown> = {
+        chat_id: chatId,
+        text: `💬 Pre-order chat — ${who}:\n\n${text}`,
+        disable_web_page_preview: true,
+      };
+      if (env.TELEGRAM_TOPIC_ID) payload.message_thread_id = Number(env.TELEGRAM_TOPIC_ID);
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+    }
   }
 
   // Any 2xx tells Telegram the update was delivered; body content is ignored.
