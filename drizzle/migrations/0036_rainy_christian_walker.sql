@@ -1,0 +1,1 @@
+DROP TABLE `pre_order_chat_allowlist`;
