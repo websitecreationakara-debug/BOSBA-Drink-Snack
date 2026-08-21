@@ -91,8 +91,10 @@ async function handleTelegramWebhook(request: Request, env: Cloudflare.Env): Pro
     }
   ).message;
   const text = message?.text?.trim();
-  // Ignore updates with nothing to relay (stickers, plain /start, edited-message pings).
-  if (text) {
+  // Ignore updates with nothing to relay (stickers, plain /start, edited-message pings)
+  // and drop anything containing a link — real pre-order questions don't need one, and
+  // this is the exact shape of the "track your delivery" phishing spam public bots draw.
+  if (text && !/https?:\/\//i.test(text)) {
     const from = message?.from;
     const who = from?.username ? `@${from.username}` : (from?.first_name ?? "A customer");
     const payload: Record<string, unknown> = {
@@ -136,6 +138,27 @@ async function handleRegisterTelegramWebhook(request: Request, env: Cloudflare.E
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ url: webhookUrl, secret_token: expectedSecret }),
   });
+  return new Response(await res.text(), {
+    status: res.status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+const TELEGRAM_WEBHOOK_STATUS_PATH = "/api/telegram-webhook/status";
+
+// Diagnostic helper: proxies Telegram's own getWebhookInfo (last delivery
+// error, pending update count, etc.) without ever exposing TELEGRAM_BOT_TOKEN.
+async function handleTelegramWebhookStatus(request: Request, env: Cloudflare.Env): Promise<Response> {
+  const expectedSecret = env.TELEGRAM_WEBHOOK_SECRET;
+  const token = env.TELEGRAM_BOT_TOKEN;
+  if (!expectedSecret || !token) return new Response("Not configured", { status: 404 });
+
+  const url = new URL(request.url);
+  if (url.searchParams.get("secret") !== expectedSecret) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const res = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
   return new Response(await res.text(), {
     status: res.status,
     headers: { "content-type": "application/json" },
@@ -213,6 +236,9 @@ export default {
     }
     if (url.pathname === TELEGRAM_WEBHOOK_REGISTER_PATH && request.method === "GET") {
       return handleRegisterTelegramWebhook(request, env as Cloudflare.Env);
+    }
+    if (url.pathname === TELEGRAM_WEBHOOK_STATUS_PATH && request.method === "GET") {
+      return handleTelegramWebhookStatus(request, env as Cloudflare.Env);
     }
 
     if (url.hostname === "www.bosbadrinksnack.com") {
