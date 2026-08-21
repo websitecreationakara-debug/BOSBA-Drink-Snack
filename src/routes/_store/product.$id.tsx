@@ -8,6 +8,7 @@ import {
   useAllVariations,
 } from "@/hooks/use-products";
 import { getProduct } from "@/data/products";
+import { renderFormattedDescription } from "@/lib/format-description";
 import type { Product } from "@/lib/types";
 import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
@@ -334,7 +335,9 @@ function ProductDetail() {
           )}
 
           {product.description && (
-            <p className="text-muted-foreground mt-5 leading-relaxed">{product.description}</p>
+            <p className="text-muted-foreground mt-5 leading-relaxed whitespace-pre-line">
+              {renderFormattedDescription(product.description)}
+            </p>
           )}
 
           {/* Narrow phones can't fit stepper + button + wishlist on one line, so

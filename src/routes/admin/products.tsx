@@ -111,6 +111,7 @@ function ProductsAdmin() {
   const isVariable = form.type === "variable";
   const videoId = form.video_url.trim() ? extractYoutubeId(form.video_url) : null;
   const fileRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [uploading, setUploading] = useState(false);
   const [picker, setPicker] = useState(false);
   // Extra gallery photos (beyond the cover image), edited as an ordered URL list.
@@ -300,6 +301,29 @@ function ProductsAdmin() {
     } else {
       setVars([]);
     }
+  };
+
+  const toggleDescriptionBold = () => {
+    const el = descriptionRef.current;
+    if (!el) return;
+    const { selectionStart, selectionEnd, value } = el;
+    const selected = value.slice(selectionStart, selectionEnd);
+    const before = value.slice(0, selectionStart);
+    const after = value.slice(selectionEnd);
+
+    const alreadyBold = selected.startsWith("**") && selected.endsWith("**") && selected.length >= 4;
+    const next = alreadyBold
+      ? `${before}${selected.slice(2, -2)}${after}`
+      : `${before}**${selected || "bold text"}**${after}`;
+
+    setForm({ ...form, description: next });
+    requestAnimationFrame(() => {
+      el.focus();
+      const cursor = alreadyBold
+        ? selectionEnd - 4
+        : selectionStart + 2 + (selected || "bold text").length + 2;
+      el.setSelectionRange(cursor, cursor);
+    });
   };
 
   const variationPayload = () =>
@@ -790,10 +814,25 @@ function ProductsAdmin() {
               />
             </div>
             <div>
-              <Label>Description</Label>
+              <div className="flex items-center justify-between">
+                <Label>Description</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 font-bold"
+                  onClick={toggleDescriptionBold}
+                  title="Bold selected text"
+                >
+                  B
+                </Button>
+              </div>
               <Textarea
+                ref={descriptionRef}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
+                rows={6}
+                placeholder="Use **bold** for emphasis. Leave a blank line between paragraphs."
               />
             </div>
 
