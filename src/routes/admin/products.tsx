@@ -74,6 +74,7 @@ const empty = {
   pcs: "",
   type: "simple",
   featured: false,
+  pre_order: false,
   promotion_id: "",
   video_url: "",
 };
@@ -295,6 +296,7 @@ function ProductsAdmin() {
       pcs: p.pcs != null ? String(p.pcs) : "",
       type: p.type,
       featured: p.featured,
+      pre_order: p.pre_order,
       promotion_id: p.promotion_id ?? "",
       video_url: p.video_url ?? "",
     });
@@ -373,6 +375,7 @@ function ProductsAdmin() {
       pcs: variable || form.pcs.trim() === "" ? null : Number(form.pcs),
       type: form.type,
       featured: form.featured,
+      pre_order: form.pre_order,
       promotion_id: form.promotion_id || null,
       video_url: form.video_url.trim() === "" ? null : form.video_url.trim(),
     };
@@ -463,6 +466,7 @@ function ProductsAdmin() {
           pcs: p.pcs,
           type: p.type,
           featured: p.featured,
+          pre_order: p.pre_order,
           promotion_id: p.promotion_id,
           video_url: p.video_url,
         },
@@ -987,6 +991,16 @@ function ProductsAdmin() {
                 />
                 <Label htmlFor="featured" className="cursor-pointer">
                   Show in homepage "Featured" section
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="pre_order"
+                  checked={form.pre_order}
+                  onCheckedChange={(v) => setForm({ ...form, pre_order: v === true })}
+                />
+                <Label htmlFor="pre_order" className="cursor-pointer">
+                  Available for pre-order (purchasable ahead of stock)
                 </Label>
               </div>
               <div>

@@ -93,8 +93,11 @@ function ProductJsonLd({ product }: { product: Product }) {
       "@type": "Offer",
       priceCurrency: "USD",
       price: price.toFixed(2),
-      availability:
-        product.stock === 0 ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      availability: product.pre_order
+        ? "https://schema.org/PreOrder"
+        : product.stock === 0
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
       url: `${SITE}/product/${slugify(product.title) || product.id}`,
     };
   }
@@ -146,7 +149,8 @@ function ProductDetail() {
   const salePrice = variable ? (selected?.sale_price ?? null) : product.sale_price;
   // null = untracked (always available); 0 = out of stock; >0 = tracked count.
   const activeStock = variable ? (selected?.stock ?? null) : product.stock;
-  const soldOut = activeStock === 0;
+  const preOrder = product.pre_order;
+  const soldOut = activeStock === 0 && !preOrder;
   const weightLabel = variable ? selected?.weight : product.weight;
   const pcs = variable ? (selected?.pcs ?? null) : product.pcs;
   const hasSale = salePrice != null && salePrice < basePrice;
@@ -275,7 +279,9 @@ function ProductDetail() {
               {product.rating ?? 4.5}
             </span>
             <span className="opacity-50">·</span>
-            {soldOut ? (
+            {preOrder ? (
+              <span className="text-brand font-medium">Available for Pre-Order</span>
+            ) : soldOut ? (
               <span className="text-destructive font-medium">Out of stock</span>
             ) : (
               <span className="text-success font-medium">
@@ -356,7 +362,7 @@ function ProductDetail() {
               <span className="w-10 text-center font-bold">{qty}</span>
               <button
                 type="button"
-                onClick={() => setQty((q) => Math.min(activeStock ?? 99, q + 1))}
+                onClick={() => setQty((q) => Math.min(preOrder ? 99 : (activeStock ?? 99), q + 1))}
                 className="size-10 grid place-items-center text-muted-foreground hover:text-foreground"
                 aria-label="Increase quantity"
               >
@@ -370,7 +376,7 @@ function ProductDetail() {
               className="order-last w-full sm:order-0 sm:w-auto sm:flex-1 rounded-full font-bold"
             >
               <ShoppingBag className="size-4 mr-2" />
-              {soldOut ? "Out of Stock" : "Add to Cart"}
+              {preOrder ? "Pre-Order" : soldOut ? "Out of Stock" : "Add to Cart"}
             </Button>
             <button
               type="button"

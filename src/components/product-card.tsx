@@ -24,7 +24,7 @@ export function ProductCard({
   const variable = product.type === "variable";
   // Simple products track their own stock; 0 = out of stock. Variable products
   // carry stock on their variations, so the grid card never blocks them here.
-  const soldOut = !variable && product.stock === 0;
+  const soldOut = !variable && product.stock === 0 && !product.pre_order;
   const hasSale = product.sale_price != null && product.sale_price < product.price;
   const discount = hasSale
     ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
@@ -49,8 +49,13 @@ export function ProductCard({
             {t("product.noImage")}
           </div>
         )}
-        {(offerLabel || hasSale || soldOut) && (
+        {(product.pre_order || offerLabel || hasSale || soldOut) && (
           <div className="absolute left-2.5 top-2.5 flex flex-col items-start gap-1">
+            {product.pre_order && (
+              <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-foreground">
+                Pre-Order
+              </span>
+            )}
             {soldOut && (
               <span className="rounded-full bg-foreground/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-background">
                 Sold out

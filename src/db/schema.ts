@@ -74,6 +74,8 @@ export const products = sqliteTable("products", {
   sort_order: integer("sort_order").notNull().default(0),
   // Shown in the homepage "Featured" section when true. Admin-set, not inferred from title/category.
   featured: integer("featured", { mode: "boolean" }).notNull().default(false),
+  // Purchasable ahead of availability. Independent of stock — admin-set, not inferred from stock = 0.
+  pre_order: integer("pre_order", { mode: "boolean" }).notNull().default(false),
   // Optional marketing offer this product belongs to. Cleared if the promotion is deleted.
   promotion_id: text("promotion_id").references(() => promotions.id, { onDelete: "set null" }),
   // Optional YouTube link shown as an autoplaying clip in the product gallery.

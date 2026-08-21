@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `pre_order` integer DEFAULT false NOT NULL;

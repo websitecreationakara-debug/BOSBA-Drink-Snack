@@ -40,6 +40,7 @@ export async function downloadProductsXlsx(
       Category: p.category_id ? (categoryName.get(p.category_id) ?? p.category_id) : "",
       Status: p.status,
       Featured: p.featured ? "Yes" : "No",
+      "Pre-order": p.pre_order ? "Yes" : "No",
       Badge: p.badge ?? "",
       Rating: p.rating ?? "",
       Price: variable ? priceRange(vs) : p.price.toFixed(2),

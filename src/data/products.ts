@@ -21,6 +21,7 @@ type ProductInput = {
   pcs: number | null;
   type: string;
   featured: boolean;
+  pre_order: boolean;
   promotion_id: string | null;
   video_url: string | null;
 };
