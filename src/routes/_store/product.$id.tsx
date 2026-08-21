@@ -388,7 +388,11 @@ function ProductDetail() {
                 size="lg"
                 className="order-last w-full sm:order-0 sm:w-auto sm:flex-1 rounded-full font-bold"
               >
-                <a href={preOrderChatUrl(product.title)} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={preOrderChatUrl(product.title, weightLabel)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <MessageCircle className="size-4 mr-2" />
                   Chat to Pre-Order
                 </a>

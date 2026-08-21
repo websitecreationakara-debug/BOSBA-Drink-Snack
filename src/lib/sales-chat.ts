@@ -3,7 +3,8 @@
 // than taking payment upfront. Same Telegram handle as the footer/privacy page.
 const SALES_TELEGRAM_HANDLE = "bosbadrinksnack_bot";
 
-export function preOrderChatUrl(productTitle: string): string {
-  const text = encodeURIComponent(`I'd like to pre-order: ${productTitle}`);
+export function preOrderChatUrl(productTitle: string, variationLabel?: string | null): string {
+  const title = variationLabel ? `${productTitle} (${variationLabel})` : productTitle;
+  const text = encodeURIComponent(`I'd like to pre-order: ${title}`);
   return `https://t.me/${SALES_TELEGRAM_HANDLE}?text=${text}`;
 }
