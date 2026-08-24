@@ -695,6 +695,7 @@ function ProductsAdmin() {
                       autoFocus
                       type="number"
                       min={0}
+                      step="0.01"
                       value={editingStock.value}
                       onChange={(e) => setEditingStock({ id: p.id, value: e.target.value })}
                       onBlur={(e) => {
@@ -909,6 +910,7 @@ function ProductsAdmin() {
                     <Input
                       type="number"
                       min="0"
+                      step="0.01"
                       placeholder="Unlimited"
                       value={form.stock}
                       onChange={(e) => setForm({ ...form, stock: e.target.value })}
@@ -1102,6 +1104,7 @@ function ProductsAdmin() {
                           <Input
                             type="number"
                             min="0"
+                            step="0.01"
                             placeholder="∞"
                             value={v.stock}
                             onChange={(e) =>
