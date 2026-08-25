@@ -269,7 +269,9 @@ function Checkout() {
     setSubmitting(true);
     const orderItems = items.map((i) => ({
       id: i.variation?.id ?? i.product.id,
-      title: i.variation ? `${i.product.title} (${i.variation.weight})` : i.product.title,
+      title: i.variation
+        ? `${i.product.title} (${i.variation.flavor ? `${i.variation.flavor}, ` : ""}${i.variation.weight})`
+        : i.product.title,
       qty: i.qty,
       price: itemUnitPrice(i),
     }));
@@ -729,7 +731,9 @@ function Checkout() {
                   <div className="flex items-start gap-2">
                     <p className="flex-1 min-w-0 font-medium leading-snug line-clamp-2">
                       {item.product.title}
-                      {item.variation ? ` (${item.variation.weight})` : ""}
+                      {item.variation
+                        ? ` (${item.variation.flavor ? `${item.variation.flavor}, ` : ""}${item.variation.weight})`
+                        : ""}
                     </p>
                     <span className="font-bold shrink-0">${(unit * item.qty).toFixed(2)}</span>
                     <button

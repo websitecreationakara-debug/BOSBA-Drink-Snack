@@ -80,7 +80,13 @@ export function CartDrawer() {
                         <p className="font-medium text-sm leading-tight">
                           {product.title}
                           {variation && (
-                            <span className="text-muted-foreground"> · {variation.weight}</span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              ·{" "}
+                              {variation.flavor
+                                ? `${variation.flavor}, ${variation.weight}`
+                                : variation.weight}
+                            </span>
                           )}
                         </p>
                         <button

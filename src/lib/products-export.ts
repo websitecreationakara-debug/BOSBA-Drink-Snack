@@ -62,6 +62,7 @@ export async function downloadProductsXlsx(
     return (variationsByProduct.get(p.id) ?? []).map((v) => ({
       "Product ID": p.id,
       "Product Title": p.title,
+      Flavor: v.flavor ?? "",
       Weight: v.weight,
       Price: v.price.toFixed(2),
       "Sale Price": v.sale_price?.toFixed(2) ?? "",

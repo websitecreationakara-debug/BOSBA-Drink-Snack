@@ -50,6 +50,7 @@ export type ProductVariation = {
   id: string;
   product_id: string;
   weight: string;
+  flavor: string | null;
   price: number;
   sale_price: number | null;
   stock: number | null;

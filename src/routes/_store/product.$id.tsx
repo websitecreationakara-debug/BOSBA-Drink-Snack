@@ -128,7 +128,8 @@ function ProductDetail() {
   const { has: inWishlist, toggle: toggleWishlist } = useWishlist();
   const { t } = useI18n();
   const [qty, setQty] = useState(1);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedFlavor, setSelectedFlavor] = useState<string | null>(null);
+  const [selectedWeight, setSelectedWeight] = useState<string | null>(null);
   // Which gallery photo is enlarged; null = the cover image.
   const [activeImage, setActiveImage] = useState<string | null>(null);
   // True when the video thumbnail is selected instead of a photo.
@@ -149,8 +150,30 @@ function ProductDetail() {
   const shipThreshold = Number(settings?.free_shipping_threshold ?? 50);
 
   const variable = product?.type === "variable";
+  // Some variable products carry a second attribute (flavor) alongside their
+  // weight/size — only show a flavor selector when at least one variation
+  // actually has one set, so every weight-only product behaves exactly as
+  // before.
+  const hasFlavorAxis = variations.some((v) => v.flavor);
+  const flavors = hasFlavorAxis
+    ? [...new Set(variations.map((v) => v.flavor).filter((f): f is string => !!f))]
+    : [];
+  const effectiveFlavor = hasFlavorAxis ? (selectedFlavor ?? flavors[0] ?? null) : null;
+  const weightOptions = [
+    ...new Set(
+      variations
+        .filter((v) => !hasFlavorAxis || v.flavor === effectiveFlavor)
+        .map((v) => v.weight),
+    ),
+  ];
+  const effectiveWeight = selectedWeight ?? weightOptions[0] ?? null;
   // Default to the first (cheapest) variation until the customer picks one.
-  const selected = variations.find((v) => v.id === selectedId) ?? variations[0] ?? null;
+  const selected =
+    variations.find(
+      (v) => (!hasFlavorAxis || v.flavor === effectiveFlavor) && v.weight === effectiveWeight,
+    ) ??
+    variations[0] ??
+    null;
 
   if (!product) {
     return (
@@ -176,6 +199,7 @@ function ProductDetail() {
   const preOrder = product.pre_order;
   const soldOut = activeStock === 0 && !preOrder;
   const weightLabel = variable ? selected?.weight : product.weight;
+  const flavorLabel = variable ? selected?.flavor : null;
   const pcs = variable ? (selected?.pcs ?? null) : product.pcs;
   const hasSale = salePrice != null && salePrice < basePrice;
   const price = salePrice ?? basePrice;
@@ -312,6 +336,12 @@ function ProductDetail() {
                 {activeStock != null ? `In stock (${activeStock})` : "In stock"}
               </span>
             )}
+            {flavorLabel && (
+              <>
+                <span className="opacity-50">·</span>
+                <span>{flavorLabel}</span>
+              </>
+            )}
             {weightLabel && (
               <>
                 <span className="opacity-50">·</span>
@@ -335,29 +365,59 @@ function ProductDetail() {
             )}
           </div>
 
-          {variable && variations.length > 0 && (
+          {hasFlavorAxis && (
             <div className="mt-6">
               <span className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
-                Weight
+                Flavor
               </span>
               <div className="flex flex-wrap gap-2">
-                {variations.map((v) => (
+                {flavors.map((f) => (
                   <button
-                    key={v.id}
+                    key={f}
                     type="button"
                     onClick={() => {
-                      setSelectedId(v.id);
+                      setSelectedFlavor(f);
+                      setSelectedWeight(null);
                       setQty(1);
                       setActiveImage(null);
                     }}
                     className={cn(
                       "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                      v.id === selected?.id
+                      f === effectiveFlavor
                         ? "border-brand bg-brand text-brand-foreground"
                         : "hover:border-brand",
                     )}
                   >
-                    {v.weight}
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {variable && weightOptions.length > 0 && (
+            <div className="mt-6">
+              <span className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                Weight
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {weightOptions.map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={() => {
+                      setSelectedWeight(w);
+                      setQty(1);
+                      setActiveImage(null);
+                    }}
+                    className={cn(
+                      "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                      w === effectiveWeight
+                        ? "border-brand bg-brand text-brand-foreground"
+                        : "hover:border-brand",
+                    )}
+                  >
+                    {w}
                   </button>
                 ))}
               </div>
@@ -419,7 +479,12 @@ function ProductDetail() {
                 className="order-last w-full sm:order-0 sm:w-auto sm:flex-1 rounded-full font-bold"
               >
                 <a
-                  href={preOrderChatUrl(product.title, weightLabel)}
+                  href={preOrderChatUrl(
+                    product.title,
+                    flavorLabel && weightLabel
+                      ? `${flavorLabel} · ${weightLabel}`
+                      : (flavorLabel ?? weightLabel),
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

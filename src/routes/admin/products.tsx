@@ -82,6 +82,7 @@ const empty = {
 type VarRow = {
   id?: string;
   weight: string;
+  flavor: string;
   price: string;
   sale_price: string;
   stock: string;
@@ -90,6 +91,7 @@ type VarRow = {
 };
 const blankVar = (): VarRow => ({
   weight: "",
+  flavor: "",
   price: "0",
   sale_price: "",
   stock: "",
@@ -307,6 +309,7 @@ function ProductsAdmin() {
         rows.map((v) => ({
           id: v.id,
           weight: v.weight,
+          flavor: v.flavor ?? "",
           price: String(v.price),
           sale_price: v.sale_price != null ? String(v.sale_price) : "",
           stock: v.stock != null ? String(v.stock) : "",
@@ -348,6 +351,7 @@ function ProductsAdmin() {
       .map((v, i) => ({
         id: v.id,
         weight: v.weight.trim(),
+        flavor: v.flavor.trim() || null,
         price: Number(v.price) || 0,
         sale_price: v.sale_price.trim() === "" ? null : Number(v.sale_price),
         stock: v.stock.trim() === "" ? null : Number(v.stock),
@@ -478,6 +482,7 @@ function ProductsAdmin() {
             productId: id,
             variations: rows.map((v, i) => ({
               weight: v.weight,
+              flavor: v.flavor,
               price: v.price,
               sale_price: v.sale_price,
               stock: v.stock,
@@ -1040,7 +1045,7 @@ function ProductsAdmin() {
             {isVariable && (
               <div className="space-y-3 border rounded-xl p-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-bold">Variations (weights)</Label>
+                  <Label className="text-sm font-bold">Variations</Label>
                   <Button
                     type="button"
                     variant="outline"
@@ -1052,11 +1057,14 @@ function ProductsAdmin() {
                 </div>
                 {vars.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    Add at least one weight, each with its own price and stock.
+                    Add at least one weight, each with its own price and stock. Optionally set a
+                    Flavor too, if this product should let customers pick a flavor as well as a
+                    size (e.g. "Lemon" + "6 cans").
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    <div className="grid grid-cols-[1.3fr_1fr_1fr_1fr_1fr_auto] gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                      <span>Flavor</span>
                       <span>Weight</span>
                       <span>Price</span>
                       <span>Sale</span>
@@ -1066,7 +1074,18 @@ function ProductsAdmin() {
                     </div>
                     {vars.map((v, i) => (
                       <div key={i} className="space-y-1.5 pb-2 border-b last:border-b-0 last:pb-0">
-                        <div className="grid grid-cols-[1.3fr_1fr_1fr_1fr_1fr_auto] gap-2">
+                        <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2">
+                          <Input
+                            placeholder="Lemon (optional)"
+                            value={v.flavor}
+                            onChange={(e) =>
+                              setVars((rows) =>
+                                rows.map((r, j) =>
+                                  j === i ? { ...r, flavor: e.target.value } : r,
+                                ),
+                              )
+                            }
+                          />
                           <Input
                             placeholder="250g"
                             value={v.weight}

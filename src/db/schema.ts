@@ -103,6 +103,11 @@ export const product_variations = sqliteTable("product_variations", {
     .references(() => products.id, { onDelete: "cascade" }),
   // Variation label — the weight, e.g. "250g", "1kg".
   weight: text("weight").notNull(),
+  // Second variant axis, e.g. a flavor. Null for every product that only
+  // varies by weight/size (the vast majority) — the storefront and admin
+  // only show a flavor selector when at least one variation of a product
+  // has this set.
+  flavor: text("flavor"),
   price: real("price").notNull().default(0),
   sale_price: real("sale_price"),
   // Optional per-variation photo (sizes often look visibly different, e.g. a
