@@ -166,7 +166,13 @@ function ProductDetail() {
         .map((v) => v.weight),
     ),
   ];
-  const effectiveWeight = selectedWeight ?? weightOptions[0] ?? null;
+  // Weight selection stays put across a flavor switch (most products offer
+  // the same sizes for every flavor) — only fall back to this flavor's first
+  // size if the previously picked one isn't actually offered for it.
+  const effectiveWeight =
+    selectedWeight && weightOptions.includes(selectedWeight)
+      ? selectedWeight
+      : (weightOptions[0] ?? null);
   // Default to the first (cheapest) variation until the customer picks one.
   const selected =
     variations.find(
@@ -377,7 +383,6 @@ function ProductDetail() {
                     type="button"
                     onClick={() => {
                       setSelectedFlavor(f);
-                      setSelectedWeight(null);
                       setQty(1);
                       setActiveImage(null);
                     }}
