@@ -1,9 +1,15 @@
 // On-demand product/category sync between the local D1 (vite dev) and the remote
-// D1 (camitc.com). The two databases are otherwise independent — run this when you
-// want one to match the other.
+// D1 (bosbadrinksnack.com). The two databases are otherwise independent — run this
+// when you want one to match the other.
 //
-//   npm run db:pull            remote (camitc.com) -> local        (overwrites local)
-//   npm run db:push -- --yes   local -> remote (camitc.com)        (overwrites PROD)
+// FIXED: DB was hardcoded to "bosbapremiumfoods" (fork-copy bug, never updated) —
+// db:push would have silently overwritten the SIBLING site's (Bosba Premium Foods)
+// live production database instead of this one's, and db:pull would have pulled
+// their products/categories into this site. Now matches this project's own
+// wrangler.jsonc d1_databases[0].database_name.
+//
+//   npm run db:pull            remote (bosbadrinksnack.com) -> local        (overwrites local)
+//   npm run db:push -- --yes   local -> remote (bosbadrinksnack.com)        (overwrites PROD)
 //
 // Only `categories` and `products` are synced. Media image blobs, users, sessions,
 // and orders are intentionally left alone. The destination is backed up to a SQL
@@ -14,7 +20,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const DB = "bosbapremiumfoods";
+const DB = "bosba-drink-snack";
 const TABLES = ["categories", "products"]; // parents before children (FK order)
 
 const dir = process.argv[2];
@@ -26,12 +32,12 @@ if (dir !== "push" && dir !== "pull") {
 
 const srcFlag = dir === "push" ? "--local" : "--remote";
 const dstFlag = dir === "push" ? "--remote" : "--local";
-const srcName = dir === "push" ? "LOCAL" : "REMOTE (camitc.com)";
-const dstName = dir === "push" ? "REMOTE (camitc.com)" : "LOCAL";
+const srcName = dir === "push" ? "LOCAL" : "REMOTE (bosbadrinksnack.com)";
+const dstName = dir === "push" ? "REMOTE (bosbadrinksnack.com)" : "LOCAL";
 
 if (dir === "push" && !confirmed) {
   console.error(
-    `\n⚠️  This OVERWRITES production (camitc.com) products & categories with your LOCAL data.\n` +
+    `\n⚠️  This OVERWRITES production (bosbadrinksnack.com) products & categories with your LOCAL data.\n` +
       `   There is no undo for live customers. If you're sure, run:\n\n` +
       `     npm run db:push -- --yes\n`,
   );
