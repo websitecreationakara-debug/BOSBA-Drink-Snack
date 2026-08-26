@@ -34,6 +34,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 
@@ -81,54 +84,6 @@ export function SiteHeader() {
   return (
     <>
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b">
-        {/* Utility bar — help line + language/theme, desktop only */}
-        <div className="hidden md:block border-b bg-muted/40">
-          <div className="mx-auto max-w-7xl px-4 md:px-6 h-9 grid grid-cols-2 lg:grid-cols-3 items-center text-xs text-muted-foreground">
-            <a
-              href="tel:+85599361350"
-              className="justify-self-start flex items-center gap-1.5 hover:text-foreground transition-colors"
-            >
-              <Phone className="size-3.5" />
-              <span>
-                {t("bar.needHelp")}{" "}
-                <span className="text-foreground font-medium">+855 99 361 350</span>
-              </span>
-            </a>
-
-            <span className="hidden lg:block justify-self-center whitespace-nowrap">
-              {t("bar.freeDelivery", { threshold: shipThreshold })}
-            </span>
-
-            <div className="justify-self-end flex items-center gap-1">
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-full px-2 py-1 hover:bg-muted hover:text-foreground transition-colors">
-                  <Globe className="size-3.5" />
-                  {LOCALES.find((l) => l.code === locale)?.label}
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {LOCALES.map((l) => (
-                    <DropdownMenuItem
-                      key={l.code}
-                      onClick={() => setLocale(l.code)}
-                      className="justify-between gap-6"
-                    >
-                      {l.label}
-                      {locale === l.code && <Check className="size-4" />}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <button
-                onClick={toggle}
-                aria-label={theme === "dark" ? t("theme.light") : t("theme.dark")}
-                className="grid size-7 place-items-center rounded-full hover:bg-muted hover:text-foreground transition-colors"
-              >
-                {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Main bar */}
         <div className="mx-auto max-w-7xl px-4 md:px-6 h-14 md:h-16 flex items-center gap-3">
           <button
@@ -220,64 +175,93 @@ export function SiteHeader() {
               </Link>
             </Button>
 
-            {/* Signed out there's only one thing the profile icon can do, so it
-                goes straight to /auth instead of opening a one-item menu. */}
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full bg-brand text-brand-foreground hover:bg-brand/90 hover:text-brand-foreground size-9"
-                    aria-label={t("nav.account")}
-                  >
-                    <User className="size-[18px]" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel className="truncate max-w-[200px]">
-                    {user.email}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/account">
-                      <User className="size-4 mr-2" /> {t("nav.account")}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/orders">
-                      <Package className="size-4 mr-2" /> {t("nav.myOrders")}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/addresses">
-                      <MapPin className="size-4 mr-2" /> {t("nav.myAddresses")}
-                    </Link>
-                  </DropdownMenuItem>
-                  {isAdmin && (
+            {/* Profile dropdown also carries language + theme now that the
+                utility bar is gone — shown to signed-in and signed-out users
+                alike, since both need a way to switch language/theme. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full bg-brand text-brand-foreground hover:bg-brand/90 hover:text-brand-foreground size-9"
+                  aria-label={t("nav.account")}
+                >
+                  <User className="size-[18px]" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {user && (
+                  <>
+                    <DropdownMenuLabel className="truncate max-w-[200px]">
+                      {user.email}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link to="/admin">
-                        <LayoutDashboard className="size-4 mr-2" /> {t("nav.adminDashboard")}
+                      <Link to="/account">
+                        <User className="size-4 mr-2" /> {t("nav.account")}
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/orders">
+                        <Package className="size-4 mr-2" /> {t("nav.myOrders")}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/addresses">
+                        <MapPin className="size-4 mr-2" /> {t("nav.myAddresses")}
+                      </Link>
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin">
+                          <LayoutDashboard className="size-4 mr-2" /> {t("nav.adminDashboard")}
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Globe className="size-4 mr-2" />
+                    {LOCALES.find((l) => l.code === locale)?.label}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {LOCALES.map((l) => (
+                      <DropdownMenuItem
+                        key={l.code}
+                        onClick={() => setLocale(l.code)}
+                        className="justify-between gap-6"
+                      >
+                        {l.label}
+                        {locale === l.code && <Check className="size-4" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuItem onClick={toggle}>
+                  {theme === "dark" ? (
+                    <Sun className="size-4 mr-2" />
+                  ) : (
+                    <Moon className="size-4 mr-2" />
                   )}
+                  {theme === "dark" ? t("theme.light") : t("theme.dark")}
+                </DropdownMenuItem>
+
+                {user ? (
                   <DropdownMenuItem onClick={() => signOut()}>
                     <LogOut className="size-4 mr-2" /> {t("nav.signOut")}
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button
-                asChild
-                variant="ghost"
-                size="icon"
-                className="rounded-full bg-brand text-brand-foreground hover:bg-brand/90 hover:text-brand-foreground size-9"
-              >
-                <Link to="/auth" aria-label={t("nav.signIn")}>
-                  <User className="size-[18px]" />
-                </Link>
-              </Button>
-            )}
+                ) : (
+                  <DropdownMenuItem asChild>
+                    <Link to="/auth">
+                      <User className="size-4 mr-2" /> {t("nav.signIn")}
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <button
               onClick={() => setDrawerOpen(true)}
