@@ -14,7 +14,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product-card";
-import { productFromPrice, groupVariations } from "@/lib/variants";
+import { productFromPrice, groupVariations, hasValidPrice } from "@/lib/variants";
 import {
   Star,
   ShoppingBag,
@@ -178,6 +178,7 @@ function ProductDetail() {
     variations.find(
       (v) => (!hasFlavorAxis || v.flavor === effectiveFlavor) && v.weight === effectiveWeight,
     ) ??
+    variations.find(hasValidPrice) ??
     variations[0] ??
     null;
 
@@ -210,7 +211,10 @@ function ProductDetail() {
   const hasSale = salePrice != null && salePrice < basePrice;
   const price = salePrice ?? basePrice;
   const discount = hasSale ? Math.round(((basePrice - salePrice!) / basePrice) * 100) : 0;
-  const addDisabled = (variable && !selected) || soldOut;
+  // A variation the admin added but never priced (0, no Sale Price) — block
+  // the sale rather than let it check out for free.
+  const unpriced = variable && (!selected || !hasValidPrice(selected));
+  const addDisabled = (variable && !selected) || soldOut || unpriced;
 
   const related = relatedProducts(product, allProducts);
   const variationsByProduct = groupVariations(allVariations);
@@ -363,7 +367,9 @@ function ProductDetail() {
           </div>
 
           <div className="flex items-baseline gap-3 mt-5">
-            <span className="font-display font-bold text-3xl text-brand">${price.toFixed(2)}</span>
+            <span className="font-display font-bold text-3xl text-brand">
+              {unpriced ? "Price unavailable" : `$${price.toFixed(2)}`}
+            </span>
             {hasSale && (
               <span className="text-lg text-muted-foreground line-through">
                 ${basePrice.toFixed(2)}
@@ -406,25 +412,33 @@ function ProductDetail() {
                 Weight
               </span>
               <div className="flex flex-wrap gap-2">
-                {weightOptions.map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => {
-                      setSelectedWeight(w);
-                      setQty(1);
-                      setActiveImage(null);
-                    }}
-                    className={cn(
-                      "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                      w === effectiveWeight
-                        ? "border-brand bg-brand text-brand-foreground"
-                        : "hover:border-brand",
-                    )}
-                  >
-                    {w}
-                  </button>
-                ))}
+                {weightOptions.map((w) => {
+                  const wv = variations.find(
+                    (v) => (!hasFlavorAxis || v.flavor === effectiveFlavor) && v.weight === w,
+                  );
+                  const wUnpriced = wv != null && !hasValidPrice(wv);
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => {
+                        setSelectedWeight(w);
+                        setQty(1);
+                        setActiveImage(null);
+                      }}
+                      className={cn(
+                        "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                        w === effectiveWeight
+                          ? "border-brand bg-brand text-brand-foreground"
+                          : "hover:border-brand",
+                        wUnpriced && "opacity-40",
+                      )}
+                    >
+                      {w}
+                      {wUnpriced && " (unavailable)"}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -505,7 +519,7 @@ function ProductDetail() {
                 className="order-last w-full sm:order-0 sm:w-auto sm:flex-1 rounded-full font-bold"
               >
                 <ShoppingBag className="size-4 mr-2" />
-                {soldOut ? "Out of Stock" : "Add to Cart"}
+                {soldOut ? "Out of Stock" : unpriced ? "Unavailable" : "Add to Cart"}
               </Button>
             )}
             <button
