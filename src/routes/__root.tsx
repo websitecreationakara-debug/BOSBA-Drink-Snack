@@ -19,6 +19,7 @@ import { LanguageProvider } from "@/lib/i18n";
 import { CartDrawer } from "@/components/cart-drawer";
 import { InstallPrompt } from "@/components/install-prompt";
 import { Toaster } from "@/components/ui/sonner";
+import { MetaPixelProvider } from "@adkit/meta-pixel-react";
 import { trackPixel } from "@/lib/meta-pixel";
 
 // Web Analytics is auto-injected by Cloudflare for this proxied domain (site tag
@@ -56,21 +57,12 @@ const TIKTOK_PIXEL = `!function (w, d, t) {
   ttq.page();
 }(window, document, 'ttq');`;
 
-// Meta (Facebook) Pixel — official base snippet. Fires PageView on first load;
-// client-side navigations are tracked from RootComponent. Fire e-commerce events
-// (ViewContent, AddToCart, InitiateCheckout, Purchase) via trackPixel() from
-// @/lib/meta-pixel.
+// Meta (Facebook) Pixel — loaded client-side by <MetaPixelProvider> (@adkit/
+// meta-pixel-react) in RootComponent, which installs `fbq`, inits this ID and
+// fires the first PageView. Client-side navigations are tracked from
+// RootComponent; e-commerce events (ViewContent, AddToCart, InitiateCheckout,
+// Purchase) go through trackPixel() from @/lib/meta-pixel.
 const META_PIXEL_ID = "1088916156897289";
-const META_PIXEL = `!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window,document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${META_PIXEL_ID}');
-fbq('track', 'PageView');`;
 
 // The browser fires `beforeinstallprompt` very early — often before React
 // hydrates and our InstallPrompt listener attaches, so the event is lost and no
@@ -197,16 +189,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <HeadContent />
         <script dangerouslySetInnerHTML={{ __html: BIP_CAPTURE }} />
         <script dangerouslySetInnerHTML={{ __html: TIKTOK_PIXEL }} />
-        <script dangerouslySetInnerHTML={{ __html: META_PIXEL }} />
-        <noscript>
-          <img
-            height="1"
-            width="1"
-            style={{ display: "none" }}
-            alt=""
-            src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
-          />
-        </noscript>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSON_LD) }}
@@ -280,21 +262,30 @@ function RootComponent() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <WishlistProvider>
-              <CartProvider>
-                <Outlet />
-                <CartDrawer />
-                <InstallPrompt />
-                <Toaster />
-              </CartProvider>
-            </WishlistProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <MetaPixelProvider
+      pixelIds={META_PIXEL_ID}
+      autoTrackPageView
+      // Debug logging and localhost tracking only in dev — in prod the pixel
+      // stays quiet and behaves normally.
+      debug={import.meta.env.DEV}
+      enableLocalhost={import.meta.env.DEV}
+    >
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <WishlistProvider>
+                <CartProvider>
+                  <Outlet />
+                  <CartDrawer />
+                  <InstallPrompt />
+                  <Toaster />
+                </CartProvider>
+              </WishlistProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </MetaPixelProvider>
   );
 }
