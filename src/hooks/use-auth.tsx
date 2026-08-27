@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle: AuthCtx["signInWithGoogle"] = async () => {
-    const { error } = await authClient.signIn.social({ provider: "google", callbackURL: "/" });
+    const { error } = await authClient.signIn.social({ provider: "google", callbackURL: "/auth" });
     return { error: error?.message ?? null };
   };
 
