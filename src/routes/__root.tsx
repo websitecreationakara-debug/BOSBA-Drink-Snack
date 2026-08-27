@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
   Link,
@@ -18,6 +19,7 @@ import { LanguageProvider } from "@/lib/i18n";
 import { CartDrawer } from "@/components/cart-drawer";
 import { InstallPrompt } from "@/components/install-prompt";
 import { Toaster } from "@/components/ui/sonner";
+import { trackPixel } from "@/lib/meta-pixel";
 
 // Web Analytics is auto-injected by Cloudflare for this proxied domain (site tag
 // 392fa229…), so no manual beacon is needed. Left empty intentionally.
@@ -53,6 +55,22 @@ const TIKTOK_PIXEL = `!function (w, d, t) {
   ttq.load('${TIKTOK_PIXEL_ID}');
   ttq.page();
 }(window, document, 'ttq');`;
+
+// Meta (Facebook) Pixel — official base snippet. Fires PageView on first load;
+// client-side navigations are tracked from RootComponent. Fire e-commerce events
+// (ViewContent, AddToCart, InitiateCheckout, Purchase) via trackPixel() from
+// @/lib/meta-pixel.
+const META_PIXEL_ID = "1088916156897289";
+const META_PIXEL = `!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window,document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${META_PIXEL_ID}');
+fbq('track', 'PageView');`;
 
 // The browser fires `beforeinstallprompt` very early — often before React
 // hydrates and our InstallPrompt listener attaches, so the event is lost and no
@@ -179,6 +197,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <HeadContent />
         <script dangerouslySetInnerHTML={{ __html: BIP_CAPTURE }} />
         <script dangerouslySetInnerHTML={{ __html: TIKTOK_PIXEL }} />
+        <script dangerouslySetInnerHTML={{ __html: META_PIXEL }} />
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style={{ display: "none" }}
+            alt=""
+            src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
+          />
+        </noscript>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSON_LD) }}
@@ -210,6 +238,19 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // The Meta Pixel fires a PageView for the initial load from its inline <head>
+  // snippet; this re-fires it on every client-side route change so SPA
+  // navigations still register as page views.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const firstPath = useRef(true);
+  useEffect(() => {
+    if (firstPath.current) {
+      firstPath.current = false;
+      return;
+    }
+    trackPixel("PageView");
+  }, [pathname]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
