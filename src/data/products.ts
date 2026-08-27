@@ -5,7 +5,7 @@ import { products, product_variations, product_images, promotions } from "@/db/s
 import { slugify, isUuid } from "@/lib/utils";
 import { applyPromo } from "@/lib/promotions";
 import { requireManager } from "./_auth";
-import { notifyPosOfStockEdit } from "@/lib/pos-sync";
+import { notifyPosOfNewProduct, notifyPosOfStockEdit } from "@/lib/pos-sync";
 
 type ProductInput = {
   title: string;
@@ -212,6 +212,9 @@ export const createProduct = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await requireManager();
     const [row] = await getDb().insert(products).values(data).returning({ id: products.id });
+    if (data.type !== "variable") {
+      await notifyPosOfNewProduct(row.id, data.title, data.price, data.stock);
+    }
     return { id: row.id };
   });
 
