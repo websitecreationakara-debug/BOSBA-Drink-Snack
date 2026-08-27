@@ -264,11 +264,9 @@ function RootComponent() {
   return (
     <MetaPixelProvider
       pixelIds={META_PIXEL_ID}
-      autoTrackPageView
-      // Debug logging and localhost tracking only in dev — in prod the pixel
-      // stays quiet and behaves normally.
-      debug={import.meta.env.DEV}
-      enableLocalhost={import.meta.env.DEV}
+      enableLocalhost={true}
+      debug={true}
+      autoTrackPageView={true}
     >
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
