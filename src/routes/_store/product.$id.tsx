@@ -27,6 +27,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { cn, slugify } from "@/lib/utils";
+import { PIXEL_CURRENCY, trackPixel } from "@/lib/meta-pixel";
 import { preOrderChatUrl } from "@/lib/sales-chat";
 import { extractYoutubeId, youtubeThumbnail, youtubeEmbedSrc } from "@/lib/youtube";
 import { useI18n } from "@/lib/i18n";
@@ -147,6 +148,19 @@ function ProductDetail() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, [product?.description]);
+
+  // Meta Pixel: one ViewContent per product viewed.
+  useEffect(() => {
+    if (!product) return;
+    trackPixel("ViewContent", {
+      content_ids: [product.id],
+      content_name: product.title,
+      content_type: "product",
+      value: Number((product.sale_price ?? product.price ?? 0).toFixed(2)),
+      currency: PIXEL_CURRENCY,
+    });
+  }, [product]);
+
   const shipThreshold = Number(settings?.free_shipping_threshold ?? 50);
 
   const variable = product?.type === "variable";
@@ -161,9 +175,7 @@ function ProductDetail() {
   const effectiveFlavor = hasFlavorAxis ? (selectedFlavor ?? flavors[0] ?? null) : null;
   const weightOptions = [
     ...new Set(
-      variations
-        .filter((v) => !hasFlavorAxis || v.flavor === effectiveFlavor)
-        .map((v) => v.weight),
+      variations.filter((v) => !hasFlavorAxis || v.flavor === effectiveFlavor).map((v) => v.weight),
     ),
   ];
   // Weight selection stays put across a flavor switch (most products offer

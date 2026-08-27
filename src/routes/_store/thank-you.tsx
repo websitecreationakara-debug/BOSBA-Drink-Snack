@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { downloadInvoice } from "@/lib/invoice";
+import { PIXEL_CURRENCY, trackPixel } from "@/lib/meta-pixel";
 import { toast } from "sonner";
 
 type LastOrder = {
@@ -29,7 +30,29 @@ function ThankYou() {
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("bosba:last-order");
-      if (raw) setOrder(JSON.parse(raw) as LastOrder);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as LastOrder;
+      setOrder(parsed);
+
+      // Meta Pixel: fire Purchase once per order (guarded so a page refresh or
+      // React re-mount doesn't double-count). eventID lets a future Conversions
+      // API integration dedupe the server-side copy.
+      const flagKey = `bosba:pixel-purchase:${parsed.id}`;
+      if (!sessionStorage.getItem(flagKey)) {
+        sessionStorage.setItem(flagKey, "1");
+        trackPixel(
+          "Purchase",
+          {
+            content_ids: parsed.items.map((i) => i.id),
+            content_type: "product",
+            contents: parsed.items.map((i) => ({ id: i.id, quantity: i.qty })),
+            num_items: parsed.items.reduce((a, i) => a + i.qty, 0),
+            value: Number(Number(parsed.total).toFixed(2)),
+            currency: PIXEL_CURRENCY,
+          },
+          { eventID: `purchase_${parsed.id}` },
+        );
+      }
     } catch {
       // ignore — show the generic thank-you below
     }

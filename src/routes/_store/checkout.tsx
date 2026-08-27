@@ -21,6 +21,7 @@ import { saveAddress } from "@/data/addresses";
 import { validatePromoCode } from "@/data/promo-codes";
 import { promoCodeDiscount } from "@/lib/promo-code";
 import { cn } from "@/lib/utils";
+import { PIXEL_CURRENCY, trackPixel } from "@/lib/meta-pixel";
 import { toast } from "sonner";
 import { LocationMap } from "@/components/checkout/location-map";
 import {
@@ -141,6 +142,21 @@ function Checkout() {
   useEffect(() => {
     if (schedTime && !availableSlots.includes(schedTime)) setSchedTime("");
   }, [schedTime, availableSlots]);
+
+  // Meta Pixel: one InitiateCheckout when the checkout page opens with a cart.
+  const firedInitiateCheckout = useRef(false);
+  useEffect(() => {
+    if (firedInitiateCheckout.current || items.length === 0) return;
+    firedInitiateCheckout.current = true;
+    trackPixel("InitiateCheckout", {
+      content_ids: items.map((i) => i.product.id),
+      content_type: "product",
+      contents: items.map((i) => ({ id: i.product.id, quantity: i.qty })),
+      num_items: items.reduce((a, i) => a + i.qty, 0),
+      value: Number(subtotal.toFixed(2)),
+      currency: PIXEL_CURRENCY,
+    });
+  }, [items, subtotal]);
 
   const applyAddress = (a: Address) => {
     if (nameRef.current) nameRef.current.value = a.recipient_name || user?.name || "";
