@@ -1,7 +1,11 @@
 import "./lib/error-capture";
 
+import { env } from "cloudflare:workers";
+import { eq } from "drizzle-orm";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { getDb } from "./db";
+import { products } from "./db/schema";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -71,6 +75,49 @@ async function getServerEntry(): Promise<ServerEntry> {
   return serverEntryPromise;
 }
 
+// Inbound side of Phase 7's POS<->site stock sync: NOVA POS is the source of
+// truth for stock on products it also sells in-store, and pushes updates here
+// after any counter sale or manual adjustment. Handled at the raw Worker
+// boundary (before TanStack Start routing) since this fork has no other API
+// routes yet -- keeps it simple and independent of the app router's auth.
+async function handleStockSync(request: Request): Promise<Response> {
+  const secret = (env as { STOCK_SYNC_SECRET?: string }).STOCK_SYNC_SECRET;
+  const auth = request.headers.get("authorization");
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  let body: { productId?: string; stock?: number };
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  if (typeof body.productId !== "string" || typeof body.stock !== "number") {
+    return new Response(JSON.stringify({ error: "Invalid payload" }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  await getDb()
+    .update(products)
+    .set({ stock: Math.max(0, Math.floor(body.stock)) })
+    .where(eq(products.id, body.productId));
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
 function brandedErrorResponse(): Response {
   return new Response(renderErrorPage(), {
     status: 500,
@@ -128,6 +175,20 @@ export default {
     if (url.hostname === "www.bosbadrinksnack.com") {
       url.hostname = "bosbadrinksnack.com";
       return withSecurityHeaders(Response.redirect(url.toString(), 301));
+    }
+
+    if (url.pathname === "/api/stock-sync" && request.method === "POST") {
+      try {
+        return withSecurityHeaders(await handleStockSync(request));
+      } catch (error) {
+        console.error(error);
+        return withSecurityHeaders(
+          new Response(JSON.stringify({ error: "Internal error" }), {
+            status: 500,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      }
     }
 
     try {

@@ -13,6 +13,7 @@ import {
 import { applyPromo } from "@/lib/promotions";
 import { promoCodeDiscount } from "@/lib/promo-code";
 import { notifyNewOrder, notifyOrderShipped } from "@/lib/notify";
+import { notifyPosOfSale } from "@/lib/pos-sync";
 import {
   getSessionUser,
   requireAdmin,
@@ -299,6 +300,16 @@ export const createOrder = createServerFn({ method: "POST" })
         return productIdSet.has(id)
           ? db.update(products).set({ stock: next }).where(eq(products.id, id))
           : db.update(product_variations).set({ stock: next }).where(eq(product_variations.id, id));
+      }),
+    );
+
+    // Phase 7 stock sync: only top-level products can be linked to a POS
+    // product (variations aren't modeled in POS), and only fires for tracked
+    // (non-null stock) lines -- matches the deduction guard just above.
+    await Promise.all(
+      [...neededById].map(([id, need]) => {
+        if (!productIdSet.has(id) || stockById.get(id) == null) return null;
+        return notifyPosOfSale(id, need);
       }),
     );
 
