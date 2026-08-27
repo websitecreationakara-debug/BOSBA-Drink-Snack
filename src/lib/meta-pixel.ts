@@ -1,8 +1,9 @@
-// Meta (Facebook) Pixel event helper. The base pixel snippet is inlined in the
-// <head> of __root.tsx's RootShell — same pattern as the TikTok pixel there —
-// so this module is only a typed, SSR-safe wrapper around the `fbq` global for
-// firing events from components. Every call no-ops on the server and when the
-// pixel script failed to load (ad blocker, offline, consent tooling, …).
+// Meta (Facebook) Pixel event helper. <MetaPixelProvider> (@adkit/meta-pixel-
+// react) in __root.tsx installs the `fbq` global and fires the first PageView;
+// this module is a typed, SSR-safe wrapper around that global for firing events
+// from components without threading the provider's hook through every call site.
+// Every call no-ops on the server and when the pixel script failed to load
+// (ad blocker, offline, consent tooling, …) or hasn't initialised yet.
 
 // Storefront prices are all in USD — the store formats everything with a leading
 // "$" and src/lib/payment.ts defaults to "USD".

@@ -17,22 +17,28 @@ type ServerEntry = {
 // change. The host allowlists still constrain which external origins may load
 // scripts/connect/frame, and frame-ancestors/base-uri/object-src close the
 // clickjacking and base-tag vectors. Origins map to real usage: google/gstatic
-// = reCAPTCHA, analytics.tiktok = pixel, cloudflareinsights = CF Web Analytics
-// (edge-injected), planifyx = webchat widget, nominatim = checkout address
-// lookup, fonts.* = Google Fonts, youtube.com = product video embeds
-// (src/lib/youtube.ts).
+// = reCAPTCHA, analytics.tiktok = pixel, connect.facebook.net = Meta Pixel
+// (fbevents.js) and www.facebook.com = its event transport (beacon in
+// connect-src, plus the iframe/form fallbacks in frame-src/form-action),
+// cloudflareinsights = CF Web Analytics (edge-injected), planifyx = webchat
+// widget, nominatim = checkout address lookup, fonts.* = Google Fonts,
+// youtube.com = product video embeds (src/lib/youtube.ts).
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'self'",
-  "form-action 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com https://analytics.tiktok.com https://static.cloudflareinsights.com https://botcommerce.planifyx.com",
+  "form-action 'self' https://www.facebook.com",
+
+  "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com https://analytics.tiktok.com https://connect.facebook.net https://static.cloudflareinsights.com https://botcommerce.planifyx.com",
+
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://nominatim.openstreetmap.org https://www.google.com https://analytics.tiktok.com https://static.cloudflareinsights.com https://cloudflareinsights.com",
-  "frame-src 'self' https://www.google.com https://botcommerce.planifyx.com https://www.youtube.com",
+
+  "connect-src 'self' https://nominatim.openstreetmap.org https://www.google.com https://analytics.tiktok.com https://www.facebook.com https://connect.facebook.net https://static.cloudflareinsights.com https://cloudflareinsights.com https://signals.birch.click/events",
+
+  "frame-src 'self' https://www.google.com https://www.facebook.com https://botcommerce.planifyx.com https://www.youtube.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "upgrade-insecure-requests",
