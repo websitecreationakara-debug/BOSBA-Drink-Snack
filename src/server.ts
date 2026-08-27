@@ -1,7 +1,7 @@
 import "./lib/error-capture";
 
 import { env } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { getDb } from "./db";
@@ -118,6 +118,40 @@ async function handleStockSync(request: Request): Promise<Response> {
   });
 }
 
+// Lets POS's Stock page search this site's real catalog when a staff member
+// links a POS product to its website counterpart, instead of needing someone
+// to look the id up by hand. Same auth/boundary approach as handleStockSync.
+async function handleProductSearch(request: Request): Promise<Response> {
+  const secret = (env as { STOCK_SYNC_SECRET?: string }).STOCK_SYNC_SECRET;
+  const auth = request.headers.get("authorization");
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  const url = new URL(request.url);
+  const q = url.searchParams.get("q")?.trim() ?? "";
+  if (!q) {
+    return new Response(JSON.stringify({ results: [] }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  const rows = await getDb()
+    .select({ id: products.id, title: products.title, stock: products.stock, type: products.type })
+    .from(products)
+    .where(like(products.title, `%${q}%`))
+    .limit(10);
+
+  return new Response(JSON.stringify({ results: rows }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
 function brandedErrorResponse(): Response {
   return new Response(renderErrorPage(), {
     status: 500,
@@ -180,6 +214,20 @@ export default {
     if (url.pathname === "/api/stock-sync" && request.method === "POST") {
       try {
         return withSecurityHeaders(await handleStockSync(request));
+      } catch (error) {
+        console.error(error);
+        return withSecurityHeaders(
+          new Response(JSON.stringify({ error: "Internal error" }), {
+            status: 500,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      }
+    }
+
+    if (url.pathname === "/api/product-search" && request.method === "GET") {
+      try {
+        return withSecurityHeaders(await handleProductSearch(request));
       } catch (error) {
         console.error(error);
         return withSecurityHeaders(
