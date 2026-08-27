@@ -25,3 +25,25 @@ export async function notifyPosOfSale(productId: string, quantitySold: number): 
     console.error(`POS stock-sync notify failed for product ${productId}`, error);
   }
 }
+
+// Same push, for when admin manually edits a product's stock rather than an
+// online order consuming it -- sends the new absolute value instead of a
+// quantity sold.
+export async function notifyPosOfStockEdit(productId: string, stock: number): Promise<void> {
+  const secret = (env as { STOCK_SYNC_SECRET?: string }).STOCK_SYNC_SECRET;
+  if (!secret) return;
+
+  try {
+    await fetch(POS_STOCK_SYNC_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify({ site: SITE_ID, siteProductId: productId, stock }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (error) {
+    console.error(`POS stock-sync notify failed for product ${productId}`, error);
+  }
+}

@@ -5,6 +5,7 @@ import { products, product_variations, product_images, promotions } from "@/db/s
 import { slugify, isUuid } from "@/lib/utils";
 import { applyPromo } from "@/lib/promotions";
 import { requireManager } from "./_auth";
+import { notifyPosOfStockEdit } from "@/lib/pos-sync";
 
 type ProductInput = {
   title: string;
@@ -223,6 +224,7 @@ export const updateProduct = createServerFn({ method: "POST" })
       .update(products)
       .set({ ...rest, updated_at: new Date().toISOString() })
       .where(eq(products.id, id));
+    if (rest.stock != null) await notifyPosOfStockEdit(id, rest.stock);
     return { ok: true };
   });
 
@@ -249,6 +251,7 @@ export const setProductStock = createServerFn({ method: "POST" })
       .update(products)
       .set({ stock: data.stock, updated_at: new Date().toISOString() })
       .where(eq(products.id, data.id));
+    if (data.stock != null) await notifyPosOfStockEdit(data.id, data.stock);
     return { ok: true };
   });
 
