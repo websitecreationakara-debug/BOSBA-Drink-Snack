@@ -15,6 +15,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const {
     user,
+    canAccessAdmin,
     signIn,
     verifyTotp,
     signUp,
@@ -36,8 +37,8 @@ function AuthPage() {
   const [pendingEmail, setPendingEmail] = useState("");
 
   useEffect(() => {
-    if (user) navigate({ to: "/" });
-  }, [user, navigate]);
+    if (user) navigate({ to: canAccessAdmin ? "/admin" : "/" });
+  }, [user, canAccessAdmin, navigate]);
 
   const passwordStrength = (() => {
     const p = form.password;

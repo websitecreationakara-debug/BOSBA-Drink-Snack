@@ -147,8 +147,10 @@ function AdminLayout() {
   // Admins hold the keys to the whole store — require 2FA before they can use
   // the dashboard. Google-only accounts (no password) can't set up TOTP here, so
   // they're exempt; assign such staff a password-based account. While hasPassword
-  // is still loading (null), don't gate yet.
-  const mustSetUp2fa = isAdmin && hasPassword === true && !user.twoFactorEnabled;
+  // is still loading (null), don't gate yet. Skipped in local dev (compiled out
+  // of the production bundle) so an authenticator app isn't needed to test admin.
+  const mustSetUp2fa =
+    !import.meta.env.DEV && isAdmin && hasPassword === true && !user.twoFactorEnabled;
   if (mustSetUp2fa) {
     return (
       <div className="min-h-screen grid place-items-center bg-background p-4">

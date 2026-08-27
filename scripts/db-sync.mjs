@@ -11,9 +11,10 @@
 //   npm run db:pull            remote (bosbadrinksnack.com) -> local        (overwrites local)
 //   npm run db:push -- --yes   local -> remote (bosbadrinksnack.com)        (overwrites PROD)
 //
-// Only `categories` and `products` are synced. Media image blobs, users, sessions,
-// and orders are intentionally left alone. The destination is backed up to a SQL
-// file under the OS temp dir before anything is overwritten.
+// Only `categories`, `products`, `product_variations`, and `product_images` are
+// synced. Media image blobs, users, sessions, and orders are intentionally left
+// alone. The destination is backed up to a SQL file under the OS temp dir before
+// anything is overwritten.
 
 import { execSync } from "node:child_process";
 import fs from "node:fs";
@@ -21,7 +22,9 @@ import os from "node:os";
 import path from "node:path";
 
 const DB = "bosba-drink-snack";
-const TABLES = ["categories", "products"]; // parents before children (FK order)
+// Parents before children (FK order) — product_variations and product_images
+// both reference products.id with onDelete: "cascade".
+const TABLES = ["categories", "products", "product_variations", "product_images"];
 
 const dir = process.argv[2];
 const confirmed = process.argv.includes("--yes");

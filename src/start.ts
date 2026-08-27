@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { renderErrorPage } from "./lib/error-page";
 import { getAuth } from "./lib/auth";
 import { getDb } from "./db";
-import { media, products, categories } from "./db/schema";
+import { products, categories } from "./db/schema";
 import { slugify } from "./lib/utils";
 
 const SITE = "https://bosbadrinksnack.com";
@@ -62,10 +62,28 @@ const mediaMiddleware = createMiddleware().server(async ({ next }) => {
   if (!pathname.startsWith("/media/")) return next();
 
   const key = decodeURIComponent(pathname.slice("/media/".length));
-  const [row] = await getDb().select().from(media).where(eq(media.key, key));
-  if (!row?.data) return new Response("Not found", { status: 404 });
+  // A past bulk-insert wrote these rows as SQL text literals instead of bound
+  // blob params, so many `data` values now have TEXT storage class: any byte
+  // that isn't valid UTF-8 already got mangled into U+FFFD before it ever
+  // reached SQLite. Selecting `data` directly (via Drizzle or the raw D1
+  // binding) re-decodes that stored text as UTF-8 and mangles it a second
+  // time. `hex(data)` operates on the raw stored bytes and survives intact,
+  // so pull the blob through that instead and decode the hex back to bytes.
+  const row = await env.DB.prepare("SELECT hex(data) AS hex, content_type FROM media WHERE key = ?")
+    .bind(key)
+    .first<{ hex: string | null; content_type: string | null }>();
+  if (!row?.hex) {
+    // Local dev never has media BLOBs synced down (db-sync.mjs deliberately
+    // skips them) — fall back to the real site so synced products still
+    // show their real images instead of broken thumbnails.
+    if (import.meta.env.DEV) return Response.redirect(`${SITE}${pathname}`, 302);
+    return new Response("Not found", { status: 404 });
+  }
 
-  return new Response(row.data, {
+  const bytes = new Uint8Array(row.hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(row.hex.slice(i * 2, i * 2 + 2), 16);
+
+  return new Response(bytes, {
     headers: {
       "content-type": row.content_type ?? "application/octet-stream",
       "cache-control": "public, max-age=31536000, immutable",

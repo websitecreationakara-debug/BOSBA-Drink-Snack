@@ -110,6 +110,8 @@ function ProductsAdmin() {
   });
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  // Full-size image lightbox for the table's row thumbnails.
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [vars, setVars] = useState<VarRow[]>([]);
   const editing = !!form.id;
@@ -330,7 +332,8 @@ function ProductsAdmin() {
     const before = value.slice(0, selectionStart);
     const after = value.slice(selectionEnd);
 
-    const alreadyBold = selected.startsWith("**") && selected.endsWith("**") && selected.length >= 4;
+    const alreadyBold =
+      selected.startsWith("**") && selected.endsWith("**") && selected.length >= 4;
     const next = alreadyBold
       ? `${before}${selected.slice(2, -2)}${after}`
       : `${before}**${selected || "bold text"}**${after}`;
@@ -679,7 +682,14 @@ function ProductsAdmin() {
                   <div className="flex items-center gap-3">
                     <div className="size-10 rounded-lg bg-muted overflow-hidden shrink-0">
                       {p.image_url && (
-                        <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setPreviewImage(p.image_url)}
+                          className="block w-full h-full cursor-zoom-in"
+                          title="View full size"
+                        >
+                          <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                        </button>
                       )}
                     </div>
                     <span className="font-medium">{p.title}</span>
@@ -690,8 +700,10 @@ function ProductsAdmin() {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-3 font-bold">{priceLabel(p)}</td>
-                <td className="px-6 py-3 text-muted-foreground">{weightLabel(p)}</td>
+                <td className="px-6 py-3 font-bold whitespace-nowrap">{priceLabel(p)}</td>
+                <td className="px-6 py-3 text-muted-foreground whitespace-nowrap">
+                  {weightLabel(p)}
+                </td>
                 <td className="px-6 py-3">
                   {p.type === "variable" ? (
                     stockLabel(p)
@@ -1058,8 +1070,8 @@ function ProductsAdmin() {
                 {vars.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
                     Add at least one weight, each with its own price and stock. Optionally set a
-                    Flavor too, if this product should let customers pick a flavor as well as a
-                    size (e.g. "Lemon" + "6 cans").
+                    Flavor too, if this product should let customers pick a flavor as well as a size
+                    (e.g. "Lemon" + "6 cans").
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -1197,9 +1209,7 @@ function ProductsAdmin() {
                             variant="outline"
                             size="sm"
                             className="h-8 px-2 shrink-0"
-                            onClick={() =>
-                              setVarPickerTarget((t) => (t === i ? null : i))
-                            }
+                            onClick={() => setVarPickerTarget((t) => (t === i ? null : i))}
                           >
                             <ImageIcon className="size-3.5" />
                           </Button>
@@ -1465,6 +1475,19 @@ function ProductsAdmin() {
               {editing ? "Save changes" : "Create product"}
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!previewImage} onOpenChange={(o) => !o && setPreviewImage(null)}>
+        <DialogContent className="max-w-fit border-none bg-transparent p-0 shadow-none">
+          <DialogTitle className="sr-only">Product image</DialogTitle>
+          {previewImage && (
+            <img
+              src={previewImage}
+              alt=""
+              className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
