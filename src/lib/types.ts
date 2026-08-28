@@ -46,6 +46,15 @@ export type ProductImage = {
   created_at: string;
 };
 
+export type ProductTab = {
+  id: string;
+  product_id: string;
+  title: string;
+  body: string;
+  sort_order: number;
+  created_at: string;
+};
+
 export type ProductVariation = {
   id: string;
   product_id: string;

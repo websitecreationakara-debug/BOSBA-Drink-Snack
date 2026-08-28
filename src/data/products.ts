@@ -1,7 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { eq, asc, desc, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
-import { products, product_variations, product_images, promotions } from "@/db/schema";
+import {
+  products,
+  product_variations,
+  product_images,
+  product_tabs,
+  promotions,
+} from "@/db/schema";
 import { slugify, isUuid } from "@/lib/utils";
 import { applyPromo } from "@/lib/promotions";
 import { requireManager } from "./_auth";
@@ -207,6 +213,40 @@ export const saveProductImages = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+type TabInput = { id?: string; title: string; body: string; sort_order: number };
+
+// Titled content blocks for one product, in display order.
+export const getProductTabs = createServerFn({ method: "GET" })
+  .inputValidator((d: { productId: string }) => d)
+  .handler(async ({ data }) => {
+    return getDb()
+      .select()
+      .from(product_tabs)
+      .where(eq(product_tabs.product_id, data.productId))
+      .orderBy(asc(product_tabs.sort_order), asc(product_tabs.created_at));
+  });
+
+// Replace a product's tabs with the supplied set, in order.
+export const saveProductTabs = createServerFn({ method: "POST" })
+  .inputValidator((d: { productId: string; tabs: TabInput[] }) => d)
+  .handler(async ({ data }) => {
+    await requireManager();
+    const db = getDb();
+    await db.delete(product_tabs).where(eq(product_tabs.product_id, data.productId));
+    const rows = data.tabs.filter((t) => t.title.trim() !== "");
+    if (rows.length) {
+      await db.insert(product_tabs).values(
+        rows.map((t, i) => ({
+          product_id: data.productId,
+          title: t.title.trim(),
+          body: t.body,
+          sort_order: i,
+        })),
+      );
+    }
+    return { ok: true };
+  });
+
 export const createProduct = createServerFn({ method: "POST" })
   .inputValidator((d: ProductInput) => d)
   .handler(async ({ data }) => {
@@ -280,6 +320,7 @@ export const deleteProduct = createServerFn({ method: "POST" })
     const db = getDb();
     await db.delete(product_variations).where(eq(product_variations.product_id, data.id));
     await db.delete(product_images).where(eq(product_images.product_id, data.id));
+    await db.delete(product_tabs).where(eq(product_tabs.product_id, data.id));
     await db.delete(products).where(eq(products.id, data.id));
     return { ok: true };
   });

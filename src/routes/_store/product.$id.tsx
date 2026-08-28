@@ -4,6 +4,7 @@ import {
   useStoreSettings,
   useProductVariations,
   useProductImages,
+  useProductTabs,
   useProducts,
   useAllVariations,
 } from "@/hooks/use-products";
@@ -13,6 +14,12 @@ import type { Product } from "@/lib/types";
 import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ProductCard } from "@/components/product-card";
 import { productFromPrice, groupVariations, hasValidPrice } from "@/lib/variants";
 import {
@@ -122,6 +129,7 @@ function ProductDetail() {
   const product = Route.useLoaderData();
   const { data: variations = [] } = useProductVariations(product?.id ?? "");
   const { data: galleryImages = [] } = useProductImages(product?.id ?? "");
+  const { data: tabs = [] } = useProductTabs(product?.id ?? "");
   const { data: allProducts = [] } = useProducts();
   const { data: allVariations = [] } = useAllVariations();
   const { data: settings } = useStoreSettings();
@@ -476,6 +484,21 @@ function ProductDetail() {
                 </button>
               )}
             </div>
+          )}
+
+          {tabs.length > 0 && (
+            <Accordion type="single" collapsible className="mt-5 border-t">
+              {tabs.map((tab) => (
+                <AccordionItem key={tab.id} value={tab.id}>
+                  <AccordionTrigger>{tab.title}</AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                      {renderFormattedDescription(tab.body)}
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           )}
 
           {/* Narrow phones can't fit stepper + button + wishlist on one line, so

@@ -10,6 +10,8 @@ import {
   saveVariations,
   getProductImages,
   saveProductImages,
+  getProductTabs,
+  saveProductTabs,
   setProductStatus,
   setProductStock,
 } from "@/data/products";
@@ -99,6 +101,9 @@ const blankVar = (): VarRow => ({
   image_url: "",
 });
 
+type TabRow = { id?: string; title: string; body: string };
+const blankTab = (): TabRow => ({ title: "", body: "" });
+
 function ProductsAdmin() {
   const { data: products = [] } = useProducts({ all: true });
   const { data: categories = [] } = useCategories();
@@ -114,6 +119,7 @@ function ProductsAdmin() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [vars, setVars] = useState<VarRow[]>([]);
+  const [tabs, setTabs] = useState<TabRow[]>([]);
   const editing = !!form.id;
   const isVariable = form.type === "variable";
   const videoId = form.video_url.trim() ? extractYoutubeId(form.video_url) : null;
@@ -272,6 +278,7 @@ function ProductsAdmin() {
   const openNew = () => {
     setForm(empty);
     setVars([]);
+    setTabs([]);
     setGallery([]);
     setPicker(false);
     setGalleryPicker(false);
@@ -281,8 +288,12 @@ function ProductsAdmin() {
     setPicker(false);
     setGalleryPicker(false);
     setGallery([]);
+    setTabs([]);
     getProductImages({ data: { productId: p.id } }).then((rows) =>
       setGallery(rows.map((r) => r.url)),
+    );
+    getProductTabs({ data: { productId: p.id } }).then((rows) =>
+      setTabs(rows.map((r) => ({ id: r.id, title: r.title, body: r.body }))),
     );
     setForm({
       id: p.id,
@@ -392,6 +403,14 @@ function ProductsAdmin() {
       else productId = (await createProduct({ data: payload })).id;
       if (variable) await saveVariations({ data: { productId, variations: variationPayload() } });
       await saveProductImages({ data: { productId, urls: gallery } });
+      await saveProductTabs({
+        data: {
+          productId,
+          tabs: tabs
+            .filter((t) => t.title.trim() !== "")
+            .map((t, i) => ({ id: t.id, title: t.title.trim(), body: t.body, sort_order: i })),
+        },
+      });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save product");
       return;
@@ -400,6 +419,7 @@ function ProductsAdmin() {
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["variations"] });
     qc.invalidateQueries({ queryKey: ["product_images"] });
+    qc.invalidateQueries({ queryKey: ["product_tabs"] });
     setOpen(false);
   };
 
@@ -885,6 +905,59 @@ function ProductsAdmin() {
                 rows={6}
                 placeholder="Use **bold** for emphasis. Leave a blank line between paragraphs."
               />
+            </div>
+
+            <div className="space-y-3 border rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-bold">Tabs</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTabs((t) => [...t, blankTab()])}
+                >
+                  <Plus className="size-4 mr-1.5" /> Add tab
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Shown as an accordion under the description on the product page (e.g. "What Makes It
+                Special?", "Preparation"). Same **bold** / blank-line formatting as the description.
+              </p>
+              {tabs.map((t, i) => (
+                <div key={i} className="space-y-2 pb-3 border-b last:border-b-0 last:pb-0">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Tab title"
+                      value={t.title}
+                      onChange={(e) =>
+                        setTabs((rows) =>
+                          rows.map((r, j) => (j === i ? { ...r, title: e.target.value } : r)),
+                        )
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => setTabs((rows) => rows.filter((_, j) => j !== i))}
+                      aria-label="Remove tab"
+                    >
+                      <Trash2 className="size-4 text-destructive" />
+                    </Button>
+                  </div>
+                  <Textarea
+                    rows={4}
+                    placeholder="Tab content"
+                    value={t.body}
+                    onChange={(e) =>
+                      setTabs((rows) =>
+                        rows.map((r, j) => (j === i ? { ...r, body: e.target.value } : r)),
+                      )
+                    }
+                  />
+                </div>
+              ))}
             </div>
 
             <div>
