@@ -5,6 +5,7 @@ import {
   listVariations,
   getVariations,
   getProductImages,
+  getProductTabs,
 } from "@/data/products";
 import { listCategories } from "@/data/categories";
 import { listHeroSlides } from "@/data/banners";
@@ -15,6 +16,7 @@ import { listMyAddresses } from "@/data/addresses";
 import type {
   Product,
   ProductImage,
+  ProductTab,
   ProductVariation,
   Category,
   HeroSlide,
@@ -58,6 +60,14 @@ export function useProductImages(productId: string) {
   return useQuery({
     queryKey: ["product_images", productId],
     queryFn: () => getProductImages({ data: { productId } }) as Promise<ProductImage[]>,
+    enabled: !!productId,
+  });
+}
+
+export function useProductTabs(productId: string) {
+  return useQuery({
+    queryKey: ["product_tabs", productId],
+    queryFn: () => getProductTabs({ data: { productId } }) as Promise<ProductTab[]>,
     enabled: !!productId,
   });
 }

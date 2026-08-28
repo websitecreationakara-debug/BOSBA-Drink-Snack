@@ -96,6 +96,22 @@ export const product_images = sqliteTable("product_images", {
   created_at: text("created_at").notNull().$defaultFn(nowIso),
 });
 
+// Extra titled content blocks shown as an accordion under the description on
+// the product page (e.g. "What Makes It Special?", "Preparation"). Ordered by
+// sort_order; edited as a replace-all list in the admin product form.
+export const product_tabs = sqliteTable("product_tabs", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  product_id: text("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  // Plain text with the same lightweight markdown as descriptions (blank line =
+  // paragraph break, **text** = bold).
+  body: text("body").notNull().default(""),
+  sort_order: integer("sort_order").notNull().default(0),
+  created_at: text("created_at").notNull().$defaultFn(nowIso),
+});
+
 export const product_variations = sqliteTable("product_variations", {
   id: text("id").primaryKey().$defaultFn(uuid),
   product_id: text("product_id")
