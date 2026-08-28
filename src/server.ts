@@ -31,7 +31,7 @@ const CSP = [
   "frame-ancestors 'self'",
   "form-action 'self' https://www.facebook.com",
 
-  "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com https://analytics.tiktok.com https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://botcommerce.planifyx.com",
+  "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com https://analytics.tiktok.com https://connect.facebook.net https://www.facebook.com https://m.facebook.com https://static.cloudflareinsights.com https://botcommerce.planifyx.com",
 
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
