@@ -41,6 +41,9 @@ declare global {
       // shared across all e-commerce sites and the to-do app that receives them.
       SECURITY_EVENTS_URL?: string;
       SECURITY_EVENTS_API_TOKEN?: string;
+      // Bearer token gating the write side of the public products API
+      // (POST/PATCH/PUT/DELETE /api/products). Set via `wrangler secret put`.
+      PRODUCTS_API_TOKEN?: string;
     }
   }
 
