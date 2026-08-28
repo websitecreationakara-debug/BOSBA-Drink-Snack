@@ -81,6 +81,11 @@ const empty = {
   video_url: "",
 };
 
+// Spelled-out status for the confirmation toasts, so whoever saved/toggled a
+// product can see at a glance whether it's live or hidden.
+const statusLabel = (status: string) =>
+  status === "published" ? "published — live in the store" : "draft — hidden from customers";
+
 type VarRow = {
   id?: string;
   weight: string;
@@ -415,7 +420,9 @@ function ProductsAdmin() {
       toast.error(err instanceof Error ? err.message : "Failed to save product");
       return;
     }
-    toast.success(editing ? "Product updated" : "Product created");
+    toast.success(
+      `"${form.title.trim() || "Product"}" ${editing ? "saved" : "created"} · ${statusLabel(form.status)}`,
+    );
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["variations"] });
     qc.invalidateQueries({ queryKey: ["product_images"] });
@@ -435,7 +442,7 @@ function ProductsAdmin() {
       qc.invalidateQueries({ queryKey: ["products"] });
       return;
     }
-    toast.success(next === "published" ? "Product enabled" : "Product disabled");
+    toast.success(`"${p.title}" is now ${statusLabel(next)}`);
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
@@ -462,15 +469,15 @@ function ProductsAdmin() {
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
-  const del = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
+  const del = async (p: Product) => {
+    if (!confirm(`Delete "${p.title}"? This can't be undone.`)) return;
     try {
-      await deleteProduct({ data: { id } });
+      await deleteProduct({ data: { id: p.id } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete");
       return;
     }
-    toast.success("Deleted");
+    toast.success(`"${p.title}" deleted`);
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["variations"] });
   };
@@ -524,7 +531,7 @@ function ProductsAdmin() {
       toast.error(err instanceof Error ? err.message : "Failed to duplicate");
       return;
     }
-    toast.success("Product duplicated as draft");
+    toast.success(`Copied "${p.title}" → new draft "${p.title} (Copy)"`);
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["variations"] });
   };
@@ -804,12 +811,7 @@ function ProductsAdmin() {
                     >
                       <Copy className="size-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => del(p.id)}
-                      aria-label="Delete"
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => del(p)} aria-label="Delete">
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
                   </div>
