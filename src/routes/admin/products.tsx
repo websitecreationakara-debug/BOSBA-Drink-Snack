@@ -1260,6 +1260,23 @@ function ProductsAdmin() {
                               )
                             }
                           />
+                          {v.image_url.trim() !== "" && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2 shrink-0"
+                              onClick={() =>
+                                setVars((rows) =>
+                                  rows.map((r, j) => (j === i ? { ...r, image_url: "" } : r)),
+                                )
+                              }
+                              aria-label="Remove this size's photo"
+                              title="Remove this size's photo"
+                            >
+                              <X className="size-3.5" />
+                            </Button>
+                          )}
                           <Button
                             type="button"
                             variant="outline"
