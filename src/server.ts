@@ -1,11 +1,11 @@
 import "./lib/error-capture";
 
 import { env } from "cloudflare:workers";
-import { eq, like } from "drizzle-orm";
+import { eq, like, asc, inArray } from "drizzle-orm";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { getDb } from "./db";
-import { products } from "./db/schema";
+import { products, product_variations, product_images, product_tabs } from "./db/schema";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -164,6 +164,138 @@ async function handleProductSearch(request: Request): Promise<Response> {
   });
 }
 
+// ---- Public read-only products API -----------------------------------------
+// GET /api/products            -> every published product (raw stored values,
+//                                 no live-promotion discount applied)
+// GET /api/products/:idOrSlug  -> one published product by UUID or title slug
+// CORS-open so another site can fetch it straight from the browser. Nested
+// variations / gallery images / tabs are included per product.
+const API_CORS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
+
+const apiSlug = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function apiJson(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "public, max-age=300",
+      ...API_CORS,
+    },
+  });
+}
+
+type ApiProductRow = typeof products.$inferSelect;
+
+function shapeApiProduct(
+  p: ApiProductRow,
+  variations: (typeof product_variations.$inferSelect)[],
+  images: (typeof product_images.$inferSelect)[],
+  tabs: (typeof product_tabs.$inferSelect)[],
+) {
+  return {
+    id: p.id,
+    slug: apiSlug(p.title),
+    title: p.title,
+    description: p.description,
+    type: p.type,
+    price: p.price,
+    sale_price: p.sale_price,
+    category_id: p.category_id,
+    stock: p.stock,
+    image_url: p.image_url,
+    badge: p.badge,
+    rating: p.rating,
+    weight: p.weight,
+    pcs: p.pcs,
+    featured: p.featured,
+    pre_order: p.pre_order,
+    video_url: p.video_url,
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+    variations: variations
+      .filter((v) => v.product_id === p.id)
+      .map((v) => ({
+        id: v.id,
+        weight: v.weight,
+        flavor: v.flavor,
+        price: v.price,
+        sale_price: v.sale_price,
+        image_url: v.image_url,
+        stock: v.stock,
+        pcs: v.pcs,
+      })),
+    images: images.filter((i) => i.product_id === p.id).map((i) => i.url),
+    tabs: tabs.filter((t) => t.product_id === p.id).map((t) => ({ title: t.title, body: t.body })),
+  };
+}
+
+async function handleProductsApi(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const rest = url.pathname.replace(/^\/api\/products\/?/, "").replace(/\/+$/, "");
+  const db = getDb();
+
+  const published = await db
+    .select()
+    .from(products)
+    .where(eq(products.status, "published"))
+    .orderBy(asc(products.sort_order), asc(products.title));
+
+  // Single product by id or slug.
+  if (rest) {
+    const key = decodeURIComponent(rest);
+    const match = UUID_RE.test(key)
+      ? published.find((p) => p.id === key)
+      : published.find((p) => apiSlug(p.title) === key);
+    if (!match) return apiJson({ error: "Product not found" }, 404);
+    const ids = [match.id];
+    const [vs, ims, tbs] = await Promise.all([
+      db.select().from(product_variations).where(inArray(product_variations.product_id, ids)),
+      db.select().from(product_images).where(inArray(product_images.product_id, ids)),
+      db.select().from(product_tabs).where(inArray(product_tabs.product_id, ids)),
+    ]);
+    return apiJson({ product: shapeApiProduct(match, vs, ims, tbs) });
+  }
+
+  // Full list.
+  const ids = published.map((p) => p.id);
+  const [vs, ims, tbs] = ids.length
+    ? await Promise.all([
+        db
+          .select()
+          .from(product_variations)
+          .where(inArray(product_variations.product_id, ids))
+          .orderBy(asc(product_variations.sort_order)),
+        db
+          .select()
+          .from(product_images)
+          .where(inArray(product_images.product_id, ids))
+          .orderBy(asc(product_images.sort_order)),
+        db
+          .select()
+          .from(product_tabs)
+          .where(inArray(product_tabs.product_id, ids))
+          .orderBy(asc(product_tabs.sort_order)),
+      ])
+    : [[], [], []];
+
+  return apiJson({
+    count: published.length,
+    products: published.map((p) => shapeApiProduct(p, vs, ims, tbs)),
+  });
+}
+
 function brandedErrorResponse(): Response {
   return new Response(renderErrorPage(), {
     status: 500,
@@ -249,6 +381,29 @@ export default {
           }),
         );
       }
+    }
+
+    if (url.pathname === "/api/products" || url.pathname.startsWith("/api/products/")) {
+      if (request.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: API_CORS });
+      }
+      if (request.method === "GET") {
+        try {
+          return withSecurityHeaders(await handleProductsApi(request));
+        } catch (error) {
+          console.error(error);
+          return withSecurityHeaders(
+            new Response(JSON.stringify({ error: "Internal error" }), {
+              status: 500,
+              headers: { "content-type": "application/json", ...API_CORS },
+            }),
+          );
+        }
+      }
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405,
+        headers: { "content-type": "application/json", ...API_CORS },
+      });
     }
 
     try {
