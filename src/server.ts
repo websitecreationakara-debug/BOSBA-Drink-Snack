@@ -12,8 +12,7 @@ type ServerEntry = {
 };
 
 // Content-Security-Policy. 'unsafe-inline' is required for scripts because the
-// app ships inline scripts (TikTok + Meta pixels, install-prompt capture,
-// JSON-LD) plus
+// app ships inline scripts (TikTok pixel, install-prompt capture, JSON-LD) plus
 // TanStack Start's hydration scripts — a nonce-based policy would be a larger
 // change. The host allowlists still constrain which external origins may load
 // scripts/connect/frame, and frame-ancestors/base-uri/object-src close the
@@ -37,7 +36,7 @@ const CSP = [
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
 
-  "connect-src 'self' https://nominatim.openstreetmap.org https://www.google.com https://analytics.tiktok.com https://www.facebook.com https://connect.facebook.net https://static.cloudflareinsights.com https://cloudflareinsights.com https://signals.birch.click/events",
+  "connect-src 'self' https://nominatim.openstreetmap.org https://www.google.com https://analytics.tiktok.com https://www.facebook.com https://connect.facebook.net https://static.cloudflareinsights.com https://cloudflareinsights.com https://signals.birch.click",
 
   "frame-src 'self' https://www.google.com https://www.facebook.com https://botcommerce.planifyx.com https://www.youtube.com",
   "worker-src 'self' blob:",
