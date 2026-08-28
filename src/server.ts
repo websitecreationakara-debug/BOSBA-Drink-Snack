@@ -19,7 +19,8 @@ type ServerEntry = {
 // clickjacking and base-tag vectors. Origins map to real usage: google/gstatic
 // = reCAPTCHA, analytics.tiktok = pixel, connect.facebook.net = Meta Pixel
 // (fbevents.js) and www.facebook.com = its event transport (beacon in
-// connect-src, plus the iframe/form fallbacks in frame-src/form-action),
+// connect-src, the iframe/form fallbacks in frame-src/form-action, plus the
+// Event Setup Tool loader signals/iwl.js in script-src),
 // cloudflareinsights = CF Web Analytics (edge-injected), planifyx = webchat
 // widget, nominatim = checkout address lookup, fonts.* = Google Fonts,
 // youtube.com = product video embeds (src/lib/youtube.ts).
@@ -30,7 +31,7 @@ const CSP = [
   "frame-ancestors 'self'",
   "form-action 'self' https://www.facebook.com",
 
-  "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com https://analytics.tiktok.com https://connect.facebook.net https://static.cloudflareinsights.com https://botcommerce.planifyx.com",
+  "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com https://analytics.tiktok.com https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://botcommerce.planifyx.com",
 
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
