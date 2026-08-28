@@ -34,14 +34,19 @@ const CSP = [
   "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com https://analytics.tiktok.com https://connect.facebook.net https://www.facebook.com https://m.facebook.com https://static.cloudflareinsights.com https://botcommerce.planifyx.com",
 
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+
   "font-src 'self' data: https://fonts.gstatic.com",
+
   "img-src 'self' data: blob: https:",
 
-  "connect-src 'self' https://nominatim.openstreetmap.org https://www.google.com https://analytics.tiktok.com https://www.facebook.com https://connect.facebook.net https://static.cloudflareinsights.com https://cloudflareinsights.com https://signals.birch.click",
+  "connect-src 'self' https://nominatim.openstreetmap.org https://www.google.com https://analytics.tiktok.com https://www.facebook.com https://m.facebook.com https://connect.facebook.net https://static.cloudflareinsights.com https://cloudflareinsights.com https://signals.birch.click",
 
   "frame-src 'self' https://www.google.com https://www.facebook.com https://botcommerce.planifyx.com https://www.youtube.com",
+
   "worker-src 'self' blob:",
+
   "manifest-src 'self'",
+
   "upgrade-insecure-requests",
 ].join("; ");
 
