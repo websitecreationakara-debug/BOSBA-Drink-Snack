@@ -470,7 +470,6 @@ function ProductsAdmin() {
   };
 
   const del = async (p: Product) => {
-    if (!confirm(`Delete "${p.title}"? This can't be undone.`)) return;
     try {
       await deleteProduct({ data: { id: p.id } });
     } catch (err) {
