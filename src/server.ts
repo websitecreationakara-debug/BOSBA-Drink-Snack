@@ -12,7 +12,8 @@ type ServerEntry = {
 };
 
 // Content-Security-Policy. 'unsafe-inline' is required for scripts because the
-// app ships inline scripts (TikTok pixel, install-prompt capture, JSON-LD) plus
+// app ships inline scripts (TikTok + Meta pixels, install-prompt capture,
+// JSON-LD) plus
 // TanStack Start's hydration scripts — a nonce-based policy would be a larger
 // change. The host allowlists still constrain which external origins may load
 // scripts/connect/frame, and frame-ancestors/base-uri/object-src close the

@@ -1,7 +1,7 @@
-// Meta (Facebook) Pixel event helper. <MetaPixelProvider> (@adkit/meta-pixel-
-// react) in __root.tsx installs the `fbq` global and fires the first PageView;
-// this module is a typed, SSR-safe wrapper around that global for firing events
-// from components without threading the provider's hook through every call site.
+// Meta (Facebook) Pixel event helper. The inline base snippet in __root.tsx's
+// <head> installs the `fbq` global and fires the first PageView; this module is
+// a typed, SSR-safe wrapper around that global for firing events from
+// components.
 // Every call no-ops on the server and when the pixel script failed to load
 // (ad blocker, offline, consent tooling, …) or hasn't initialised yet.
 
