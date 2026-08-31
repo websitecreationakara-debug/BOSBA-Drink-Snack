@@ -382,20 +382,21 @@ const DICTS: Record<Locale, Dict> = { en, km, ja };
 export const BUILTIN_DICTS: Record<Locale, Record<string, string>> = DICTS;
 
 // Ordered sections for the admin Translations editor. The key prefix (before the
-// first ".") groups the strings; anything not listed lands in "Other".
-export const I18N_SECTIONS: { prefix: string; label: string }[] = [
-  { prefix: "home", label: "Homepage" },
-  { prefix: "feature", label: "Homepage — Feature Highlights" },
-  { prefix: "cta", label: "Homepage — Membership Banner" },
-  { prefix: "shop", label: "Shop" },
-  { prefix: "product", label: "Product Page" },
-  { prefix: "offers", label: "Offers" },
-  { prefix: "offer", label: "Offers — Badges" },
-  { prefix: "nav", label: "Navigation & Search" },
-  { prefix: "bar", label: "Top Announcement Bar" },
-  { prefix: "cart", label: "Cart" },
-  { prefix: "theme", label: "Theme Switch" },
-  { prefix: "footer", label: "Footer" },
+// first ".") groups the strings; anything not listed lands in "Other". `short` is
+// the label on the section picker buttons; `label` is the group heading.
+export const I18N_SECTIONS: { prefix: string; label: string; short: string }[] = [
+  { prefix: "home", label: "Homepage", short: "Homepage" },
+  { prefix: "feature", label: "Homepage — Feature Highlights", short: "Features" },
+  { prefix: "cta", label: "Homepage — Membership Banner", short: "Membership" },
+  { prefix: "shop", label: "Shop", short: "Shop" },
+  { prefix: "product", label: "Product Page", short: "Product" },
+  { prefix: "offers", label: "Offers", short: "Offers" },
+  { prefix: "offer", label: "Offers — Badges", short: "Badges" },
+  { prefix: "nav", label: "Navigation & Search", short: "Navigation" },
+  { prefix: "bar", label: "Top Announcement Bar", short: "Top Bar" },
+  { prefix: "cart", label: "Cart", short: "Cart" },
+  { prefix: "theme", label: "Theme Switch", short: "Theme" },
+  { prefix: "footer", label: "Footer", short: "Footer" },
 ];
 
 function interpolate(s: string, vars?: Record<string, string | number>) {

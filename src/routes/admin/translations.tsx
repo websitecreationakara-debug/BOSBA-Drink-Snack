@@ -18,13 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { Loader2, RotateCcw, Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/translations")({ component: TranslationsAdmin });
@@ -36,11 +30,15 @@ const ALL_KEYS = Object.keys(EN_DEFAULTS).filter((k) => k !== "lang.name");
 const SECTION_FOR = (key: string) =>
   I18N_SECTIONS.find((s) => key === s.prefix || key.startsWith(s.prefix + "."))?.label ?? "Other";
 
-// Every section that has at least one string, in display order — drives the picker.
-const SECTION_LABELS: string[] = (() => {
-  const labels = I18N_SECTIONS.map((s) => s.label);
-  if (ALL_KEYS.some((k) => SECTION_FOR(k) === "Other")) labels.push("Other");
-  return labels.filter((l) => ALL_KEYS.some((k) => SECTION_FOR(k) === l));
+// Section picker buttons — { label (group heading / filter value), short (button
+// text) }, only sections that actually have strings, in display order.
+const SECTION_BUTTONS: { label: string; short: string }[] = (() => {
+  const out = I18N_SECTIONS.map((s) => ({ label: s.label, short: s.short })).filter((s) =>
+    ALL_KEYS.some((k) => SECTION_FOR(k) === s.label),
+  );
+  if (ALL_KEYS.some((k) => SECTION_FOR(k) === "Other"))
+    out.push({ label: "Other", short: "Other" });
+  return out;
 })();
 
 // Effective built-in value for a locale, falling back to the English default.
@@ -153,22 +151,8 @@ function TranslationsAdmin() {
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Select value={section} onValueChange={setSection}>
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="All sections" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All sections</SelectItem>
-            {SECTION_LABELS.map((label) => (
-              <SelectItem key={label} value={label}>
-                {label}
-                {editedBySection[label] ? ` (${editedBySection[label]})` : ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+      <div className="space-y-3">
+        <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             value={query}
@@ -177,11 +161,30 @@ function TranslationsAdmin() {
             className="pl-9"
           />
         </div>
-        {section !== "all" && (
-          <Button variant="ghost" size="sm" onClick={() => setSection("all")}>
-            Show all
-          </Button>
-        )}
+
+        {/* Section picker — sits between the text filter and the first group */}
+        <div className="flex flex-wrap gap-2">
+          {[{ label: "all", short: "All" }, ...SECTION_BUTTONS].map((s) => {
+            const active = section === s.label;
+            const count = s.label === "all" ? 0 : editedBySection[s.label];
+            return (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => setSection(s.label)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {s.short}
+                {count ? <span className="ml-1.5 opacity-70">{count}</span> : null}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {isLoading ? (
