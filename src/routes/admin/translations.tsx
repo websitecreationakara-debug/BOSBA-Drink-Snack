@@ -247,7 +247,6 @@ function TranslationsAdmin() {
   // A field accepted as "same as English" never counts as needing work.
   const savedNeeds = (locale: "km" | "ja", key: string) =>
     !acceptedFor(locale).has(key) && missingScript(locale, savedValue(locale, key));
-  const keyNeedsWork = (key: string) => savedNeeds("km", key) || savedNeeds("ja", key);
 
   const toggleAccept = async (key: string, locale: "km" | "ja", next: boolean) => {
     try {
@@ -272,28 +271,20 @@ function TranslationsAdmin() {
     return out;
   }, [draft, overrides]);
 
-  // Per-section counters — saved state only, so they update on Save, not on type.
+  // Per-section counts of strings still missing each language — saved state only,
+  // so they update on Save, not while typing.
   const stats = useMemo(() => {
-    const m: Record<string, { total: number; needs: number }> = {};
+    const m: Record<string, { km: number; ja: number }> = {};
     for (const s of SECTIONS) {
       const keys = KEYS_BY_SECTION[s.label];
-      m[s.label] = { total: keys.length, needs: keys.filter(keyNeedsWork).length };
+      m[s.label] = {
+        km: keys.filter((k) => savedNeeds("km", k)).length,
+        ja: keys.filter((k) => savedNeeds("ja", k)).length,
+      };
     }
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overrides, acceptedList]);
-
-  // Whole-site totals shown on the filter buttons so the editor sees at a glance
-  // how much still needs each language.
-  const modeCounts = useMemo(
-    () => ({
-      edited: ALL_KEYS.filter(keyEdited).length,
-      km: ALL_KEYS.filter((k) => savedNeeds("km", k)).length,
-      ja: ALL_KEYS.filter((k) => savedNeeds("ja", k)).length,
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [overrides, acceptedList, draft],
-  );
 
   const visibleKeys = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -408,40 +399,60 @@ function TranslationsAdmin() {
               />
             </div>
 
+            {/* Section tabs. The amber chip on a section = strings still missing
+                that language; clicking it jumps straight to those strings. */}
             <div className="flex flex-wrap gap-1.5">
               {SECTIONS.map((s) => {
                 const active = !searching && section === s.label;
                 const st = stats[s.label];
+                const pick = (m: Mode) => {
+                  setQuery("");
+                  setSection(s.label);
+                  setMode(m);
+                };
+                const chip =
+                  "flex items-center gap-1 border-l border-amber-300 bg-amber-100 px-2 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-200 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300";
                 return (
-                  <button
+                  <div
                     key={s.label}
-                    type="button"
-                    onClick={() => {
-                      setQuery("");
-                      setSection(s.label);
-                    }}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                      active
-                        ? "border-brand bg-brand text-brand-foreground"
-                        : "bg-card text-foreground/70 hover:bg-muted hover:text-foreground",
+                      "flex items-stretch overflow-hidden rounded-full border text-sm font-medium",
+                      active ? "border-brand" : "border-border",
                     )}
                   >
-                    {s.short}
-                    {st.needs > 0 && (
-                      <span
-                        className={cn(
-                          "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
-                          active
-                            ? "bg-brand-foreground/20"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-                        )}
-                        title={`${st.needs} still need ខ្មែរ or 日本語`}
+                    <button
+                      type="button"
+                      onClick={() => pick("all")}
+                      className={cn(
+                        "px-3 py-1.5 transition-colors",
+                        active
+                          ? "bg-brand text-brand-foreground"
+                          : "bg-card text-foreground/70 hover:bg-muted hover:text-foreground",
+                      )}
+                    >
+                      {s.short}
+                    </button>
+                    {st.km > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => pick("km")}
+                        title={`${st.km} string${st.km > 1 ? "s" : ""} still need ខ្មែរ — click to translate`}
+                        className={chip}
                       >
-                        {st.needs}
-                      </span>
+                        ខ្មែរ {st.km}
+                      </button>
                     )}
-                  </button>
+                    {st.ja > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => pick("ja")}
+                        title={`${st.ja} string${st.ja > 1 ? "s" : ""} still need 日本語 — click to translate`}
+                        className={chip}
+                      >
+                        日本語 {st.ja}
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -450,56 +461,21 @@ function TranslationsAdmin() {
           {/* ── Show-only filter ──────────────────────────────────────── */}
           <div className="flex">
             <div className="flex rounded-lg border bg-card p-1">
-              {MODES.map((m) => {
-                const active = mode === m.key;
-                const count =
-                  m.key === "edited"
-                    ? modeCounts.edited
-                    : m.key === "km"
-                      ? modeCounts.km
-                      : m.key === "ja"
-                        ? modeCounts.ja
-                        : 0;
-                return (
-                  <button
-                    key={m.key}
-                    type="button"
-                    onClick={() => setMode(m.key)}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors",
-                      active
-                        ? "bg-brand text-brand-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {m.label}
-                    {m.key !== "all" && count > 0 && (
-                      <span
-                        className={cn(
-                          "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
-                          active
-                            ? "bg-brand-foreground/20"
-                            : m.key === "edited"
-                              ? "bg-muted text-foreground/70"
-                              : "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-                        )}
-                      >
-                        {count}
-                      </span>
-                    )}
-                    {(m.key === "km" || m.key === "ja") && count === 0 && (
-                      <Check
-                        className={cn(
-                          "size-3.5",
-                          active
-                            ? "text-brand-foreground/80"
-                            : "text-emerald-600 dark:text-emerald-400",
-                        )}
-                      />
-                    )}
-                  </button>
-                );
-              })}
+              {MODES.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setMode(m.key)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors",
+                    mode === m.key
+                      ? "bg-brand text-brand-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {m.label}
+                </button>
+              ))}
             </div>
           </div>
 
