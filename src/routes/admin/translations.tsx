@@ -188,13 +188,15 @@ function TranslationsAdmin() {
     queryKey: ["translations"],
     queryFn: () => getTranslationOverrides(),
   });
-  // Keys the editor has marked "single language is fine" — not flagged as needing
-  // a translation even though they hold no Khmer/Japanese script.
-  const { data: acceptedList } = useQuery<string[]>({
+  // Per-language: keys the editor accepted as "same as English is fine here", so
+  // that field isn't flagged even though it holds no Khmer/Japanese script.
+  const { data: acceptedList } = useQuery<Record<"km" | "ja", string[]>>({
     queryKey: ["translations-accepted"],
     queryFn: () => getAcceptedKeys(),
   });
-  const accepted = useMemo(() => new Set(acceptedList ?? []), [acceptedList]);
+  const acceptedKm = useMemo(() => new Set(acceptedList?.km ?? []), [acceptedList]);
+  const acceptedJa = useMemo(() => new Set(acceptedList?.ja ?? []), [acceptedList]);
+  const acceptedFor = (locale: "km" | "ja") => (locale === "km" ? acceptedKm : acceptedJa);
 
   // Only edited fields live here; everything else renders from overrides/builtin.
   const [draft, setDraft] = useState<Draft>({});
@@ -221,16 +223,16 @@ function TranslationsAdmin() {
     LOCALES.some((l) => valueOf(l.code, key).trim() !== builtin(l.code, key).trim());
 
   // Section counts + the "Needs ខ្មែរ/日本語" filter: based on the saved value.
-  // An "accepted" key never counts as needing work.
+  // A field accepted as "same as English" never counts as needing work.
   const savedNeeds = (locale: "km" | "ja", key: string) =>
-    !accepted.has(key) && missingScript(locale, savedValue(locale, key));
+    !acceptedFor(locale).has(key) && missingScript(locale, savedValue(locale, key));
   const keyNeedsWork = (key: string) => savedNeeds("km", key) || savedNeeds("ja", key);
 
-  const toggleAccept = async (key: string, next: boolean) => {
+  const toggleAccept = async (key: string, locale: "km" | "ja", next: boolean) => {
     try {
-      await setAcceptedKey({ data: { key, accepted: next } });
+      await setAcceptedKey({ data: { key, locale, accepted: next } });
       await qc.invalidateQueries({ queryKey: ["translations-accepted"] });
-      toast.success(next ? "Marked as single-language" : "Back to needing a translation");
+      toast.success(next ? "Marked “same as English”" : "Back to needing a translation");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not update");
     }
@@ -433,22 +435,45 @@ function TranslationsAdmin() {
                   <div className="grid gap-3 md:grid-cols-3">
                     {LOCALES.map((l) => {
                       const changed = valueOf(l.code, key) !== builtin(l.code, key);
+                      const tgt = l.code as "km" | "ja";
+                      const acceptedHere = l.code !== "en" && acceptedFor(tgt).has(key);
                       // Live: the dot clears as soon as you type text in that
                       // script, even before saving.
                       const needs =
                         l.code !== "en" &&
-                        !accepted.has(key) &&
-                        missingScript(l.code as "km" | "ja", valueOf(l.code, key));
+                        !acceptedHere &&
+                        missingScript(tgt, valueOf(l.code, key));
                       return (
                         <div key={l.code}>
-                          <div className="mb-1 flex items-center justify-between">
+                          <div className="mb-1 flex items-center justify-between gap-2">
                             <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                               {l.label}
+                              {acceptedHere && (
+                                <span className="flex items-center gap-1 normal-case font-medium text-emerald-600 dark:text-emerald-400">
+                                  <Check className="size-3" /> = English
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleAccept(key, tgt, false)}
+                                    className="underline hover:no-underline"
+                                  >
+                                    undo
+                                  </button>
+                                </span>
+                              )}
                               {needs && (
-                                <span
-                                  className="size-1.5 rounded-full bg-amber-500"
-                                  title={`No ${l.label} text yet`}
-                                />
+                                <>
+                                  <span
+                                    className="size-1.5 rounded-full bg-amber-500"
+                                    title={`No ${l.label} text yet`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleAccept(key, tgt, true)}
+                                    className="normal-case font-medium text-muted-foreground underline hover:text-foreground"
+                                  >
+                                    same as English
+                                  </button>
+                                </>
                               )}
                             </span>
                             {changed && (
@@ -476,32 +501,6 @@ function TranslationsAdmin() {
                       );
                     })}
                   </div>
-
-                  {(accepted.has(key) || keyNeedsWork(key)) && (
-                    <div className="mt-3 flex justify-end">
-                      {accepted.has(key) ? (
-                        <span className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
-                          <Check className="size-3" />
-                          Same in every language
-                          <button
-                            type="button"
-                            onClick={() => toggleAccept(key, false)}
-                            className="ml-1 underline hover:no-underline"
-                          >
-                            undo
-                          </button>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => toggleAccept(key, true)}
-                          className="text-[11px] text-muted-foreground underline hover:text-foreground"
-                        >
-                          This text is the same in every language — mark OK
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </article>
               ))
             )}

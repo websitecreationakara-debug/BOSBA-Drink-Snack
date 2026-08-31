@@ -22,29 +22,37 @@ export const getTranslationOverrides = createServerFn({ method: "GET" }).handler
   return out;
 });
 
-// Sentinel "locale" for rows that just mark an i18n key as intentionally the
-// same in every language (a brand name, a symbol, "{n}") so the admin editor
-// stops flagging it as needing a translation. Ignored by the storefront merge
-// above and by saveTranslations (both filter to real locales).
-const ACCEPT_LOCALE = "_accept";
+// Sentinel "locale" prefix for rows that mark one i18n key + one language as
+// intentionally left the same as English (a brand name, "{n}", a symbol), so the
+// admin editor stops flagging just that field. Per language: "_accept_km" /
+// "_accept_ja". Ignored by the storefront merge above and by saveTranslations
+// (both filter to real locales).
+const ACCEPT_PREFIX = "_accept_";
+type AcceptLocale = "km" | "ja";
 
-// Admin: keys the editor has marked "single language is fine".
+// Admin: which keys have been accepted as "same as English" per language.
 export const getAcceptedKeys = createServerFn({ method: "GET" }).handler(async () => {
   const rows = await getDb().select().from(translations);
-  return rows.filter((r) => r.locale === ACCEPT_LOCALE).map((r) => r.key);
+  const out: Record<AcceptLocale, string[]> = { km: [], ja: [] };
+  for (const r of rows) {
+    if (r.locale === ACCEPT_PREFIX + "km") out.km.push(r.key);
+    else if (r.locale === ACCEPT_PREFIX + "ja") out.ja.push(r.key);
+  }
+  return out;
 });
 
 export const setAcceptedKey = createServerFn({ method: "POST" })
-  .inputValidator((d: { key: string; accepted: boolean }) => d)
+  .inputValidator((d: { key: string; locale: AcceptLocale; accepted: boolean }) => d)
   .handler(async ({ data }) => {
     await requireAdmin();
     const db = getDb();
-    if (!data.key) return { ok: false };
+    if (!data.key || (data.locale !== "km" && data.locale !== "ja")) return { ok: false };
+    const sentinel = ACCEPT_PREFIX + data.locale;
     if (data.accepted) {
       await db
         .insert(translations)
         .values({
-          locale: ACCEPT_LOCALE,
+          locale: sentinel,
           key: data.key,
           value: "1",
           updated_at: new Date().toISOString(),
@@ -53,7 +61,7 @@ export const setAcceptedKey = createServerFn({ method: "POST" })
     } else {
       await db
         .delete(translations)
-        .where(and(eq(translations.locale, ACCEPT_LOCALE), eq(translations.key, data.key)));
+        .where(and(eq(translations.locale, sentinel), eq(translations.key, data.key)));
     }
     return { ok: true };
   });
