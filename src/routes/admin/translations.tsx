@@ -18,6 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, RotateCcw, Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/translations")({ component: TranslationsAdmin });
@@ -28,6 +35,13 @@ const ALL_KEYS = Object.keys(EN_DEFAULTS).filter((k) => k !== "lang.name");
 
 const SECTION_FOR = (key: string) =>
   I18N_SECTIONS.find((s) => key === s.prefix || key.startsWith(s.prefix + "."))?.label ?? "Other";
+
+// Every section that has at least one string, in display order — drives the picker.
+const SECTION_LABELS: string[] = (() => {
+  const labels = I18N_SECTIONS.map((s) => s.label);
+  if (ALL_KEYS.some((k) => SECTION_FOR(k) === "Other")) labels.push("Other");
+  return labels.filter((l) => ALL_KEYS.some((k) => SECTION_FOR(k) === l));
+})();
 
 // Effective built-in value for a locale, falling back to the English default.
 const builtin = (locale: LocaleCode, key: string) =>
@@ -45,6 +59,7 @@ function TranslationsAdmin() {
   // Only edited fields live here; everything else renders from overrides/builtin.
   const [draft, setDraft] = useState<Draft>({});
   const [query, setQuery] = useState("");
+  const [section, setSection] = useState<string>("all");
   const [saving, setSaving] = useState(false);
 
   // Current value shown in a field: unsaved edit → saved override → built-in.
@@ -76,13 +91,14 @@ function TranslationsAdmin() {
     const q = query.trim().toLowerCase();
     const byLabel = new Map<string, string[]>();
     for (const key of ALL_KEYS) {
+      const label = SECTION_FOR(key);
+      if (section !== "all" && label !== section) continue;
       if (
         q &&
         !key.toLowerCase().includes(q) &&
         !LOCALES.some((l) => valueOf(l.code, key).toLowerCase().includes(q))
       )
         continue;
-      const label = SECTION_FOR(key);
       const arr = byLabel.get(label) ?? [];
       arr.push(key);
       byLabel.set(label, arr);
@@ -92,7 +108,20 @@ function TranslationsAdmin() {
       .filter((l) => byLabel.has(l))
       .map((label) => ({ label, keys: byLabel.get(label)! }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, draft, overrides]);
+  }, [query, section, draft, overrides]);
+
+  // How many strings in each section currently carry an override (any locale).
+  const editedBySection = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const key of ALL_KEYS) {
+      const edited = LOCALES.some((l) => (overrides?.[l.code]?.[key] ?? "").trim() !== "");
+      if (edited) {
+        const label = SECTION_FOR(key);
+        m[label] = (m[label] ?? 0) + 1;
+      }
+    }
+    return m;
+  }, [overrides]);
 
   const save = async () => {
     if (dirtyEntries.length === 0) return;
@@ -124,14 +153,35 @@ function TranslationsAdmin() {
         </p>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Filter by key or text…"
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <Select value={section} onValueChange={setSection}>
+          <SelectTrigger className="w-56">
+            <SelectValue placeholder="All sections" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All sections</SelectItem>
+            {SECTION_LABELS.map((label) => (
+              <SelectItem key={label} value={label}>
+                {label}
+                {editedBySection[label] ? ` (${editedBySection[label]})` : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Filter by key or text…"
+            className="pl-9"
+          />
+        </div>
+        {section !== "all" && (
+          <Button variant="ghost" size="sm" onClick={() => setSection("all")}>
+            Show all
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -191,7 +241,10 @@ function TranslationsAdmin() {
       )}
 
       {groups.length === 0 && !isLoading && (
-        <p className="text-sm text-muted-foreground">No strings match “{query}”.</p>
+        <p className="text-sm text-muted-foreground">
+          No strings match{query ? ` “${query}”` : ""}
+          {section !== "all" ? ` in ${section}` : ""}.
+        </p>
       )}
 
       {dirtyEntries.length > 0 && (
