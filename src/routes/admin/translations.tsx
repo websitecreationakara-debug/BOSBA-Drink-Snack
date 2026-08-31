@@ -17,15 +17,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ChevronDown, Loader2, RotateCcw, Search } from "lucide-react";
+import { Check, Loader2, RotateCcw, Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/translations")({ component: TranslationsAdmin });
 
 type LocaleCode = (typeof LOCALES)[number]["code"];
 
 const ALL_KEYS = Object.keys(EN_DEFAULTS).filter((k) => k !== "lang.name");
+
+const SECTION_FOR = (key: string) =>
+  I18N_SECTIONS.find((s) => key === s.prefix || key.startsWith(s.prefix + "."))?.label ?? "Other";
 
 // Plain-English name for each string, shown above the fields so an editor knows
 // what they're changing without decoding the dotted key. Keys not listed here
@@ -138,12 +140,8 @@ const KEY_LABELS: Record<string, string> = {
   "footer.sitemap": "Footer — “Sitemap” link",
 };
 
-const SECTION_FOR = (key: string) =>
-  I18N_SECTIONS.find((s) => key === s.prefix || key.startsWith(s.prefix + "."))?.label ?? "Other";
-
-// Section picker buttons — { label (group heading / filter value), short (button
-// text) }, only sections that actually have strings, in display order.
-const SECTION_BUTTONS: { label: string; short: string }[] = (() => {
+// Sections that actually have strings, in display order.
+const SECTIONS: { label: string; short: string }[] = (() => {
   const out = I18N_SECTIONS.map((s) => ({ label: s.label, short: s.short })).filter((s) =>
     ALL_KEYS.some((k) => SECTION_FOR(k) === s.label),
   );
@@ -152,11 +150,23 @@ const SECTION_BUTTONS: { label: string; short: string }[] = (() => {
   return out;
 })();
 
+const KEYS_BY_SECTION: Record<string, string[]> = Object.fromEntries(
+  SECTIONS.map((s) => [s.label, ALL_KEYS.filter((k) => SECTION_FOR(k) === s.label)]),
+);
+
 // Effective built-in value for a locale, falling back to the English default.
 const builtin = (locale: LocaleCode, key: string) =>
   BUILTIN_DICTS[locale]?.[key] ?? EN_DEFAULTS[key] ?? "";
 
 type Draft = Record<string, Partial<Record<LocaleCode, string>>>;
+type Mode = "all" | "edited" | "km" | "ja";
+
+const MODES: { key: Mode; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "edited", label: "Edited" },
+  { key: "km", label: "Needs ខ្មែរ" },
+  { key: "ja", label: "Needs 日本語" },
+];
 
 function TranslationsAdmin() {
   const qc = useQueryClient();
@@ -168,18 +178,11 @@ function TranslationsAdmin() {
   // Only edited fields live here; everything else renders from overrides/builtin.
   const [draft, setDraft] = useState<Draft>({});
   const [query, setQuery] = useState("");
-  const [section, setSection] = useState<string>("all");
-  const [mode, setMode] = useState<"all" | "edited" | "km" | "ja">("all");
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const [section, setSection] = useState<string>(SECTIONS[0].label);
+  const [mode, setMode] = useState<Mode>("all");
   const [saving, setSaving] = useState(false);
 
-  const toggleSection = (label: string) =>
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(label)) next.delete(label);
-      else next.add(label);
-      return next;
-    });
+  const searching = query.trim() !== "";
 
   // Current value shown in a field: unsaved edit → saved override → built-in.
   const valueOf = (locale: LocaleCode, key: string) =>
@@ -187,11 +190,6 @@ function TranslationsAdmin() {
 
   const setValue = (locale: LocaleCode, key: string, v: string) =>
     setDraft((d) => ({ ...d, [key]: { ...d[key], [locale]: v } }));
-
-  // A field is an "override" when it differs from the English-derived built-in.
-  const isOverride = (locale: LocaleCode, key: string) =>
-    valueOf(locale, key).trim() !== builtin(locale, key).trim() &&
-    valueOf(locale, key).trim() !== "";
 
   const keyEdited = (key: string) =>
     LOCALES.some((l) => valueOf(l.code, key).trim() !== builtin(l.code, key).trim());
@@ -201,6 +199,7 @@ function TranslationsAdmin() {
     const v = valueOf(locale, key).trim();
     return v === "" || v === valueOf("en", key).trim();
   };
+  const keyNeedsWork = (key: string) => untranslated("km", key) || untranslated("ja", key);
 
   const dirtyEntries = useMemo(() => {
     const out: { locale: string; key: string; value: string }[] = [];
@@ -215,50 +214,35 @@ function TranslationsAdmin() {
     return out;
   }, [draft, overrides]);
 
-  const groups = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const byLabel = new Map<string, string[]>();
-    for (const key of ALL_KEYS) {
-      const label = SECTION_FOR(key);
-      if (section !== "all" && label !== section) continue;
-      if (mode === "edited" && !keyEdited(key)) continue;
-      if (mode === "km" && !untranslated("km", key)) continue;
-      if (mode === "ja" && !untranslated("ja", key)) continue;
-      if (
-        q &&
-        !key.toLowerCase().includes(q) &&
-        !(KEY_LABELS[key] ?? "").toLowerCase().includes(q) &&
-        !LOCALES.some((l) => valueOf(l.code, key).toLowerCase().includes(q))
-      )
-        continue;
-      const arr = byLabel.get(label) ?? [];
-      arr.push(key);
-      byLabel.set(label, arr);
-    }
-    const ordered = [...I18N_SECTIONS.map((s) => s.label), "Other"];
-    return ordered
-      .filter((l) => byLabel.has(l))
-      .map((label) => ({ label, keys: byLabel.get(label)! }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, section, mode, draft, overrides]);
-
-  // A section body is shown when: the editor opened it, they picked that one
-  // section, or a search / filter is active (so matches aren't hidden).
-  const filtering = query.trim() !== "" || mode !== "all" || section !== "all";
-  const sectionOpen = (label: string) => filtering || openSections.has(label);
-
-  // How many strings in each section currently carry an override (any locale).
-  const editedBySection = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const key of ALL_KEYS) {
-      const edited = LOCALES.some((l) => (overrides?.[l.code]?.[key] ?? "").trim() !== "");
-      if (edited) {
-        const label = SECTION_FOR(key);
-        m[label] = (m[label] ?? 0) + 1;
-      }
+  // Per-section counters for the rail (recomputed as the editor types / saves).
+  const stats = useMemo(() => {
+    const m: Record<string, { total: number; needs: number }> = {};
+    for (const s of SECTIONS) {
+      const keys = KEYS_BY_SECTION[s.label];
+      m[s.label] = { total: keys.length, needs: keys.filter(keyNeedsWork).length };
     }
     return m;
-  }, [overrides]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, overrides]);
+
+  const visibleKeys = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const base = searching
+      ? ALL_KEYS.filter(
+          (k) =>
+            k.toLowerCase().includes(q) ||
+            (KEY_LABELS[k] ?? "").toLowerCase().includes(q) ||
+            LOCALES.some((l) => valueOf(l.code, k).toLowerCase().includes(q)),
+        )
+      : KEYS_BY_SECTION[section];
+    return base.filter((k) => {
+      if (mode === "edited") return keyEdited(k);
+      if (mode === "km") return untranslated("km", k);
+      if (mode === "ja") return untranslated("ja", k);
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, searching, section, mode, draft, overrides]);
 
   const save = async () => {
     if (dirtyEntries.length === 0) return;
@@ -278,186 +262,194 @@ function TranslationsAdmin() {
     }
   };
 
+  const headingCount = visibleKeys.length;
+  const needWorkInView = visibleKeys.filter(keyNeedsWork).length;
+
   return (
-    <div className="max-w-5xl space-y-6 pb-24">
-      <div>
+    <div className="pb-24">
+      <header className="mb-6">
         <h1 className="font-display font-bold text-3xl">Translations</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Edit the storefront text for English, ខ្មែរ (Khmer) and 日本語 (Japanese). Leave a field
-          on its default (or clear it) to use the built-in wording. Keep placeholders like{" "}
-          <code className="bg-muted px-1 rounded">{"{threshold}"}</code> and{" "}
-          <code className="bg-muted px-1 rounded">{"{n}"}</code> unchanged.
+        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+          Storefront wording in English, ខ្មែរ and 日本語. Blank or unchanged fields fall back to
+          the built-in text. Keep tags like{" "}
+          <code className="bg-muted px-1 rounded text-xs">{"{threshold}"}</code> and{" "}
+          <code className="bg-muted px-1 rounded text-xs">{"{n}"}</code> as they are.
         </p>
-      </div>
-
-      <div className="space-y-3">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter by key or text…"
-            className="pl-9"
-          />
-        </div>
-
-        {/* Section picker — sits between the text filter and the first group */}
-        <div className="flex flex-wrap gap-2">
-          {[{ label: "all", short: "All" }, ...SECTION_BUTTONS].map((s) => {
-            const active = section === s.label;
-            const count = s.label === "all" ? 0 : editedBySection[s.label];
-            return (
-              <button
-                key={s.label}
-                type="button"
-                onClick={() => setSection(s.label)}
-                className={cn(
-                  "rounded-full border px-3 py-1 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                {s.short}
-                {count ? <span className="ml-1.5 opacity-70">{count}</span> : null}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Show-only filter + expand/collapse */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Show:</span>
-          {(
-            [
-              ["all", "Everything"],
-              ["edited", "Edited"],
-              ["km", "Needs Khmer"],
-              ["ja", "Needs Japanese"],
-            ] as const
-          ).map(([m, label]) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                mode === m
-                  ? "bg-foreground text-background border-foreground"
-                  : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-          {section === "all" && !filtering && groups.length > 1 && (
-            <button
-              type="button"
-              onClick={() =>
-                setOpenSections((prev) =>
-                  prev.size === groups.length ? new Set() : new Set(groups.map((g) => g.label)),
-                )
-              }
-              className="ml-auto text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              {openSections.size === groups.length ? "Collapse all" : "Expand all"}
-            </button>
-          )}
-        </div>
-      </div>
+      </header>
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="size-4 animate-spin" /> Loading…
         </div>
       ) : (
-        groups.map((group) => {
-          const open = sectionOpen(group.label);
-          return (
-            <section key={group.label} className="bg-card border rounded-2xl overflow-hidden">
-              <button
-                type="button"
-                onClick={() => toggleSection(group.label)}
-                disabled={filtering}
-                className="flex w-full items-center gap-3 px-5 py-3 border-b bg-muted/40 text-left disabled:cursor-default"
-              >
-                <ChevronDown
-                  className={cn(
-                    "size-4 shrink-0 text-muted-foreground transition-transform",
-                    open ? "" : "-rotate-90",
-                    filtering && "opacity-0",
-                  )}
-                />
-                <h2 className="font-display font-bold flex-1">{group.label}</h2>
-                <span className="text-xs text-muted-foreground">
-                  {group.keys.length} {group.keys.length === 1 ? "string" : "strings"}
-                  {editedBySection[group.label] ? ` · ${editedBySection[group.label]} edited` : ""}
-                </span>
-              </button>
-              {open && (
-                <div className="divide-y">
-                  {group.keys.map((key) => (
-                    <div key={key} className="px-5 py-4 space-y-2">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <span className="text-sm font-medium">{KEY_LABELS[key] ?? key}</span>
-                        <code className="text-[11px] text-muted-foreground">{key}</code>
-                      </div>
-                      <div className="grid gap-3 md:grid-cols-3">
-                        {LOCALES.map((l) => (
-                          <div key={l.code} className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <label className="text-xs font-medium text-muted-foreground">
-                                {l.label}
-                              </label>
-                              <div className="flex items-center gap-1">
-                                {isOverride(l.code, key) && (
-                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                    edited
-                                  </Badge>
-                                )}
-                                {valueOf(l.code, key) !== builtin(l.code, key) && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setValue(l.code, key, builtin(l.code, key))}
-                                    title="Reset to built-in default"
-                                    className="text-muted-foreground hover:text-foreground"
-                                  >
-                                    <RotateCcw className="size-3" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            <Textarea
-                              value={valueOf(l.code, key)}
-                              onChange={(e) => setValue(l.code, key, e.target.value)}
-                              rows={2}
-                              className="text-sm min-h-[2.5rem] resize-y"
-                              dir={l.code === "km" ? "ltr" : undefined}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          );
-        })
-      )}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* ── Rail: search + section list ─────────────────────────────── */}
+          <aside className="w-full lg:w-64 shrink-0 lg:sticky lg:top-6 space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  if (e.target.value.trim()) setMode("all");
+                }}
+                placeholder="Search all text…"
+                className="pl-9"
+              />
+            </div>
 
-      {groups.length === 0 && !isLoading && (
-        <p className="text-sm text-muted-foreground">
-          {mode === "km"
-            ? "Every string in this view has a Khmer translation. 🎉"
-            : mode === "ja"
-              ? "Every string in this view has a Japanese translation. 🎉"
-              : mode === "edited"
-                ? "Nothing has been edited in this view yet."
-                : `No strings match${query ? ` “${query}”` : ""}${
-                    section !== "all" ? ` in ${section}` : ""
-                  }.`}
-        </p>
+            <nav className="rounded-xl border bg-card p-1.5 space-y-0.5">
+              {SECTIONS.map((s) => {
+                const active = !searching && section === s.label;
+                const st = stats[s.label];
+                return (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => {
+                      setQuery("");
+                      setSection(s.label);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors",
+                      active
+                        ? "bg-brand text-brand-foreground"
+                        : "text-foreground/80 hover:bg-muted",
+                    )}
+                  >
+                    <span className="flex-1 truncate font-medium">{s.short}</span>
+                    {st.needs > 0 ? (
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
+                          active
+                            ? "bg-brand-foreground/20 text-brand-foreground"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+                        )}
+                        title={`${st.needs} still need ខ្មែរ or 日本語`}
+                      >
+                        {st.needs}
+                      </span>
+                    ) : (
+                      <Check
+                        className={cn(
+                          "size-3.5 shrink-0",
+                          active
+                            ? "text-brand-foreground/80"
+                            : "text-emerald-600 dark:text-emerald-400",
+                        )}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* ── Detail: strings for the chosen section / search ─────────── */}
+          <div className="min-w-0 flex-1 space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="font-display font-bold text-xl">
+                  {searching ? `Results for “${query.trim()}”` : section}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {headingCount} {headingCount === 1 ? "string" : "strings"}
+                  {needWorkInView > 0 && ` · ${needWorkInView} need work`}
+                </p>
+              </div>
+              <div className="flex rounded-lg border bg-card p-1">
+                {MODES.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setMode(m.key)}
+                    className={cn(
+                      "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                      mode === m.key
+                        ? "bg-brand text-brand-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {visibleKeys.length === 0 ? (
+              <div className="rounded-xl border border-dashed bg-card px-5 py-12 text-center text-sm text-muted-foreground">
+                {mode === "km"
+                  ? "Every string here has ខ្មែរ text. 🎉"
+                  : mode === "ja"
+                    ? "Every string here has 日本語 text. 🎉"
+                    : mode === "edited"
+                      ? "Nothing edited here yet."
+                      : `No strings match “${query.trim()}”.`}
+              </div>
+            ) : (
+              visibleKeys.map((key) => (
+                <article key={key} className="rounded-xl border bg-card p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold leading-tight">
+                        {KEY_LABELS[key] ?? key}
+                      </p>
+                      {searching && (
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {SECTION_FOR(key)}
+                        </p>
+                      )}
+                    </div>
+                    <code className="shrink-0 text-[10px] text-muted-foreground/70">{key}</code>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    {LOCALES.map((l) => {
+                      const changed = valueOf(l.code, key) !== builtin(l.code, key);
+                      const needs = l.code !== "en" && untranslated(l.code, key);
+                      return (
+                        <div key={l.code}>
+                          <div className="mb-1 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              {l.label}
+                              {needs && (
+                                <span
+                                  className="size-1.5 rounded-full bg-amber-500"
+                                  title="Still using the English wording"
+                                />
+                              )}
+                            </span>
+                            {changed && (
+                              <button
+                                type="button"
+                                onClick={() => setValue(l.code, key, builtin(l.code, key))}
+                                title="Reset to built-in default"
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <RotateCcw className="size-3" />
+                              </button>
+                            )}
+                          </div>
+                          <Textarea
+                            value={valueOf(l.code, key)}
+                            onChange={(e) => setValue(l.code, key, e.target.value)}
+                            rows={2}
+                            dir="ltr"
+                            className={cn(
+                              "min-h-[2.5rem] resize-y text-sm",
+                              changed && "border-brand/50 bg-brand/[0.03]",
+                            )}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </div>
       )}
 
       {dirtyEntries.length > 0 && (
