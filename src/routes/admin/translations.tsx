@@ -271,21 +271,6 @@ function TranslationsAdmin() {
     return out;
   }, [draft, overrides]);
 
-  // Per-section counts of strings still missing each language — saved state only,
-  // so they update on Save, not while typing.
-  const stats = useMemo(() => {
-    const m: Record<string, { km: number; ja: number }> = {};
-    for (const s of SECTIONS) {
-      const keys = KEYS_BY_SECTION[s.label];
-      m[s.label] = {
-        km: keys.filter((k) => savedNeeds("km", k)).length,
-        ja: keys.filter((k) => savedNeeds("ja", k)).length,
-      };
-    }
-    return m;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overrides, acceptedList]);
-
   const visibleKeys = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = searching
@@ -309,10 +294,7 @@ function TranslationsAdmin() {
   const hasUnsaved = dirtyEntries.length > 0;
   useEffect(() => {
     if (!hasUnsaved) return;
-    const warn = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [hasUnsaved]);
@@ -322,6 +304,24 @@ function TranslationsAdmin() {
   const focusLocale: "km" | "ja" | null = mode === "km" ? "km" : mode === "ja" ? "ja" : null;
   const orderedLocales = focusLocale === "ja" ? [LOCALES[0], LOCALES[2], LOCALES[1]] : LOCALES;
   const focusLabel = focusLocale === "km" ? "ខ្មែរ (Khmer)" : "日本語 (Japanese)";
+
+  // Translation progress for the current view (a section, or the whole store
+  // while searching), per language — drives the summary bar.
+  const progress = useMemo(() => {
+    const keys = searching ? ALL_KEYS : KEYS_BY_SECTION[section];
+    const per = (loc: "km" | "ja") => {
+      const total = keys.length;
+      const left = keys.filter((k) => savedNeeds(loc, k)).length;
+      return {
+        total,
+        done: total - left,
+        left,
+        pct: total ? Math.round(((total - left) / total) * 100) : 100,
+      };
+    };
+    return { km: per("km"), ja: per("ja") };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searching, section, overrides, acceptedList]);
 
   const save = async () => {
     if (dirtyEntries.length === 0) return;
@@ -384,9 +384,74 @@ function TranslationsAdmin() {
         </div>
       ) : (
         <div className="space-y-4">
-          {/* ── Toolbar: search + one-line section tabs ─────────────────── */}
-          <div className="space-y-2.5">
-            <div className="relative max-w-sm">
+          {/* ── Section tabs ─────────────────────────────────────────── */}
+          <div className="flex flex-wrap gap-1.5">
+            {SECTIONS.map((s) => {
+              const active = !searching && section === s.label;
+              return (
+                <button
+                  key={s.label}
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    setSection(s.label);
+                    setMode("all");
+                  }}
+                  className={cn(
+                    "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                    active
+                      ? "border-brand bg-brand text-brand-foreground"
+                      : "border-border bg-card text-foreground/70 hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  {s.short}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── Progress summary for the current view ─────────────────── */}
+          <div className="divide-y rounded-xl border bg-card">
+            {(["km", "ja"] as const).map((loc) => {
+              const p = progress[loc];
+              return (
+                <div key={loc} className="flex items-center gap-3 px-4 py-2.5">
+                  <span className="w-14 shrink-0 text-sm font-medium">
+                    {loc === "km" ? "ខ្មែរ" : "日本語"}
+                  </span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-[width]",
+                        p.left === 0 ? "bg-emerald-500" : "bg-amber-500",
+                      )}
+                      style={{ width: `${p.pct}%` }}
+                    />
+                  </div>
+                  <span className="w-9 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                    {p.pct}%
+                  </span>
+                  {p.left === 0 ? (
+                    <span className="w-16 shrink-0 text-right text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                      complete
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setMode(loc)}
+                      className="w-16 shrink-0 text-right text-xs font-medium text-amber-700 underline hover:no-underline dark:text-amber-400"
+                    >
+                      {p.left} left
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── Search + filter ──────────────────────────────────────── */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-50 flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 value={query}
@@ -398,68 +463,6 @@ function TranslationsAdmin() {
                 className="pl-9"
               />
             </div>
-
-            {/* Section tabs. The amber chip on a section = strings still missing
-                that language; clicking it jumps straight to those strings. */}
-            <div className="flex flex-wrap gap-1.5">
-              {SECTIONS.map((s) => {
-                const active = !searching && section === s.label;
-                const st = stats[s.label];
-                const pick = (m: Mode) => {
-                  setQuery("");
-                  setSection(s.label);
-                  setMode(m);
-                };
-                const chip =
-                  "flex items-center gap-1 border-l border-amber-300 bg-amber-100 px-2 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-200 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300";
-                return (
-                  <div
-                    key={s.label}
-                    className={cn(
-                      "flex items-stretch overflow-hidden rounded-full border text-sm font-medium",
-                      active ? "border-brand" : "border-border",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => pick("all")}
-                      className={cn(
-                        "px-3 py-1.5 transition-colors",
-                        active
-                          ? "bg-brand text-brand-foreground"
-                          : "bg-card text-foreground/70 hover:bg-muted hover:text-foreground",
-                      )}
-                    >
-                      {s.short}
-                    </button>
-                    {st.km > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => pick("km")}
-                        title={`${st.km} string${st.km > 1 ? "s" : ""} still need ខ្មែរ — click to translate`}
-                        className={chip}
-                      >
-                        ខ្មែរ {st.km}
-                      </button>
-                    )}
-                    {st.ja > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => pick("ja")}
-                        title={`${st.ja} string${st.ja > 1 ? "s" : ""} still need 日本語 — click to translate`}
-                        className={chip}
-                      >
-                        日本語 {st.ja}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ── Show-only filter ──────────────────────────────────────── */}
-          <div className="flex">
             <div className="flex rounded-lg border bg-card p-1">
               {MODES.map((m) => (
                 <button
@@ -592,8 +595,8 @@ function TranslationsAdmin() {
                                 : undefined
                             }
                             className={cn(
-                              "min-h-[2.5rem] resize-y text-sm",
-                              changed && "border-brand/50 bg-brand/[0.03]",
+                              "min-h-10 resize-y text-sm",
+                              changed && "border-brand/50 bg-brand/5",
                               isFocus &&
                                 needs &&
                                 "border-amber-400 bg-amber-50/50 ring-2 ring-amber-300 dark:bg-amber-500/5",
