@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, blob } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, blob, primaryKey } from "drizzle-orm/sqlite-core";
 
 const uuid = () => crypto.randomUUID();
 const nowIso = () => new Date().toISOString();
@@ -227,6 +227,23 @@ export const store_settings = sqliteTable("store_settings", {
   free_shipping_threshold: real("free_shipping_threshold").default(30),
   updated_at: text("updated_at").notNull().$defaultFn(nowIso),
 });
+
+// Admin-editable overrides for the storefront UI text (labels on the homepage,
+// shop, navigation, footer, …). The built-in strings in src/lib/i18n.tsx are the
+// defaults; a row here replaces one string for one locale. Deleting the row (or
+// saving it blank in the admin) reverts to the built-in default. Keyed by
+// (locale, key) — locale is "en" | "km" | "ja", key is an i18n key like
+// "home.trending".
+export const translations = sqliteTable(
+  "translations",
+  {
+    locale: text("locale").notNull(),
+    key: text("key").notNull(),
+    value: text("value").notNull(),
+    updated_at: text("updated_at").notNull().$defaultFn(nowIso),
+  },
+  (t) => [primaryKey({ columns: [t.locale, t.key] })],
+);
 
 // ---------- better-auth tables ----------
 // Shapes follow better-auth's drizzle (sqlite) conventions, including the

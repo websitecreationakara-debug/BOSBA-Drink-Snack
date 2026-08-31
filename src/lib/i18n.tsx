@@ -1,4 +1,29 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  getSiteLocale,
+  getTranslationOverrides,
+  type TranslationOverrides,
+} from "@/data/translations";
+
+// Cross-tab signal: the admin Translations page pings this after a save so open
+// storefront tabs refetch immediately instead of waiting for a manual refresh.
+export const TRANSLATIONS_CHANGED_EVENT = "bosba:translations-changed";
+
+export function notifyTranslationsChanged() {
+  // Same tab (storage events don't fire in the tab that wrote them).
+  window.dispatchEvent(new Event(TRANSLATIONS_CHANGED_EVENT));
+  try {
+    localStorage.setItem(TRANSLATIONS_CHANGED_EVENT, String(Date.now()));
+  } catch {
+    /* private mode / storage disabled — the same-tab refetch still runs */
+  }
+  if (typeof BroadcastChannel !== "undefined") {
+    const ch = new BroadcastChannel(TRANSLATIONS_CHANGED_EVENT);
+    ch.postMessage("changed");
+    ch.close();
+  }
+}
 
 export type Locale = "en" | "km" | "ja";
 
@@ -128,6 +153,9 @@ const en = {
 
 export type I18nKey = keyof typeof en;
 type Dict = Record<I18nKey, string>;
+
+// Built-in English strings — the defaults the admin Translations page edits against.
+export const EN_DEFAULTS: Record<string, string> = en;
 
 const km: Dict = {
   "lang.name": "ខ្មែរ",
@@ -353,6 +381,27 @@ const ja: Dict = {
 
 const DICTS: Record<Locale, Dict> = { en, km, ja };
 
+// Built-in dictionaries exposed for the admin Translations editor, so it can
+// prefill each field and tell whether a value is a real override or the default.
+export const BUILTIN_DICTS: Record<Locale, Record<string, string>> = DICTS;
+
+// Ordered sections for the admin Translations editor. The key prefix (before the
+// first ".") groups the strings; anything not listed lands in "Other". `short` is
+// the label on the section picker buttons; `label` is the group heading.
+export const I18N_SECTIONS: { prefix: string; label: string; short: string }[] = [
+  { prefix: "home", label: "Homepage", short: "Homepage" },
+  { prefix: "feature", label: "Homepage — Feature Highlights", short: "Features" },
+  { prefix: "shop", label: "Shop", short: "Shop" },
+  { prefix: "product", label: "Product Page", short: "Product" },
+  { prefix: "offers", label: "Offers", short: "Offers" },
+  { prefix: "offer", label: "Offers — Badges", short: "Badges" },
+  { prefix: "nav", label: "Navigation & Search", short: "Navigation" },
+  { prefix: "bar", label: "Top Announcement Bar", short: "Top Bar" },
+  { prefix: "cart", label: "Cart", short: "Cart" },
+  { prefix: "theme", label: "Theme Switch", short: "Theme" },
+  { prefix: "footer", label: "Footer", short: "Footer" },
+];
+
 function interpolate(s: string, vars?: Record<string, string | number>) {
   if (!vars) return s;
   return s.replace(/\$?\{(\w+)\}/g, (_, k: string) =>
@@ -370,24 +419,81 @@ const I18nContext = createContext<Ctx | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
+  // True once the visitor has picked a language themselves — from then on their
+  // choice wins over the admin's store-wide default.
+  const [userChose, setUserChose] = useState(false);
+  const qc = useQueryClient();
+
+  // Store-wide default language, set by an admin on /admin/translations.
+  const { data: siteLocale } = useQuery<Locale>({
+    queryKey: ["site-locale"],
+    queryFn: () => getSiteLocale(),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
+  // Admin-editable overrides (src/routes/admin/translations.tsx). Merged on top
+  // of the built-in dictionaries below; absent/blank falls back to the default.
+  // staleTime 0 + focus refetch so edits show up when you switch back to a
+  // storefront tab without a hard refresh.
+  const { data: overrides } = useQuery<TranslationOverrides>({
+    queryKey: ["translations"],
+    queryFn: () => getTranslationOverrides(),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
+  // Refetch immediately when the admin page reports a save — same tab (custom
+  // event / BroadcastChannel) and other tabs (storage event / BroadcastChannel).
+  useEffect(() => {
+    const refetch = () => {
+      qc.invalidateQueries({ queryKey: ["translations"] });
+      qc.invalidateQueries({ queryKey: ["site-locale"] });
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === TRANSLATIONS_CHANGED_EVENT) refetch();
+    };
+    window.addEventListener(TRANSLATIONS_CHANGED_EVENT, refetch);
+    window.addEventListener("storage", onStorage);
+    let ch: BroadcastChannel | undefined;
+    if (typeof BroadcastChannel !== "undefined") {
+      ch = new BroadcastChannel(TRANSLATIONS_CHANGED_EVENT);
+      ch.onmessage = refetch;
+    }
+    return () => {
+      window.removeEventListener(TRANSLATIONS_CHANGED_EVENT, refetch);
+      window.removeEventListener("storage", onStorage);
+      ch?.close();
+    };
+  }, [qc]);
 
   useEffect(() => {
     const saved = localStorage.getItem("locale") as Locale | null;
     if (saved && saved in DICTS) {
+      setUserChose(true);
       setLocaleState(saved);
       document.documentElement.lang = saved;
     }
   }, []);
 
+  // Follow the admin's store-wide default until the visitor picks a language.
+  useEffect(() => {
+    if (userChose || !siteLocale || !(siteLocale in DICTS)) return;
+    setLocaleState(siteLocale);
+    document.documentElement.lang = siteLocale;
+  }, [siteLocale, userChose]);
+
   const setLocale = (l: Locale) => {
+    setUserChose(true);
     setLocaleState(l);
     localStorage.setItem("locale", l);
     document.documentElement.lang = l;
   };
 
   const t = useCallback<Ctx["t"]>(
-    (key, vars) => interpolate(DICTS[locale][key] ?? en[key] ?? key, vars),
-    [locale],
+    (key, vars) =>
+      interpolate(overrides?.[locale]?.[key] ?? DICTS[locale][key] ?? en[key] ?? key, vars),
+    [locale, overrides],
   );
 
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
