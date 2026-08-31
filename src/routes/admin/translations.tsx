@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  getAcceptedKeys,
   getTranslationOverrides,
   saveTranslations,
+  setAcceptedKey,
   type TranslationOverrides,
 } from "@/data/translations";
 import {
@@ -18,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Loader2, RotateCcw, Search } from "lucide-react";
+import { Check, Loader2, RotateCcw, Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/translations")({ component: TranslationsAdmin });
 
@@ -186,6 +188,13 @@ function TranslationsAdmin() {
     queryKey: ["translations"],
     queryFn: () => getTranslationOverrides(),
   });
+  // Keys the editor has marked "single language is fine" — not flagged as needing
+  // a translation even though they hold no Khmer/Japanese script.
+  const { data: acceptedList } = useQuery<string[]>({
+    queryKey: ["translations-accepted"],
+    queryFn: () => getAcceptedKeys(),
+  });
+  const accepted = useMemo(() => new Set(acceptedList ?? []), [acceptedList]);
 
   // Only edited fields live here; everything else renders from overrides/builtin.
   const [draft, setDraft] = useState<Draft>({});
@@ -212,9 +221,20 @@ function TranslationsAdmin() {
     LOCALES.some((l) => valueOf(l.code, key).trim() !== builtin(l.code, key).trim());
 
   // Section counts + the "Needs ខ្មែរ/日本語" filter: based on the saved value.
+  // An "accepted" key never counts as needing work.
   const savedNeeds = (locale: "km" | "ja", key: string) =>
-    missingScript(locale, savedValue(locale, key));
+    !accepted.has(key) && missingScript(locale, savedValue(locale, key));
   const keyNeedsWork = (key: string) => savedNeeds("km", key) || savedNeeds("ja", key);
+
+  const toggleAccept = async (key: string, next: boolean) => {
+    try {
+      await setAcceptedKey({ data: { key, accepted: next } });
+      await qc.invalidateQueries({ queryKey: ["translations-accepted"] });
+      toast.success(next ? "Marked as single-language" : "Back to needing a translation");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update");
+    }
+  };
 
   const dirtyEntries = useMemo(() => {
     const out: { locale: string; key: string; value: string }[] = [];
@@ -238,7 +258,7 @@ function TranslationsAdmin() {
     }
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overrides]);
+  }, [overrides, acceptedList]);
 
   const visibleKeys = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -257,7 +277,7 @@ function TranslationsAdmin() {
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, searching, section, mode, draft, overrides]);
+  }, [query, searching, section, mode, draft, overrides, acceptedList]);
 
   // Nothing is saved until the button is pressed — warn before losing edits.
   const hasUnsaved = dirtyEntries.length > 0;
@@ -386,9 +406,9 @@ function TranslationsAdmin() {
             {visibleKeys.length === 0 ? (
               <div className="rounded-xl border border-dashed bg-card px-5 py-12 text-center text-sm text-muted-foreground">
                 {mode === "km"
-                  ? "Every string here has ខ្មែរ text. 🎉"
+                  ? "Nothing here still needs ខ្មែរ. 🎉"
                   : mode === "ja"
-                    ? "Every string here has 日本語 text. 🎉"
+                    ? "Nothing here still needs 日本語. 🎉"
                     : mode === "edited"
                       ? "Nothing edited here yet."
                       : `No strings match “${query.trim()}”.`}
@@ -417,6 +437,7 @@ function TranslationsAdmin() {
                       // script, even before saving.
                       const needs =
                         l.code !== "en" &&
+                        !accepted.has(key) &&
                         missingScript(l.code as "km" | "ja", valueOf(l.code, key));
                       return (
                         <div key={l.code}>
@@ -455,6 +476,32 @@ function TranslationsAdmin() {
                       );
                     })}
                   </div>
+
+                  {(accepted.has(key) || keyNeedsWork(key)) && (
+                    <div className="mt-3 flex justify-end">
+                      {accepted.has(key) ? (
+                        <span className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
+                          <Check className="size-3" />
+                          Same in every language
+                          <button
+                            type="button"
+                            onClick={() => toggleAccept(key, false)}
+                            className="ml-1 underline hover:no-underline"
+                          >
+                            undo
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toggleAccept(key, true)}
+                          className="text-[11px] text-muted-foreground underline hover:text-foreground"
+                        >
+                          This text is the same in every language — mark OK
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </article>
               ))
             )}

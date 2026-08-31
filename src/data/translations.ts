@@ -22,6 +22,42 @@ export const getTranslationOverrides = createServerFn({ method: "GET" }).handler
   return out;
 });
 
+// Sentinel "locale" for rows that just mark an i18n key as intentionally the
+// same in every language (a brand name, a symbol, "{n}") so the admin editor
+// stops flagging it as needing a translation. Ignored by the storefront merge
+// above and by saveTranslations (both filter to real locales).
+const ACCEPT_LOCALE = "_accept";
+
+// Admin: keys the editor has marked "single language is fine".
+export const getAcceptedKeys = createServerFn({ method: "GET" }).handler(async () => {
+  const rows = await getDb().select().from(translations);
+  return rows.filter((r) => r.locale === ACCEPT_LOCALE).map((r) => r.key);
+});
+
+export const setAcceptedKey = createServerFn({ method: "POST" })
+  .inputValidator((d: { key: string; accepted: boolean }) => d)
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const db = getDb();
+    if (!data.key) return { ok: false };
+    if (data.accepted) {
+      await db
+        .insert(translations)
+        .values({
+          locale: ACCEPT_LOCALE,
+          key: data.key,
+          value: "1",
+          updated_at: new Date().toISOString(),
+        })
+        .onConflictDoNothing();
+    } else {
+      await db
+        .delete(translations)
+        .where(and(eq(translations.locale, ACCEPT_LOCALE), eq(translations.key, data.key)));
+    }
+    return { ok: true };
+  });
+
 type Entry = { locale: string; key: string; value: string };
 
 // Admin-only: upsert a batch of overrides. A blank value removes the override
