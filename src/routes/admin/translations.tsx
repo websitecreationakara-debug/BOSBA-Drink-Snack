@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -158,6 +158,18 @@ const KEYS_BY_SECTION: Record<string, string[]> = Object.fromEntries(
 const builtin = (locale: LocaleCode, key: string) =>
   BUILTIN_DICTS[locale]?.[key] ?? EN_DEFAULTS[key] ?? "";
 
+// Script detection — a field "needs" a language when it's blank or has no
+// characters of that script (so an English brand name left in the Khmer box
+// still counts as untranslated).
+const KHMER_RE = /[ក-៿]/;
+const JAPANESE_RE = /[぀-ヿ㐀-䶿一-鿿豈-﫿ｦ-ﾟ]/;
+
+const missingScript = (locale: "km" | "ja", value: string) => {
+  const v = value.trim();
+  if (v === "") return true;
+  return locale === "km" ? !KHMER_RE.test(v) : !JAPANESE_RE.test(v);
+};
+
 type Draft = Record<string, Partial<Record<LocaleCode, string>>>;
 type Mode = "all" | "edited" | "km" | "ja";
 
@@ -188,18 +200,21 @@ function TranslationsAdmin() {
   const valueOf = (locale: LocaleCode, key: string) =>
     draft[key]?.[locale] ?? overrides?.[locale]?.[key] ?? builtin(locale, key);
 
+  // Saved value only (no unsaved draft). The "needs work" counts and the section
+  // filter run off this, so nothing moves until you actually click Save.
+  const savedValue = (locale: LocaleCode, key: string) =>
+    overrides?.[locale]?.[key] ?? builtin(locale, key);
+
   const setValue = (locale: LocaleCode, key: string, v: string) =>
     setDraft((d) => ({ ...d, [key]: { ...d[key], [locale]: v } }));
 
   const keyEdited = (key: string) =>
     LOCALES.some((l) => valueOf(l.code, key).trim() !== builtin(l.code, key).trim());
 
-  // "Needs translation" = blank, or still identical to the English wording.
-  const untranslated = (locale: LocaleCode, key: string) => {
-    const v = valueOf(locale, key).trim();
-    return v === "" || v === valueOf("en", key).trim();
-  };
-  const keyNeedsWork = (key: string) => untranslated("km", key) || untranslated("ja", key);
+  // Section counts + the "Needs ខ្មែរ/日本語" filter: based on the saved value.
+  const savedNeeds = (locale: "km" | "ja", key: string) =>
+    missingScript(locale, savedValue(locale, key));
+  const keyNeedsWork = (key: string) => savedNeeds("km", key) || savedNeeds("ja", key);
 
   const dirtyEntries = useMemo(() => {
     const out: { locale: string; key: string; value: string }[] = [];
@@ -214,7 +229,7 @@ function TranslationsAdmin() {
     return out;
   }, [draft, overrides]);
 
-  // Per-section counters for the rail (recomputed as the editor types / saves).
+  // Per-section counters — saved state only, so they update on Save, not on type.
   const stats = useMemo(() => {
     const m: Record<string, { total: number; needs: number }> = {};
     for (const s of SECTIONS) {
@@ -223,7 +238,7 @@ function TranslationsAdmin() {
     }
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, overrides]);
+  }, [overrides]);
 
   const visibleKeys = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -237,12 +252,24 @@ function TranslationsAdmin() {
       : KEYS_BY_SECTION[section];
     return base.filter((k) => {
       if (mode === "edited") return keyEdited(k);
-      if (mode === "km") return untranslated("km", k);
-      if (mode === "ja") return untranslated("ja", k);
+      if (mode === "km") return savedNeeds("km", k);
+      if (mode === "ja") return savedNeeds("ja", k);
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, searching, section, mode, draft, overrides]);
+
+  // Nothing is saved until the button is pressed — warn before losing edits.
+  const hasUnsaved = dirtyEntries.length > 0;
+  useEffect(() => {
+    if (!hasUnsaved) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [hasUnsaved]);
 
   const save = async () => {
     if (dirtyEntries.length === 0) return;
@@ -386,7 +413,11 @@ function TranslationsAdmin() {
                   <div className="grid gap-3 md:grid-cols-3">
                     {LOCALES.map((l) => {
                       const changed = valueOf(l.code, key) !== builtin(l.code, key);
-                      const needs = l.code !== "en" && untranslated(l.code, key);
+                      // Live: the dot clears as soon as you type text in that
+                      // script, even before saving.
+                      const needs =
+                        l.code !== "en" &&
+                        missingScript(l.code as "km" | "ja", valueOf(l.code, key));
                       return (
                         <div key={l.code}>
                           <div className="mb-1 flex items-center justify-between">
@@ -395,7 +426,7 @@ function TranslationsAdmin() {
                               {needs && (
                                 <span
                                   className="size-1.5 rounded-full bg-amber-500"
-                                  title="Still using the English wording"
+                                  title={`No ${l.label} text yet`}
                                 />
                               )}
                             </span>
