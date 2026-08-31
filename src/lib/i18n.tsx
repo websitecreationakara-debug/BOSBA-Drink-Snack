@@ -1,4 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getTranslationOverrides, type TranslationOverrides } from "@/data/translations";
 
 export type Locale = "en" | "km" | "ja";
 
@@ -128,6 +130,9 @@ const en = {
 
 export type I18nKey = keyof typeof en;
 type Dict = Record<I18nKey, string>;
+
+// Built-in English strings — the defaults the admin Translations page edits against.
+export const EN_DEFAULTS: Record<string, string> = en;
 
 const km: Dict = {
   "lang.name": "ខ្មែរ",
@@ -353,6 +358,27 @@ const ja: Dict = {
 
 const DICTS: Record<Locale, Dict> = { en, km, ja };
 
+// Built-in dictionaries exposed for the admin Translations editor, so it can
+// prefill each field and tell whether a value is a real override or the default.
+export const BUILTIN_DICTS: Record<Locale, Record<string, string>> = DICTS;
+
+// Ordered sections for the admin Translations editor. The key prefix (before the
+// first ".") groups the strings; anything not listed lands in "Other".
+export const I18N_SECTIONS: { prefix: string; label: string }[] = [
+  { prefix: "home", label: "Homepage" },
+  { prefix: "feature", label: "Homepage — Feature Highlights" },
+  { prefix: "cta", label: "Homepage — Membership Banner" },
+  { prefix: "shop", label: "Shop" },
+  { prefix: "product", label: "Product Page" },
+  { prefix: "offers", label: "Offers" },
+  { prefix: "offer", label: "Offers — Badges" },
+  { prefix: "nav", label: "Navigation & Search" },
+  { prefix: "bar", label: "Top Announcement Bar" },
+  { prefix: "cart", label: "Cart" },
+  { prefix: "theme", label: "Theme Switch" },
+  { prefix: "footer", label: "Footer" },
+];
+
 function interpolate(s: string, vars?: Record<string, string | number>) {
   if (!vars) return s;
   return s.replace(/\$?\{(\w+)\}/g, (_, k: string) =>
@@ -371,6 +397,14 @@ const I18nContext = createContext<Ctx | null>(null);
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
 
+  // Admin-editable overrides (src/routes/admin/translations.tsx). Merged on top
+  // of the built-in dictionaries below; absent/blank falls back to the default.
+  const { data: overrides } = useQuery<TranslationOverrides>({
+    queryKey: ["translations"],
+    queryFn: () => getTranslationOverrides(),
+    staleTime: 5 * 60_000,
+  });
+
   useEffect(() => {
     const saved = localStorage.getItem("locale") as Locale | null;
     if (saved && saved in DICTS) {
@@ -386,8 +420,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const t = useCallback<Ctx["t"]>(
-    (key, vars) => interpolate(DICTS[locale][key] ?? en[key] ?? key, vars),
-    [locale],
+    (key, vars) =>
+      interpolate(overrides?.[locale]?.[key] ?? DICTS[locale][key] ?? en[key] ?? key, vars),
+    [locale, overrides],
   );
 
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
