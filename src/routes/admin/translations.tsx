@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Check, Loader2, RotateCcw, Search } from "lucide-react";
+import { Loader2, RotateCcw, Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/translations")({ component: TranslationsAdmin });
 
@@ -262,9 +262,6 @@ function TranslationsAdmin() {
     }
   };
 
-  const headingCount = visibleKeys.length;
-  const needWorkInView = visibleKeys.filter(keyNeedsWork).length;
-
   return (
     <div className="pb-24">
       <header className="mb-6">
@@ -298,7 +295,7 @@ function TranslationsAdmin() {
               />
             </div>
 
-            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+            <div className="flex flex-wrap gap-1.5">
               {SECTIONS.map((s) => {
                 const active = !searching && section === s.label;
                 const st = stats[s.label];
@@ -311,14 +308,14 @@ function TranslationsAdmin() {
                       setSection(s.label);
                     }}
                     className={cn(
-                      "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                      "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
                       active
                         ? "border-brand bg-brand text-brand-foreground"
                         : "bg-card text-foreground/70 hover:bg-muted hover:text-foreground",
                     )}
                   >
                     {s.short}
-                    {st.needs > 0 ? (
+                    {st.needs > 0 && (
                       <span
                         className={cn(
                           "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
@@ -330,15 +327,6 @@ function TranslationsAdmin() {
                       >
                         {st.needs}
                       </span>
-                    ) : (
-                      <Check
-                        className={cn(
-                          "size-3.5",
-                          active
-                            ? "text-brand-foreground/80"
-                            : "text-emerald-600 dark:text-emerald-400",
-                        )}
-                      />
                     )}
                   </button>
                 );
@@ -346,17 +334,8 @@ function TranslationsAdmin() {
             </div>
           </div>
 
-          {/* ── Detail header ─────────────────────────────────────────── */}
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="font-display font-bold text-xl">
-                {searching ? `Results for “${query.trim()}”` : section}
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {headingCount} {headingCount === 1 ? "string" : "strings"}
-                {needWorkInView > 0 && ` · ${needWorkInView} need work`}
-              </p>
-            </div>
+          {/* ── Show-only filter ──────────────────────────────────────── */}
+          <div className="flex">
             <div className="flex rounded-lg border bg-card p-1">
               {MODES.map((m) => (
                 <button
