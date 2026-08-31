@@ -282,10 +282,10 @@ function TranslationsAdmin() {
           <Loader2 className="size-4 animate-spin" /> Loading…
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          {/* ── Rail: search + section list ─────────────────────────────── */}
-          <aside className="w-full lg:w-64 shrink-0 lg:sticky lg:top-6 space-y-3">
-            <div className="relative">
+        <div className="space-y-4">
+          {/* ── Toolbar: search + one-line section tabs ─────────────────── */}
+          <div className="space-y-2.5">
+            <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 value={query}
@@ -298,7 +298,7 @@ function TranslationsAdmin() {
               />
             </div>
 
-            <nav className="rounded-xl border bg-card p-1.5 space-y-0.5">
+            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
               {SECTIONS.map((s) => {
                 const active = !searching && section === s.label;
                 const st = stats[s.label];
@@ -311,19 +311,19 @@ function TranslationsAdmin() {
                       setSection(s.label);
                     }}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors",
+                      "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
                       active
-                        ? "bg-brand text-brand-foreground"
-                        : "text-foreground/80 hover:bg-muted",
+                        ? "border-brand bg-brand text-brand-foreground"
+                        : "bg-card text-foreground/70 hover:bg-muted hover:text-foreground",
                     )}
                   >
-                    <span className="flex-1 truncate font-medium">{s.short}</span>
+                    {s.short}
                     {st.needs > 0 ? (
                       <span
                         className={cn(
                           "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
                           active
-                            ? "bg-brand-foreground/20 text-brand-foreground"
+                            ? "bg-brand-foreground/20"
                             : "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
                         )}
                         title={`${st.needs} still need ខ្មែរ or 日本語`}
@@ -333,7 +333,7 @@ function TranslationsAdmin() {
                     ) : (
                       <Check
                         className={cn(
-                          "size-3.5 shrink-0",
+                          "size-3.5",
                           active
                             ? "text-brand-foreground/80"
                             : "text-emerald-600 dark:text-emerald-400",
@@ -343,40 +343,40 @@ function TranslationsAdmin() {
                   </button>
                 );
               })}
-            </nav>
-          </aside>
-
-          {/* ── Detail: strings for the chosen section / search ─────────── */}
-          <div className="min-w-0 flex-1 space-y-4">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="font-display font-bold text-xl">
-                  {searching ? `Results for “${query.trim()}”` : section}
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {headingCount} {headingCount === 1 ? "string" : "strings"}
-                  {needWorkInView > 0 && ` · ${needWorkInView} need work`}
-                </p>
-              </div>
-              <div className="flex rounded-lg border bg-card p-1">
-                {MODES.map((m) => (
-                  <button
-                    key={m.key}
-                    type="button"
-                    onClick={() => setMode(m.key)}
-                    className={cn(
-                      "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                      mode === m.key
-                        ? "bg-brand text-brand-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
             </div>
+          </div>
 
+          {/* ── Detail header ─────────────────────────────────────────── */}
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="font-display font-bold text-xl">
+                {searching ? `Results for “${query.trim()}”` : section}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {headingCount} {headingCount === 1 ? "string" : "strings"}
+                {needWorkInView > 0 && ` · ${needWorkInView} need work`}
+              </p>
+            </div>
+            <div className="flex rounded-lg border bg-card p-1">
+              {MODES.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setMode(m.key)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                    mode === m.key
+                      ? "bg-brand text-brand-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
             {visibleKeys.length === 0 ? (
               <div className="rounded-xl border border-dashed bg-card px-5 py-12 text-center text-sm text-muted-foreground">
                 {mode === "km"
