@@ -391,7 +391,6 @@ export const BUILTIN_DICTS: Record<Locale, Record<string, string>> = DICTS;
 export const I18N_SECTIONS: { prefix: string; label: string; short: string }[] = [
   { prefix: "home", label: "Homepage", short: "Homepage" },
   { prefix: "feature", label: "Homepage — Feature Highlights", short: "Features" },
-  { prefix: "cta", label: "Homepage — Membership Banner", short: "Membership" },
   { prefix: "shop", label: "Shop", short: "Shop" },
   { prefix: "product", label: "Product Page", short: "Product" },
   { prefix: "offers", label: "Offers", short: "Offers" },

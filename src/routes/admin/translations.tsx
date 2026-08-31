@@ -28,7 +28,9 @@ export const Route = createFileRoute("/admin/translations")({ component: Transla
 
 type LocaleCode = (typeof LOCALES)[number]["code"];
 
-const ALL_KEYS = Object.keys(EN_DEFAULTS).filter((k) => k !== "lang.name");
+// `cta.*` is the old membership banner — no longer on the storefront, so it's
+// hidden from the editor.
+const ALL_KEYS = Object.keys(EN_DEFAULTS).filter((k) => k !== "lang.name" && !k.startsWith("cta."));
 
 const SECTION_FOR = (key: string) =>
   I18N_SECTIONS.find((s) => key === s.prefix || key.startsWith(s.prefix + "."))?.label ?? "Other";
@@ -87,10 +89,6 @@ const KEY_LABELS: Record<string, string> = {
   "feature.quality.body": "Feature: Quality Promise — text",
   "feature.cold.title": "Feature: Carefully Packed — title",
   "feature.cold.body": "Feature: Carefully Packed — text",
-  "cta.member": "Membership banner — eyebrow",
-  "cta.title": "Membership banner — title",
-  "cta.body": "Membership banner — body text",
-  "cta.join": "Membership banner — button",
   "cart.title": "Cart — heading",
   "cart.empty": "Cart — empty message",
   "cart.emptySub": "Cart — empty subtitle",
