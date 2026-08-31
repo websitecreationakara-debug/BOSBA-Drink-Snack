@@ -28,12 +28,39 @@ const clientCloudflareWorkersStub: Plugin = {
   },
 };
 
+// `npm run dev:live` (scripts/dev-live.mjs) sets this — it points the dev server's
+// DB binding at the REAL Cloudflare D1 instead of the local SQLite file, so every
+// admin edit is live on bosbadrinksnack.com immediately. Plain `npm run dev` stays
+// on the local database.
+const DEV_LIVE = process.env.DEV_LIVE === "1";
+
+if (DEV_LIVE) {
+  console.warn(
+    "\n\x1b[41m\x1b[97m  DEV:LIVE — dev server wired to the PRODUCTION database. Every edit goes live on bosbadrinksnack.com.  \x1b[0m\n",
+  );
+}
+
 // Lovable only applies the Cloudflare plugin at build time. We need it in dev too so
 // `vite dev` runs inside workerd with the local D1 binding available to server functions.
 // Disable Lovable's build-only cloudflare and add the plugin ourselves for serve + build.
 export default defineConfig({
   cloudflare: false,
-  plugins: [cloudflare({ viteEnvironment: { name: "ssr" } }), clientCloudflareWorkersStub],
+  plugins: [
+    cloudflare({
+      viteEnvironment: { name: "ssr" },
+      // Connect bindings to the real Cloudflare resources (needs `wrangler login`).
+      remoteBindings: DEV_LIVE,
+      // Mark the D1 binding itself as remote — only this one, only in dev:live.
+      ...(DEV_LIVE
+        ? {
+            config: (config: { d1_databases?: Array<Record<string, unknown>> }) => {
+              for (const db of config.d1_databases ?? []) db.remote = true;
+            },
+          }
+        : {}),
+    }),
+    clientCloudflareWorkersStub,
+  ],
   tanstackStart: {
     spa: { enabled: true },
   },
