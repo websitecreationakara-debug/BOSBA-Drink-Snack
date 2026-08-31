@@ -19,13 +19,124 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Loader2, RotateCcw, Search } from "lucide-react";
+import { ChevronDown, Loader2, RotateCcw, Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/translations")({ component: TranslationsAdmin });
 
 type LocaleCode = (typeof LOCALES)[number]["code"];
 
 const ALL_KEYS = Object.keys(EN_DEFAULTS).filter((k) => k !== "lang.name");
+
+// Plain-English name for each string, shown above the fields so an editor knows
+// what they're changing without decoding the dotted key. Keys not listed here
+// just show the raw key.
+const KEY_LABELS: Record<string, string> = {
+  "bar.storeLocator": "Top bar — “Store Locator” link",
+  "bar.delivery": "Top bar — chilled delivery message",
+  "bar.needHelp": "Top bar — “Need help?” text",
+  "bar.freeDelivery": "Top bar — free delivery message",
+  "theme.light": "Theme switch — “Light”",
+  "theme.dark": "Theme switch — “Dark”",
+  "nav.allCategories": "Menu — “All Categories”",
+  "nav.shopBy": "Menu — “Shop By”",
+  "nav.browse": "Menu — “Browse”",
+  "nav.allProducts": "Menu — “All Products”",
+  "nav.searchPlaceholder": "Search box placeholder",
+  "nav.wishlist": "Menu — “Wishlist”",
+  "nav.signIn": "Menu — “Sign in”",
+  "nav.adminDashboard": "Account menu — “Admin Dashboard”",
+  "nav.myOrders": "Account menu — “My Orders”",
+  "nav.myAddresses": "Account menu — “My Addresses”",
+  "nav.account": "Account menu — “Account”",
+  "nav.signOut": "Account menu — “Sign out”",
+  "nav.cart": "Menu — “Cart”",
+  "nav.offers": "Menu — “Offers”",
+  "nav.sisterSiteHint": "Menu — sister site hint (seafood)",
+  "nav.sisterSiteHintSora": "Menu — sister site hint (sake)",
+  "home.premiumSelection": "Homepage — “Our Premium Selection” eyebrow",
+  "home.finestProducts": "Homepage — featured products heading",
+  "home.trending": "Homepage — trending products heading",
+  "home.viewAll": "Homepage — “View all” link",
+  "home.newArrivals": "Homepage — new arrivals heading",
+  "home.categories": "Homepage — “Shop by Category” heading",
+  "home.categoriesSub": "Homepage — “Shop by Category” subtitle",
+  "home.shop": "Homepage — category card “Shop” button",
+  "home.editorial.uniqueEyebrow": "Homepage editorial — unique eyebrow",
+  "home.editorial.uniqueTitle": "Homepage editorial — unique title",
+  "home.editorial.uniqueCta": "Homepage editorial — unique button",
+  "home.editorial.newEyebrow": "Homepage editorial — “New this month” eyebrow",
+  "home.editorial.newTitle": "Homepage editorial — “New this month” title",
+  "home.editorial.newCta": "Homepage editorial — “New this month” button",
+  "home.drinks.eyebrow": "Homepage drinks band — eyebrow",
+  "home.drinks.title": "Homepage drinks band — title",
+  "home.drinks.statBrands": "Homepage drinks band — stat: products",
+  "home.drinks.statOrders": "Homepage drinks band — stat: orders",
+  "home.drinks.statRating": "Homepage drinks band — stat: rating",
+  "home.drinks.cta": "Homepage drinks band — button",
+  "feature.delivery.title": "Feature: Fast Delivery — title",
+  "feature.delivery.body": "Feature: Fast Delivery — text",
+  "feature.sashimi.title": "Feature: Imported from Japan — title",
+  "feature.sashimi.body": "Feature: Imported from Japan — text",
+  "feature.quality.title": "Feature: Quality Promise — title",
+  "feature.quality.body": "Feature: Quality Promise — text",
+  "feature.cold.title": "Feature: Carefully Packed — title",
+  "feature.cold.body": "Feature: Carefully Packed — text",
+  "cta.member": "Membership banner — eyebrow",
+  "cta.title": "Membership banner — title",
+  "cta.body": "Membership banner — body text",
+  "cta.join": "Membership banner — button",
+  "cart.title": "Cart — heading",
+  "cart.empty": "Cart — empty message",
+  "cart.emptySub": "Cart — empty subtitle",
+  "cart.returnToShop": "Cart — “Return to Shop” button",
+  "cart.freeDeliveryHint": "Cart — free delivery progress hint",
+  "cart.freeDeliveryUnlocked": "Cart — free delivery unlocked message",
+  "cart.each": "Cart — “{price} each”",
+  "cart.subtotal": "Cart — “Subtotal” label",
+  "cart.checkout": "Cart — checkout button",
+  "product.addToCart": "Product — “Add to cart” button",
+  "product.noImage": "Product — “No image” placeholder",
+  "product.from": "Product — “from” price prefix",
+  "product.selectOptions": "Product — “Select options” button",
+  "product.freeDelivery": "Product — free delivery note",
+  "product.youMightAlsoLike": "Product — related products heading",
+  "shop.title": "Shop — page title",
+  "shop.count": "Shop — product count (“{n} products”)",
+  "shop.filters": "Shop — “Filters” heading",
+  "shop.clearAll": "Shop — “Clear all” button",
+  "shop.categories": "Shop — “Categories” heading",
+  "shop.allProducts": "Shop — “All Products” option",
+  "shop.price": "Shop — “Price” filter label",
+  "shop.offers": "Shop — “Offers” filter label",
+  "shop.onSaleOnly": "Shop — “On sale only” toggle",
+  "shop.sort": "Shop — “Sort” label",
+  "shop.sort.featured": "Shop — sort: Featured",
+  "shop.sort.priceAsc": "Shop — sort: Price low to high",
+  "shop.sort.priceDesc": "Shop — sort: Price high to low",
+  "shop.sort.rating": "Shop — sort: Top Rated",
+  "shop.noProducts": "Shop — “No products found”",
+  "shop.noProductsSub": "Shop — no products subtitle",
+  "shop.clearFilters": "Shop — “Clear filters” button",
+  "offers.title": "Offers — page title",
+  "offers.subtitle": "Offers — subtitle",
+  "offers.empty": "Offers — empty message",
+  "offers.viewAll": "Offers — “View all offers” link",
+  "offers.ends": "Offers — “Ends {date}” label",
+  "offer.kind.limited": "Offer badge — “Limited Offer”",
+  "offer.kind.seasonal": "Offer badge — “Seasonal Offer”",
+  "offer.kind.special": "Offer badge — “Special Offer”",
+  "footer.tagline": "Footer — tagline",
+  "footer.marketplace": "Footer — “Marketplace” heading",
+  "footer.sashimiFillets": "Footer — link: Beer & Sake",
+  "footer.shellfish": "Footer — link: Snacks & Sweets",
+  "footer.roeUni": "Footer — link: Pantry & Seasonings",
+  "footer.alsoVisit": "Footer — “Also Visit” heading",
+  "footer.followTitle": "Footer — “Follow Us” heading",
+  "footer.followSub": "Footer — “Follow Us” subtitle",
+  "footer.privacy": "Footer — “Privacy” link",
+  "footer.terms": "Footer — “Terms” link",
+  "footer.sitemap": "Footer — “Sitemap” link",
+};
 
 const SECTION_FOR = (key: string) =>
   I18N_SECTIONS.find((s) => key === s.prefix || key.startsWith(s.prefix + "."))?.label ?? "Other";
@@ -58,7 +169,17 @@ function TranslationsAdmin() {
   const [draft, setDraft] = useState<Draft>({});
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<string>("all");
+  const [mode, setMode] = useState<"all" | "edited" | "km" | "ja">("all");
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+
+  const toggleSection = (label: string) =>
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
 
   // Current value shown in a field: unsaved edit → saved override → built-in.
   const valueOf = (locale: LocaleCode, key: string) =>
@@ -71,6 +192,15 @@ function TranslationsAdmin() {
   const isOverride = (locale: LocaleCode, key: string) =>
     valueOf(locale, key).trim() !== builtin(locale, key).trim() &&
     valueOf(locale, key).trim() !== "";
+
+  const keyEdited = (key: string) =>
+    LOCALES.some((l) => valueOf(l.code, key).trim() !== builtin(l.code, key).trim());
+
+  // "Needs translation" = blank, or still identical to the English wording.
+  const untranslated = (locale: LocaleCode, key: string) => {
+    const v = valueOf(locale, key).trim();
+    return v === "" || v === valueOf("en", key).trim();
+  };
 
   const dirtyEntries = useMemo(() => {
     const out: { locale: string; key: string; value: string }[] = [];
@@ -91,9 +221,13 @@ function TranslationsAdmin() {
     for (const key of ALL_KEYS) {
       const label = SECTION_FOR(key);
       if (section !== "all" && label !== section) continue;
+      if (mode === "edited" && !keyEdited(key)) continue;
+      if (mode === "km" && !untranslated("km", key)) continue;
+      if (mode === "ja" && !untranslated("ja", key)) continue;
       if (
         q &&
         !key.toLowerCase().includes(q) &&
+        !(KEY_LABELS[key] ?? "").toLowerCase().includes(q) &&
         !LOCALES.some((l) => valueOf(l.code, key).toLowerCase().includes(q))
       )
         continue;
@@ -106,7 +240,12 @@ function TranslationsAdmin() {
       .filter((l) => byLabel.has(l))
       .map((label) => ({ label, keys: byLabel.get(label)! }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, section, draft, overrides]);
+  }, [query, section, mode, draft, overrides]);
+
+  // A section body is shown when: the editor opened it, they picked that one
+  // section, or a search / filter is active (so matches aren't hidden).
+  const filtering = query.trim() !== "" || mode !== "all" || section !== "all";
+  const sectionOpen = (label: string) => filtering || openSections.has(label);
 
   // How many strings in each section currently carry an override (any locale).
   const editedBySection = useMemo(() => {
@@ -185,6 +324,46 @@ function TranslationsAdmin() {
             );
           })}
         </div>
+
+        {/* Show-only filter + expand/collapse */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Show:</span>
+          {(
+            [
+              ["all", "Everything"],
+              ["edited", "Edited"],
+              ["km", "Needs Khmer"],
+              ["ja", "Needs Japanese"],
+            ] as const
+          ).map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                mode === m
+                  ? "bg-foreground text-background border-foreground"
+                  : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+          {section === "all" && !filtering && groups.length > 1 && (
+            <button
+              type="button"
+              onClick={() =>
+                setOpenSections((prev) =>
+                  prev.size === groups.length ? new Set() : new Set(groups.map((g) => g.label)),
+                )
+              }
+              className="ml-auto text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              {openSections.size === groups.length ? "Collapse all" : "Expand all"}
+            </button>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -192,61 +371,92 @@ function TranslationsAdmin() {
           <Loader2 className="size-4 animate-spin" /> Loading…
         </div>
       ) : (
-        groups.map((group) => (
-          <section key={group.label} className="bg-card border rounded-2xl overflow-hidden">
-            <h2 className="font-display font-bold px-5 py-3 border-b bg-muted/40">{group.label}</h2>
-            <div className="divide-y">
-              {group.keys.map((key) => (
-                <div key={key} className="px-5 py-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs text-muted-foreground">{key}</code>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {LOCALES.map((l) => (
-                      <div key={l.code} className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-medium text-muted-foreground">
-                            {l.label}
-                          </label>
-                          <div className="flex items-center gap-1">
-                            {isOverride(l.code, key) && (
-                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                edited
-                              </Badge>
-                            )}
-                            {valueOf(l.code, key) !== builtin(l.code, key) && (
-                              <button
-                                type="button"
-                                onClick={() => setValue(l.code, key, builtin(l.code, key))}
-                                title="Reset to built-in default"
-                                className="text-muted-foreground hover:text-foreground"
-                              >
-                                <RotateCcw className="size-3" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <Textarea
-                          value={valueOf(l.code, key)}
-                          onChange={(e) => setValue(l.code, key, e.target.value)}
-                          rows={2}
-                          className="text-sm min-h-[2.5rem] resize-y"
-                          dir={l.code === "km" ? "ltr" : undefined}
-                        />
+        groups.map((group) => {
+          const open = sectionOpen(group.label);
+          return (
+            <section key={group.label} className="bg-card border rounded-2xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => toggleSection(group.label)}
+                disabled={filtering}
+                className="flex w-full items-center gap-3 px-5 py-3 border-b bg-muted/40 text-left disabled:cursor-default"
+              >
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 text-muted-foreground transition-transform",
+                    open ? "" : "-rotate-90",
+                    filtering && "opacity-0",
+                  )}
+                />
+                <h2 className="font-display font-bold flex-1">{group.label}</h2>
+                <span className="text-xs text-muted-foreground">
+                  {group.keys.length} {group.keys.length === 1 ? "string" : "strings"}
+                  {editedBySection[group.label] ? ` · ${editedBySection[group.label]} edited` : ""}
+                </span>
+              </button>
+              {open && (
+                <div className="divide-y">
+                  {group.keys.map((key) => (
+                    <div key={key} className="px-5 py-4 space-y-2">
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <span className="text-sm font-medium">{KEY_LABELS[key] ?? key}</span>
+                        <code className="text-[11px] text-muted-foreground">{key}</code>
                       </div>
-                    ))}
-                  </div>
+                      <div className="grid gap-3 md:grid-cols-3">
+                        {LOCALES.map((l) => (
+                          <div key={l.code} className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <label className="text-xs font-medium text-muted-foreground">
+                                {l.label}
+                              </label>
+                              <div className="flex items-center gap-1">
+                                {isOverride(l.code, key) && (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                    edited
+                                  </Badge>
+                                )}
+                                {valueOf(l.code, key) !== builtin(l.code, key) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setValue(l.code, key, builtin(l.code, key))}
+                                    title="Reset to built-in default"
+                                    className="text-muted-foreground hover:text-foreground"
+                                  >
+                                    <RotateCcw className="size-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <Textarea
+                              value={valueOf(l.code, key)}
+                              onChange={(e) => setValue(l.code, key, e.target.value)}
+                              rows={2}
+                              className="text-sm min-h-[2.5rem] resize-y"
+                              dir={l.code === "km" ? "ltr" : undefined}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
-        ))
+              )}
+            </section>
+          );
+        })
       )}
 
       {groups.length === 0 && !isLoading && (
         <p className="text-sm text-muted-foreground">
-          No strings match{query ? ` “${query}”` : ""}
-          {section !== "all" ? ` in ${section}` : ""}.
+          {mode === "km"
+            ? "Every string in this view has a Khmer translation. 🎉"
+            : mode === "ja"
+              ? "Every string in this view has a Japanese translation. 🎉"
+              : mode === "edited"
+                ? "Nothing has been edited in this view yet."
+                : `No strings match${query ? ` “${query}”` : ""}${
+                    section !== "all" ? ` in ${section}` : ""
+                  }.`}
         </p>
       )}
 
