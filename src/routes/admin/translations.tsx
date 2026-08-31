@@ -283,6 +283,18 @@ function TranslationsAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overrides, acceptedList]);
 
+  // Whole-site totals shown on the filter buttons so the editor sees at a glance
+  // how much still needs each language.
+  const modeCounts = useMemo(
+    () => ({
+      edited: ALL_KEYS.filter(keyEdited).length,
+      km: ALL_KEYS.filter((k) => savedNeeds("km", k)).length,
+      ja: ALL_KEYS.filter((k) => savedNeeds("ja", k)).length,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [overrides, acceptedList, draft],
+  );
+
   const visibleKeys = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = searching
@@ -438,21 +450,56 @@ function TranslationsAdmin() {
           {/* ── Show-only filter ──────────────────────────────────────── */}
           <div className="flex">
             <div className="flex rounded-lg border bg-card p-1">
-              {MODES.map((m) => (
-                <button
-                  key={m.key}
-                  type="button"
-                  onClick={() => setMode(m.key)}
-                  className={cn(
-                    "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                    mode === m.key
-                      ? "bg-brand text-brand-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {m.label}
-                </button>
-              ))}
+              {MODES.map((m) => {
+                const active = mode === m.key;
+                const count =
+                  m.key === "edited"
+                    ? modeCounts.edited
+                    : m.key === "km"
+                      ? modeCounts.km
+                      : m.key === "ja"
+                        ? modeCounts.ja
+                        : 0;
+                return (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setMode(m.key)}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors",
+                      active
+                        ? "bg-brand text-brand-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {m.label}
+                    {m.key !== "all" && count > 0 && (
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
+                          active
+                            ? "bg-brand-foreground/20"
+                            : m.key === "edited"
+                              ? "bg-muted text-foreground/70"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+                        )}
+                      >
+                        {count}
+                      </span>
+                    )}
+                    {(m.key === "km" || m.key === "ja") && count === 0 && (
+                      <Check
+                        className={cn(
+                          "size-3.5",
+                          active
+                            ? "text-brand-foreground/80"
+                            : "text-emerald-600 dark:text-emerald-400",
+                        )}
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
