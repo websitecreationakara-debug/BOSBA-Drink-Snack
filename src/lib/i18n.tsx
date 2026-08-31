@@ -1,6 +1,25 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getTranslationOverrides, type TranslationOverrides } from "@/data/translations";
+
+// Cross-tab signal: the admin Translations page pings this after a save so open
+// storefront tabs refetch immediately instead of waiting for a manual refresh.
+export const TRANSLATIONS_CHANGED_EVENT = "bosba:translations-changed";
+
+export function notifyTranslationsChanged() {
+  // Same tab (storage events don't fire in the tab that wrote them).
+  window.dispatchEvent(new Event(TRANSLATIONS_CHANGED_EVENT));
+  try {
+    localStorage.setItem(TRANSLATIONS_CHANGED_EVENT, String(Date.now()));
+  } catch {
+    /* private mode / storage disabled — the same-tab refetch still runs */
+  }
+  if (typeof BroadcastChannel !== "undefined") {
+    const ch = new BroadcastChannel(TRANSLATIONS_CHANGED_EVENT);
+    ch.postMessage("changed");
+    ch.close();
+  }
+}
 
 export type Locale = "en" | "km" | "ja";
 
@@ -396,14 +415,39 @@ const I18nContext = createContext<Ctx | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
+  const qc = useQueryClient();
 
   // Admin-editable overrides (src/routes/admin/translations.tsx). Merged on top
   // of the built-in dictionaries below; absent/blank falls back to the default.
+  // staleTime 0 + focus refetch so edits show up when you switch back to a
+  // storefront tab without a hard refresh.
   const { data: overrides } = useQuery<TranslationOverrides>({
     queryKey: ["translations"],
     queryFn: () => getTranslationOverrides(),
-    staleTime: 5 * 60_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
+
+  // Refetch immediately when the admin page reports a save — same tab (custom
+  // event / BroadcastChannel) and other tabs (storage event / BroadcastChannel).
+  useEffect(() => {
+    const refetch = () => qc.invalidateQueries({ queryKey: ["translations"] });
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === TRANSLATIONS_CHANGED_EVENT) refetch();
+    };
+    window.addEventListener(TRANSLATIONS_CHANGED_EVENT, refetch);
+    window.addEventListener("storage", onStorage);
+    let ch: BroadcastChannel | undefined;
+    if (typeof BroadcastChannel !== "undefined") {
+      ch = new BroadcastChannel(TRANSLATIONS_CHANGED_EVENT);
+      ch.onmessage = refetch;
+    }
+    return () => {
+      window.removeEventListener(TRANSLATIONS_CHANGED_EVENT, refetch);
+      window.removeEventListener("storage", onStorage);
+      ch?.close();
+    };
+  }, [qc]);
 
   useEffect(() => {
     const saved = localStorage.getItem("locale") as Locale | null;

@@ -7,7 +7,13 @@ import {
   saveTranslations,
   type TranslationOverrides,
 } from "@/data/translations";
-import { BUILTIN_DICTS, EN_DEFAULTS, I18N_SECTIONS, LOCALES } from "@/lib/i18n";
+import {
+  BUILTIN_DICTS,
+  EN_DEFAULTS,
+  I18N_SECTIONS,
+  LOCALES,
+  notifyTranslationsChanged,
+} from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,6 +100,7 @@ function TranslationsAdmin() {
     try {
       await saveTranslations({ data: { entries: dirtyEntries } });
       await qc.invalidateQueries({ queryKey: ["translations"] });
+      notifyTranslationsChanged();
       setDraft({});
       toast.success(
         `Saved ${dirtyEntries.length} translation${dirtyEntries.length === 1 ? "" : "s"}`,
