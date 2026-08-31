@@ -4,9 +4,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   getAcceptedKeys,
+  getSiteLocale,
   getTranslationOverrides,
   saveTranslations,
   setAcceptedKey,
+  setSiteLocale,
   type TranslationOverrides,
 } from "@/data/translations";
 import {
@@ -198,6 +200,27 @@ function TranslationsAdmin() {
   const acceptedJa = useMemo(() => new Set(acceptedList?.ja ?? []), [acceptedList]);
   const acceptedFor = (locale: "km" | "ja") => (locale === "km" ? acceptedKm : acceptedJa);
 
+  // Store-wide default language for the storefront.
+  const { data: siteLocale } = useQuery<LocaleCode>({
+    queryKey: ["site-locale"],
+    queryFn: () => getSiteLocale(),
+  });
+  const [savingLocale, setSavingLocale] = useState(false);
+  const changeSiteLocale = async (loc: LocaleCode, label: string) => {
+    if (loc === siteLocale) return;
+    setSavingLocale(true);
+    try {
+      await setSiteLocale({ data: { locale: loc } });
+      await qc.invalidateQueries({ queryKey: ["site-locale"] });
+      notifyTranslationsChanged();
+      toast.success(`Website now opens in ${label} by default`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not change the default language");
+    } finally {
+      setSavingLocale(false);
+    }
+  };
+
   // Only edited fields live here; everything else renders from overrides/builtin.
   const [draft, setDraft] = useState<Draft>({});
   const [query, setQuery] = useState("");
@@ -321,6 +344,31 @@ function TranslationsAdmin() {
           <code className="bg-muted px-1 rounded text-xs">{"{threshold}"}</code> and{" "}
           <code className="bg-muted px-1 rounded text-xs">{"{n}"}</code> as they are.
         </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
+          <span className="text-sm font-medium">Default website language</span>
+          <span className="text-xs text-muted-foreground">
+            — what visitors see until they pick one themselves
+          </span>
+          <div className="ms-auto flex gap-1.5">
+            {LOCALES.map((l) => (
+              <button
+                key={l.code}
+                type="button"
+                disabled={savingLocale}
+                onClick={() => changeSiteLocale(l.code, l.label)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-sm font-medium transition-colors disabled:opacity-60",
+                  siteLocale === l.code
+                    ? "border-brand bg-brand text-brand-foreground"
+                    : "bg-card text-foreground/70 hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </header>
 
       {isLoading ? (

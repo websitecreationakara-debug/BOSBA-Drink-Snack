@@ -22,6 +22,35 @@ export const getTranslationOverrides = createServerFn({ method: "GET" }).handler
   return out;
 });
 
+// Store-wide default language. Applied to visitors who haven't picked a language
+// themselves (see src/lib/i18n.tsx). Kept as a single sentinel row
+// (locale "_default", key "locale"); the storefront merge above ignores it.
+export const getSiteLocale = createServerFn({ method: "GET" }).handler(async () => {
+  const rows = await getDb()
+    .select()
+    .from(translations)
+    .where(and(eq(translations.locale, "_default"), eq(translations.key, "locale")))
+    .limit(1);
+  const v = rows[0]?.value;
+  return (v === "km" || v === "ja" ? v : "en") as Locale;
+});
+
+export const setSiteLocale = createServerFn({ method: "POST" })
+  .inputValidator((d: { locale: Locale }) => d)
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const locale = (LOCALES as readonly string[]).includes(data.locale) ? data.locale : "en";
+    const now = new Date().toISOString();
+    await getDb()
+      .insert(translations)
+      .values({ locale: "_default", key: "locale", value: locale, updated_at: now })
+      .onConflictDoUpdate({
+        target: [translations.locale, translations.key],
+        set: { value: locale, updated_at: now },
+      });
+    return { ok: true };
+  });
+
 // Sentinel "locale" prefix for rows that mark one i18n key + one language as
 // intentionally left the same as English (a brand name, "{n}", a symbol), so the
 // admin editor stops flagging just that field. Per language: "_accept_km" /

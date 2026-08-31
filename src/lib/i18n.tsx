@@ -1,6 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getTranslationOverrides, type TranslationOverrides } from "@/data/translations";
+import {
+  getSiteLocale,
+  getTranslationOverrides,
+  type TranslationOverrides,
+} from "@/data/translations";
 
 // Cross-tab signal: the admin Translations page pings this after a save so open
 // storefront tabs refetch immediately instead of waiting for a manual refresh.
@@ -416,7 +420,18 @@ const I18nContext = createContext<Ctx | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
+  // True once the visitor has picked a language themselves — from then on their
+  // choice wins over the admin's store-wide default.
+  const [userChose, setUserChose] = useState(false);
   const qc = useQueryClient();
+
+  // Store-wide default language, set by an admin on /admin/translations.
+  const { data: siteLocale } = useQuery<Locale>({
+    queryKey: ["site-locale"],
+    queryFn: () => getSiteLocale(),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
 
   // Admin-editable overrides (src/routes/admin/translations.tsx). Merged on top
   // of the built-in dictionaries below; absent/blank falls back to the default.
@@ -432,7 +447,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   // Refetch immediately when the admin page reports a save — same tab (custom
   // event / BroadcastChannel) and other tabs (storage event / BroadcastChannel).
   useEffect(() => {
-    const refetch = () => qc.invalidateQueries({ queryKey: ["translations"] });
+    const refetch = () => {
+      qc.invalidateQueries({ queryKey: ["translations"] });
+      qc.invalidateQueries({ queryKey: ["site-locale"] });
+    };
     const onStorage = (e: StorageEvent) => {
       if (e.key === TRANSLATIONS_CHANGED_EVENT) refetch();
     };
@@ -453,12 +471,21 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const saved = localStorage.getItem("locale") as Locale | null;
     if (saved && saved in DICTS) {
+      setUserChose(true);
       setLocaleState(saved);
       document.documentElement.lang = saved;
     }
   }, []);
 
+  // Follow the admin's store-wide default until the visitor picks a language.
+  useEffect(() => {
+    if (userChose || !siteLocale || !(siteLocale in DICTS)) return;
+    setLocaleState(siteLocale);
+    document.documentElement.lang = siteLocale;
+  }, [siteLocale, userChose]);
+
   const setLocale = (l: Locale) => {
+    setUserChose(true);
     setLocaleState(l);
     localStorage.setItem("locale", l);
     document.documentElement.lang = l;
