@@ -316,6 +316,12 @@ function TranslationsAdmin() {
     return () => window.removeEventListener("beforeunload", warn);
   }, [hasUnsaved]);
 
+  // When a "Needs …" filter is on, spotlight that one language on every card and
+  // put it right after English (the source to translate from).
+  const focusLocale: "km" | "ja" | null = mode === "km" ? "km" : mode === "ja" ? "ja" : null;
+  const orderedLocales = focusLocale === "ja" ? [LOCALES[0], LOCALES[2], LOCALES[1]] : LOCALES;
+  const focusLabel = focusLocale === "km" ? "ខ្មែរ (Khmer)" : "日本語 (Japanese)";
+
   const save = async () => {
     if (dirtyEntries.length === 0) return;
     setSaving(true);
@@ -453,6 +459,12 @@ function TranslationsAdmin() {
           </div>
 
           <div className="space-y-3">
+            {focusLocale && visibleKeys.length > 0 && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                These strings still need a <strong>{focusLabel}</strong> translation — type it in
+                the highlighted box, or press “same as English” to leave it.
+              </div>
+            )}
             {visibleKeys.length === 0 ? (
               <div className="rounded-xl border border-dashed bg-card px-5 py-12 text-center text-sm text-muted-foreground">
                 {mode === "km"
@@ -481,7 +493,7 @@ function TranslationsAdmin() {
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-3">
-                    {LOCALES.map((l) => {
+                    {orderedLocales.map((l) => {
                       const changed = valueOf(l.code, key) !== builtin(l.code, key);
                       const tgt = l.code as "km" | "ja";
                       const acceptedHere = l.code !== "en" && acceptedFor(tgt).has(key);
@@ -491,11 +503,22 @@ function TranslationsAdmin() {
                         l.code !== "en" &&
                         !acceptedHere &&
                         missingScript(tgt, valueOf(l.code, key));
+                      const isFocus = focusLocale === l.code;
+                      const isSecondary =
+                        !!focusLocale && l.code !== "en" && l.code !== focusLocale;
                       return (
-                        <div key={l.code}>
+                        <div key={l.code} className={cn(isSecondary && "opacity-50")}>
                           <div className="mb-1 flex items-center justify-between gap-2">
-                            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <span
+                              className={cn(
+                                "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide",
+                                isFocus
+                                  ? "text-amber-700 dark:text-amber-400"
+                                  : "text-muted-foreground",
+                              )}
+                            >
                               {l.label}
+                              {isFocus && <span className="normal-case">— translate this</span>}
                               {acceptedHere && (
                                 <span className="flex items-center gap-1 normal-case font-medium text-emerald-600 dark:text-emerald-400">
                                   <Check className="size-3" /> = English
@@ -510,10 +533,12 @@ function TranslationsAdmin() {
                               )}
                               {needs && (
                                 <>
-                                  <span
-                                    className="size-1.5 rounded-full bg-amber-500"
-                                    title={`No ${l.label} text yet`}
-                                  />
+                                  {!isFocus && (
+                                    <span
+                                      className="size-1.5 rounded-full bg-amber-500"
+                                      title={`No ${l.label} text yet`}
+                                    />
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => toggleAccept(key, tgt, true)}
@@ -538,11 +563,20 @@ function TranslationsAdmin() {
                           <Textarea
                             value={valueOf(l.code, key)}
                             onChange={(e) => setValue(l.code, key, e.target.value)}
-                            rows={2}
+                            rows={isFocus ? 3 : 2}
                             dir="ltr"
+                            placeholder={
+                              isFocus
+                                ? `${l.label} translation of “${valueOf("en", key)}”`
+                                : undefined
+                            }
                             className={cn(
                               "min-h-[2.5rem] resize-y text-sm",
                               changed && "border-brand/50 bg-brand/[0.03]",
+                              isFocus &&
+                                needs &&
+                                "border-amber-400 bg-amber-50/50 ring-2 ring-amber-300 dark:bg-amber-500/5",
+                              isFocus && !needs && "border-emerald-400",
                             )}
                           />
                         </div>
