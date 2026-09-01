@@ -14,6 +14,7 @@ import {
   saveProductTabs,
   setProductStatus,
   setProductStock,
+  setProductCategory,
 } from "@/data/products";
 import { listMedia, uploadMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
@@ -543,7 +544,22 @@ function ProductsAdmin() {
     qc.invalidateQueries({ queryKey: ["variations"] });
   };
 
-  const categoryName = (p: Product) => categories.find((c) => c.id === p.category_id)?.name ?? "—";
+  const NO_CATEGORY = "__none__";
+  const saveCategory = async (p: Product, categoryId: string | null) => {
+    if (categoryId === (p.category_id ?? null)) return;
+    qc.setQueryData(["products", "all"], (rows: Product[] = []) =>
+      rows.map((r) => (r.id === p.id ? { ...r, category_id: categoryId } : r)),
+    );
+    try {
+      await setProductCategory({ data: { id: p.id, category_id: categoryId } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update category");
+      qc.invalidateQueries({ queryKey: ["products"] });
+      return;
+    }
+    toast.success("Category updated");
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
 
   // Price/stock/weight columns reflect variations for variable products.
   const priceLabel = (p: Product) => {
@@ -738,13 +754,25 @@ function ProductsAdmin() {
                   </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  {p.category_id ? (
-                    <span className="inline-flex items-center rounded-full border bg-muted/50 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                      {categoryName(p)}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground/50">—</span>
-                  )}
+                  <Select
+                    value={p.category_id ?? NO_CATEGORY}
+                    onValueChange={(v) => saveCategory(p, v === NO_CATEGORY ? null : v)}
+                  >
+                    <SelectTrigger
+                      aria-label="Change category"
+                      className="h-7 w-[150px] rounded-full border-transparent bg-muted/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted [&>svg]:size-3"
+                    >
+                      <SelectValue placeholder="Uncategorized" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_CATEGORY}>Uncategorized</SelectItem>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </td>
                 <td className="px-4 py-3 font-bold whitespace-nowrap">{priceLabel(p)}</td>
                 <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
