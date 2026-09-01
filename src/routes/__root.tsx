@@ -16,6 +16,7 @@ import { CartProvider } from "@/hooks/use-cart";
 import { WishlistProvider } from "@/hooks/use-wishlist";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { LanguageProvider } from "@/lib/i18n";
+import { getSiteLocale, getTranslationOverrides } from "@/data/translations";
 import { CartDrawer } from "@/components/cart-drawer";
 import { ConfirmProvider } from "@/components/confirm-dialog";
 import { InstallPrompt } from "@/components/install-prompt";
@@ -126,6 +127,19 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // Load storefront wording (and the store-wide default language) once, up front,
+  // so the server-rendered HTML and first client paint are already translated.
+  // Storefront text lives entirely in the `translations` D1 table now — there are
+  // no built-in dictionaries in code. LanguageProvider's useQuery refreshes this
+  // on top for live admin edits.
+  loader: async () => {
+    const [translations, siteLocale] = await Promise.all([
+      getTranslationOverrides(),
+      getSiteLocale(),
+    ]);
+    return { translations, siteLocale };
+  },
+  staleTime: 5 * 60 * 1000,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -221,6 +235,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { translations, siteLocale } = Route.useLoaderData();
 
   // The Meta Pixel fires a PageView for the initial load from its inline <head>
   // snippet; this re-fires it on every client-side route change so SPA
@@ -271,7 +286,7 @@ function RootComponent() {
     >
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <LanguageProvider>
+          <LanguageProvider initialStrings={translations} initialSiteLocale={siteLocale}>
             <AuthProvider>
               <WishlistProvider>
                 <CartProvider>
