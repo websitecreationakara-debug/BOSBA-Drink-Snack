@@ -163,11 +163,11 @@ const missingScript = (locale: "km" | "ja", value: string) => {
 };
 
 type Draft = Record<string, Partial<Record<LocaleCode, string>>>;
-type Mode = "all" | "edited" | "km" | "ja";
+type Mode = "all" | "editing" | "km" | "ja";
 
 const MODES: { key: Mode; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "edited", label: "Edited" },
+  { key: "editing", label: "Editing" },
   { key: "km", label: "Needs ខ្មែរ" },
   { key: "ja", label: "Needs 日本語" },
 ];
@@ -229,7 +229,7 @@ function TranslationsAdmin() {
   const setValue = (locale: LocaleCode, key: string, v: string) =>
     setDraft((d) => ({ ...d, [key]: { ...d[key], [locale]: v } }));
 
-  // Has an unsaved edit in some language (drives the "Edited" filter).
+  // Has an unsaved edit in some language (drives the "Editing" filter).
   const keyEdited = (key: string) =>
     LOCALES.some((l) => {
       const d = draft[key]?.[l.code];
@@ -275,7 +275,7 @@ function TranslationsAdmin() {
         )
       : KEYS_BY_SECTION[section];
     return base.filter((k) => {
-      if (mode === "edited") return keyEdited(k);
+      if (mode === "editing") return keyEdited(k);
       if (mode === "km") return savedNeeds("km", k);
       if (mode === "ja") return savedNeeds("ja", k);
       return true;
@@ -488,8 +488,8 @@ function TranslationsAdmin() {
                   ? "Nothing here still needs ខ្មែរ. 🎉"
                   : mode === "ja"
                     ? "Nothing here still needs 日本語. 🎉"
-                    : mode === "edited"
-                      ? "Nothing edited here yet."
+                    : mode === "editing"
+                      ? "No unsaved changes right now."
                       : `No strings match “${query.trim()}”.`}
               </div>
             ) : (
