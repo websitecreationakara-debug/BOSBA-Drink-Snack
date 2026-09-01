@@ -11,13 +11,7 @@ import {
   setSiteLocale,
   type TranslationOverrides,
 } from "@/data/translations";
-import {
-  BUILTIN_DICTS,
-  EN_DEFAULTS,
-  I18N_SECTIONS,
-  LOCALES,
-  notifyTranslationsChanged,
-} from "@/lib/i18n";
+import { I18N_KEYS, I18N_SECTIONS, LOCALES, notifyTranslationsChanged } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +24,7 @@ type LocaleCode = (typeof LOCALES)[number]["code"];
 
 // `cta.*` is the old membership banner — no longer on the storefront, so it's
 // hidden from the editor.
-const ALL_KEYS = Object.keys(EN_DEFAULTS).filter((k) => k !== "lang.name" && !k.startsWith("cta."));
+const ALL_KEYS = (I18N_KEYS as readonly string[]).filter((k) => !k.startsWith("cta."));
 
 const SECTION_FOR = (key: string) =>
   I18N_SECTIONS.find((s) => key === s.prefix || key.startsWith(s.prefix + "."))?.label ?? "Other";
@@ -156,10 +150,6 @@ const KEYS_BY_SECTION: Record<string, string[]> = Object.fromEntries(
   SECTIONS.map((s) => [s.label, ALL_KEYS.filter((k) => SECTION_FOR(k) === s.label)]),
 );
 
-// Effective built-in value for a locale, falling back to the English default.
-const builtin = (locale: LocaleCode, key: string) =>
-  BUILTIN_DICTS[locale]?.[key] ?? EN_DEFAULTS[key] ?? "";
-
 // Script detection — a field "needs" a language when it's blank or has no
 // characters of that script (so an English brand name left in the Khmer box
 // still counts as untranslated).
@@ -219,7 +209,7 @@ function TranslationsAdmin() {
     }
   };
 
-  // Only edited fields live here; everything else renders from overrides/builtin.
+  // Only edited fields live here; everything else renders from the saved DB value.
   const [draft, setDraft] = useState<Draft>({});
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<string>(SECTIONS[0].label);
@@ -228,20 +218,23 @@ function TranslationsAdmin() {
 
   const searching = query.trim() !== "";
 
-  // Current value shown in a field: unsaved edit → saved override → built-in.
+  // Current value shown in a field: unsaved edit → value stored in the DB → "".
   const valueOf = (locale: LocaleCode, key: string) =>
-    draft[key]?.[locale] ?? overrides?.[locale]?.[key] ?? builtin(locale, key);
+    draft[key]?.[locale] ?? overrides?.[locale]?.[key] ?? "";
 
-  // Saved value only (no unsaved draft). The "needs work" counts and the section
-  // filter run off this, so nothing moves until you actually click Save.
-  const savedValue = (locale: LocaleCode, key: string) =>
-    overrides?.[locale]?.[key] ?? builtin(locale, key);
+  // Value stored in the DB (no unsaved draft). The "needs work" counts and the
+  // section filter run off this, so nothing moves until you actually click Save.
+  const savedValue = (locale: LocaleCode, key: string) => overrides?.[locale]?.[key] ?? "";
 
   const setValue = (locale: LocaleCode, key: string, v: string) =>
     setDraft((d) => ({ ...d, [key]: { ...d[key], [locale]: v } }));
 
+  // Has an unsaved edit in some language (drives the "Edited" filter).
   const keyEdited = (key: string) =>
-    LOCALES.some((l) => valueOf(l.code, key).trim() !== builtin(l.code, key).trim());
+    LOCALES.some((l) => {
+      const d = draft[key]?.[l.code];
+      return d !== undefined && d.trim() !== savedValue(l.code, key).trim();
+    });
 
   // Section counts + the "Needs ខ្មែរ/日本語" filter: based on the saved value.
   // A field accepted as "same as English" never counts as needing work.
@@ -263,9 +256,9 @@ function TranslationsAdmin() {
     for (const [key, byLocale] of Object.entries(draft)) {
       for (const [locale, v] of Object.entries(byLocale)) {
         const saved = overrides?.[locale as LocaleCode]?.[key] ?? "";
-        // Sending the built-in default clears the override server-side.
-        const normalized = v.trim() === builtin(locale as LocaleCode, key).trim() ? "" : v;
-        if (normalized.trim() !== saved.trim()) out.push({ locale, key, value: normalized });
+        // A blank value clears the row server-side (storefront then falls back to
+        // English, then to the raw key).
+        if (v.trim() !== saved.trim()) out.push({ locale, key, value: v });
       }
     }
     return out;
@@ -346,8 +339,8 @@ function TranslationsAdmin() {
       <header className="mb-6">
         <h1 className="font-display font-bold text-3xl">Translations</h1>
         <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-          Storefront wording in English, ខ្មែរ and 日本語. Blank or unchanged fields fall back to
-          the built-in text. Keep tags like{" "}
+          Storefront wording in English, ខ្មែរ and 日本語 — stored in the database, not the code.
+          Clearing a field makes it fall back to the English text. Keep tags like{" "}
           <code className="bg-muted px-1 rounded text-xs">{"{threshold}"}</code> and{" "}
           <code className="bg-muted px-1 rounded text-xs">{"{n}"}</code> as they are.
         </p>
@@ -518,7 +511,7 @@ function TranslationsAdmin() {
 
                   <div className="grid gap-3 md:grid-cols-3">
                     {orderedLocales.map((l) => {
-                      const changed = valueOf(l.code, key) !== builtin(l.code, key);
+                      const changed = valueOf(l.code, key) !== savedValue(l.code, key);
                       const tgt = l.code as "km" | "ja";
                       const acceptedHere = l.code !== "en" && acceptedFor(tgt).has(key);
                       // Live: the dot clears as soon as you type text in that
@@ -576,8 +569,8 @@ function TranslationsAdmin() {
                             {changed && (
                               <button
                                 type="button"
-                                onClick={() => setValue(l.code, key, builtin(l.code, key))}
-                                title="Reset to built-in default"
+                                onClick={() => setValue(l.code, key, savedValue(l.code, key))}
+                                title="Discard this change"
                                 className="text-muted-foreground hover:text-foreground"
                               >
                                 <RotateCcw className="size-3" />

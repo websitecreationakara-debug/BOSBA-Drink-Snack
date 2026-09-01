@@ -33,357 +33,122 @@ export const LOCALES: { code: Locale; label: string }[] = [
   { code: "ja", label: "日本語" },
 ];
 
-const en = {
-  "lang.name": "English",
-  // top bar
-  "bar.storeLocator": "Store Locator",
-  "bar.delivery": "Free chilled delivery on orders over {threshold}$",
-  "bar.needHelp": "Need help? Call us:",
-  "bar.freeDelivery": "Free delivery on orders over {threshold}$",
-  "theme.light": "Light",
-  "theme.dark": "Dark",
-  // nav
-  "nav.allCategories": "All Categories",
-  "nav.shopBy": "Shop By",
-  "nav.browse": "Browse",
-  "nav.allProducts": "All Products",
-  "nav.searchPlaceholder": "Search beer, plum wine, miso, snacks...",
-  "nav.wishlist": "Wishlist",
-  "nav.signIn": "Sign in",
-  "nav.adminDashboard": "Admin Dashboard",
-  "nav.myOrders": "My Orders",
-  "nav.myAddresses": "My Addresses",
-  "nav.account": "Account",
-  "nav.signOut": "Sign out",
-  "nav.cart": "Cart",
-  // home
-  "home.premiumSelection": "Our Premium Selection",
-  "home.finestProducts": "Shop Our Finest Products",
-  "home.trending": "Trending Products",
-  "home.viewAll": "View all",
-  "home.newArrivals": "New Arrivals",
-  "home.categories": "Shop by Category",
-  "home.categoriesSub": "From beer to sweets, all in one place.",
-  "home.shop": "Shop",
-  "home.editorial.uniqueEyebrow": "Unique · Convenient",
-  "home.editorial.uniqueTitle": "Japanese snacks and drinks, shipped straight to your door",
-  "home.editorial.uniqueCta": "Shop Now",
-  "home.editorial.newEyebrow": "New this month",
-  "home.editorial.newTitle": "{month} drinks & snacks are in",
-  "home.editorial.newCta": "See what's new",
-  "home.drinks.eyebrow": "Imported weekly",
-  "home.drinks.title": "Beer, sake & sours — straight off the boat from Japan",
-  "home.drinks.statBrands": "Japanese products",
-  "home.drinks.statOrders": "Orders shipped",
-  "home.drinks.statRating": "Average rating",
-  "home.drinks.cta": "Shop drinks",
-  "feature.delivery.title": "Fast Delivery",
-  "feature.delivery.body": "Free shipping on orders over ${threshold}",
-  "feature.sashimi.title": "Imported from Japan",
-  "feature.sashimi.body": "Authentic products sourced directly from Japan",
-  "feature.quality.title": "Quality Promise",
-  "feature.quality.body": "Every product checked before it ships",
-  "feature.cold.title": "Carefully Packed",
-  "feature.cold.body": "Packed securely, shipped with care",
-  "cta.member": "Become a member",
-  "cta.title": "Earn points every time you shop.",
-  "cta.body":
-    "Collect 1 point for every $5 you spend at BOSBA Drink Snack. Save up your points and redeem them for free products.",
-  "cta.join": "Join BOSBA Plus",
-  // cart drawer
-  "cart.title": "Your Basket ({n})",
-  "cart.empty": "No products in cart",
-  "cart.emptySub": "Start shopping our fresh harvest.",
-  "cart.returnToShop": "Return to Shop",
-  "cart.freeDeliveryHint": "Spend {amount} more for free delivery",
-  "cart.freeDeliveryUnlocked": "🎉 You qualify for free delivery!",
-  "cart.each": "{price} each",
-  "cart.subtotal": "Subtotal",
-  "cart.checkout": "Proceed to Checkout",
-  // product
-  "product.addToCart": "Add to cart",
-  "product.noImage": "No image",
-  "product.from": "from",
-  "product.selectOptions": "Select options",
-  "product.freeDelivery": "Free chilled delivery on orders over ${threshold}.",
-  "product.youMightAlsoLike": "You might also like",
-  // shop
-  "shop.title": "BOSBA Drink&Snack",
-  "shop.count": "{n} products",
-  "shop.filters": "Filters",
-  "shop.clearAll": "Clear all",
-  "shop.categories": "Categories",
-  "shop.allProducts": "All Products",
-  "shop.price": "Price",
-  "shop.offers": "Offers",
-  "shop.onSaleOnly": "On sale only",
-  "shop.sort": "Sort",
-  "shop.sort.featured": "Featured",
-  "shop.sort.priceAsc": "Price: Low to High",
-  "shop.sort.priceDesc": "Price: High to Low",
-  "shop.sort.rating": "Top Rated",
-  "shop.noProducts": "No products found",
-  "shop.noProductsSub": "Try adjusting your filters or search term.",
-  "shop.clearFilters": "Clear filters",
-  // offers
-  "nav.offers": "Offers",
-  "offers.title": "Special Offers",
-  "offers.subtitle": "Limited-time deals on our premium picks.",
-  "offers.empty": "No active offers right now — check back soon!",
-  "offers.viewAll": "View all offers",
-  "offers.ends": "Ends {date}",
-  "offer.kind.limited": "Limited Offer",
-  "offer.kind.seasonal": "Seasonal Offer",
-  "offer.kind.special": "Special Offer",
-  // footer
-  "footer.tagline": "Provides High Premium Quality Foods From Japan",
-  "footer.marketplace": "Marketplace",
-  "footer.sashimiFillets": "Beer & Sake",
-  "footer.shellfish": "Snacks & Sweets",
-  "footer.roeUni": "Pantry & Seasonings",
-  "footer.alsoVisit": "Also Visit",
-  "footer.followTitle": "Follow Us",
-  "footer.followSub": "Recipes, offers and fresh arrivals on social media.",
-  "footer.privacy": "Privacy",
-  "footer.terms": "Terms",
-  "footer.sitemap": "Sitemap",
-  "nav.sisterSiteHint": "Shop our seafood store",
-  "nav.sisterSiteHintSora": "Shop our Japanese sake store",
-} as const;
+const LOCALE_CODES = LOCALES.map((l) => l.code);
+const isLocale = (v: string): v is Locale => (LOCALE_CODES as string[]).includes(v);
 
-export type I18nKey = keyof typeof en;
-type Dict = Record<I18nKey, string>;
+// Every storefront string key. Identifiers only — the actual wording lives in the
+// `translations` D1 table (seeded by migration 0040_seed_translations) and is
+// edited at /admin/translations. This list exists purely so `t("home.trending")`
+// stays type-checked; add a key here when you add one to the table.
+export const I18N_KEYS = [
+  "bar.storeLocator",
+  "bar.delivery",
+  "bar.needHelp",
+  "bar.freeDelivery",
+  "theme.light",
+  "theme.dark",
+  "nav.allCategories",
+  "nav.shopBy",
+  "nav.browse",
+  "nav.allProducts",
+  "nav.searchPlaceholder",
+  "nav.wishlist",
+  "nav.signIn",
+  "nav.adminDashboard",
+  "nav.myOrders",
+  "nav.myAddresses",
+  "nav.account",
+  "nav.signOut",
+  "nav.cart",
+  "nav.offers",
+  "nav.sisterSiteHint",
+  "nav.sisterSiteHintSora",
+  "home.premiumSelection",
+  "home.finestProducts",
+  "home.trending",
+  "home.viewAll",
+  "home.newArrivals",
+  "home.categories",
+  "home.categoriesSub",
+  "home.shop",
+  "home.editorial.uniqueEyebrow",
+  "home.editorial.uniqueTitle",
+  "home.editorial.uniqueCta",
+  "home.editorial.newEyebrow",
+  "home.editorial.newTitle",
+  "home.editorial.newCta",
+  "home.drinks.eyebrow",
+  "home.drinks.title",
+  "home.drinks.statBrands",
+  "home.drinks.statOrders",
+  "home.drinks.statRating",
+  "home.drinks.cta",
+  "feature.delivery.title",
+  "feature.delivery.body",
+  "feature.sashimi.title",
+  "feature.sashimi.body",
+  "feature.quality.title",
+  "feature.quality.body",
+  "feature.cold.title",
+  "feature.cold.body",
+  "cta.member",
+  "cta.title",
+  "cta.body",
+  "cta.join",
+  "cart.title",
+  "cart.empty",
+  "cart.emptySub",
+  "cart.returnToShop",
+  "cart.freeDeliveryHint",
+  "cart.freeDeliveryUnlocked",
+  "cart.each",
+  "cart.subtotal",
+  "cart.checkout",
+  "product.addToCart",
+  "product.noImage",
+  "product.from",
+  "product.selectOptions",
+  "product.freeDelivery",
+  "product.youMightAlsoLike",
+  "shop.title",
+  "shop.count",
+  "shop.filters",
+  "shop.clearAll",
+  "shop.categories",
+  "shop.allProducts",
+  "shop.price",
+  "shop.offers",
+  "shop.onSaleOnly",
+  "shop.sort",
+  "shop.sort.featured",
+  "shop.sort.priceAsc",
+  "shop.sort.priceDesc",
+  "shop.sort.rating",
+  "shop.noProducts",
+  "shop.noProductsSub",
+  "shop.clearFilters",
+  "offers.title",
+  "offers.subtitle",
+  "offers.empty",
+  "offers.viewAll",
+  "offers.ends",
+  "offer.kind.limited",
+  "offer.kind.seasonal",
+  "offer.kind.special",
+  "footer.tagline",
+  "footer.marketplace",
+  "footer.sashimiFillets",
+  "footer.shellfish",
+  "footer.roeUni",
+  "footer.alsoVisit",
+  "footer.followTitle",
+  "footer.followSub",
+  "footer.privacy",
+  "footer.terms",
+  "footer.sitemap",
+] as const;
 
-// Built-in English strings — the defaults the admin Translations page edits against.
-export const EN_DEFAULTS: Record<string, string> = en;
-
-const km: Dict = {
-  "lang.name": "ខ្មែរ",
-  "bar.storeLocator": "ទីតាំងហាង",
-  "bar.delivery": "ដឹកជញ្ជូនត្រជាក់ឥតគិតថ្លៃសម្រាប់ការបញ្ជាទិញលើស {threshold}$",
-  "bar.needHelp": "ត្រូវការជំនួយ? ទូរស័ព្ទមកយើង៖",
-  "bar.freeDelivery": "ដឹកជញ្ជូនឥតគិតថ្លៃលើការបញ្ជាទិញលើស ${threshold}",
-  "theme.light": "ភ្លឺ",
-  "theme.dark": "ងងឹត",
-  "nav.allCategories": "ប្រភេទទាំងអស់",
-  "nav.shopBy": "ទិញតាម",
-  "nav.browse": "រកមើល",
-  "nav.allProducts": "ផលិតផលទាំងអស់",
-  "nav.searchPlaceholder": "ស្វែងរក ស្រាបៀរ ស្រាផ្លែ Umeshu ម៉ីសូ អាហារសម្រន់...",
-  "nav.wishlist": "បញ្ជីប្រាថ្នា",
-  "nav.signIn": "ចូលគណនី",
-  "nav.adminDashboard": "ផ្ទាំងគ្រប់គ្រង",
-  "nav.myOrders": "ការបញ្ជាទិញរបស់ខ្ញុំ",
-  "nav.myAddresses": "អាសយដ្ឋានរបស់ខ្ញុំ",
-  "nav.account": "គណនី",
-  "nav.signOut": "ចាកចេញ",
-  "nav.cart": "កន្ត្រក",
-  "home.premiumSelection": "ការជ្រើសរើសពិសេសរបស់យើង",
-  "home.finestProducts": "ទិញផលិតផលល្អបំផុតរបស់យើង",
-  "home.trending": "ផលិតផលពេញនិយម",
-  "home.viewAll": "មើលទាំងអស់",
-  "home.newArrivals": "ទំនិញមកដល់ថ្មី",
-  "home.categories": "ទិញតាមប្រភេទទំនិញ",
-  "home.categoriesSub": "ចាប់ពីស្រាបៀររហូតដល់បង្អែម មានគ្រប់យ៉ាងនៅកន្លែងតែមួយ។",
-  "home.shop": "ទិញ",
-  "home.editorial.uniqueEyebrow": "ពិសេស · ងាយស្រួល",
-  "home.editorial.uniqueTitle": "អាហារសម្រន់ជប៉ុននិងភេសជ្ជៈ ដឹកជញ្ជូនទៅដល់ផ្ទះរបស់អ្នក",
-  "home.editorial.uniqueCta": "ទិញឥឡូវនេះ",
-  "home.editorial.newEyebrow": "ថ្មីក្នុងខែនេះ",
-  // No {month}: Chrome/workerd ICU has no Khmer month names and falls back to
-  // the English "August", which renders glued to the Khmer text as "ខែAugust".
-  "home.editorial.newTitle": "ភេសជ្ជៈ និងអាហារសម្រន់ថ្មីប្រចាំខែ មកដល់ហើយ",
-  "home.editorial.newCta": "មើលអ្វីដែលថ្មី",
-  "home.drinks.eyebrow": "នាំចូលរៀងរាល់សប្តាហ៍",
-  "home.drinks.title": "ស្រាបៀរ សាកេ និងស្រាផ្លែ — នាំចូលផ្ទាល់ពីជប៉ុន",
-  "home.drinks.statBrands": "ផលិតផលជប៉ុន",
-  "home.drinks.statOrders": "ការបញ្ជាទិញបានដឹកជញ្ជូន",
-  "home.drinks.statRating": "ការវាយតម្លៃជាមធ្យម",
-  "home.drinks.cta": "ទិញភេសជ្ជៈ",
-  "feature.delivery.title": "ដឹកជញ្ជូនលឿន",
-  "feature.delivery.body": "ដឹកជញ្ជូនឥតគិតថ្លៃសម្រាប់ការបញ្ជាទិញលើស ${threshold}",
-  "feature.sashimi.title": "នាំចូលពីប្រទេសជប៉ុន",
-  "feature.sashimi.body": "ផលិតផលពិតប្រាកដ នាំចូលផ្ទាល់ពីប្រទេសជប៉ុន",
-  "feature.quality.title": "ការធានាគុណភាព",
-  "feature.quality.body": "ផលិតផលគ្រប់មុខត្រូវបានត្រួតពិនិត្យមុននឹងដឹកជញ្ជូន",
-  "feature.cold.title": "វេចខ្ចប់ដោយប្រុងប្រយ័ត្ន",
-  "feature.cold.body": "វេចខ្ចប់ដោយសុវត្ថិភាព ដឹកជញ្ជូនដោយប្រុងប្រយ័ត្ន",
-  "cta.member": "ក្លាយជាសមាជិក",
-  "cta.title": "ទទួលបានពិន្ទុរាល់ពេលដែលអ្នកទិញ។",
-  "cta.body":
-    "ទទួលបាន ១ ពិន្ទុ សម្រាប់រាល់ការចំណាយ ៥ ដុល្លារ នៅ BOSBA Drink Snack។ សន្សំពិន្ទុរបស់អ្នក រួចប្តូរយកផលិតផលដោយឥតគិតថ្លៃ។",
-  "cta.join": "ចូលរួម BOSBA Plus",
-  "cart.title": "កន្ត្រករបស់អ្នក ({n})",
-  "cart.empty": "គ្មានផលិតផលក្នុងកន្ត្រក",
-  "cart.emptySub": "ចាប់ផ្តើមទិញទំនិញរបស់យើង។",
-  "cart.returnToShop": "ត្រឡប់ទៅហាងវិញ",
-  "cart.freeDeliveryHint": "ចំណាយបន្ថែម {amount} ដើម្បីទទួលបានដឹកជញ្ជូនឥតគិតថ្លៃ",
-  "cart.freeDeliveryUnlocked": "🎉 អ្នកទទួលបានដឹកជញ្ជូនឥតគិតថ្លៃហើយ!",
-  "cart.each": "{price} ក្នុងមួយ",
-  "cart.subtotal": "តម្លៃសរុប",
-  "cart.checkout": "បន្តទៅការទូទាត់",
-  "product.addToCart": "បន្ថែមទៅកន្ត្រក",
-  "product.noImage": "គ្មានរូបភាព",
-  "product.from": "ចាប់ពី",
-  "product.selectOptions": "ជ្រើសរើសជម្រើស",
-  "product.freeDelivery": "ដឹកជញ្ជូនឥតគិតថ្លៃសម្រាប់ការបញ្ជាទិញលើស ${threshold}។",
-  "product.youMightAlsoLike": "ការណែនាំរបស់ហាង",
-  "shop.title": "BOSBA Drink&Snack",
-  "shop.count": "{n} ផលិតផលស្រស់",
-  "shop.filters": "តម្រង",
-  "shop.clearAll": "សម្អាតទាំងអស់",
-  "shop.categories": "ប្រភេទ",
-  "shop.allProducts": "ផលិតផលទាំងអស់",
-  "shop.price": "តម្លៃ",
-  "shop.offers": "ការផ្តល់ជូន",
-  "shop.onSaleOnly": "ទំនិញបញ្ចុះតម្លៃ",
-  "shop.sort": "តម្រៀប",
-  "shop.sort.featured": "លេចធ្លោ",
-  "shop.sort.priceAsc": "តម្លៃ៖ ទាបទៅខ្ពស់",
-  "shop.sort.priceDesc": "តម្លៃ៖ ខ្ពស់ទៅទាប",
-  "shop.sort.rating": "ការវាយតម្លៃខ្ពស់",
-  "shop.noProducts": "រកមិនឃើញផលិតផល",
-  "shop.noProductsSub": "សូមកែតម្រូវតម្រង ឬពាក្យស្វែងរករបស់អ្នក។",
-  "shop.clearFilters": "សម្អាតតម្រង",
-  "nav.offers": "ការផ្តល់ជូន",
-  "offers.title": "ការផ្តល់ជូនពិសេស",
-  "offers.subtitle": "ការបញ្ចុះតម្លៃរយៈពេលកំណត់លើផលិតផលពិសេសរបស់យើង។",
-  "offers.empty": "មិនមានការផ្តល់ជូនទេឥឡូវនេះ — សូមត្រឡប់មកវិញឆាប់ៗ!",
-  "offers.viewAll": "មើលការផ្តល់ជូនទាំងអស់",
-  "offers.ends": "បញ្ចប់ {date}",
-  "offer.kind.limited": "ការផ្តល់ជូនមានកំណត់",
-  "offer.kind.seasonal": "ការផ្តល់ជូនតាមរដូវ",
-  "offer.kind.special": "ការផ្តល់ជូនពិសេស",
-  "footer.tagline": "ផ្គត់ផ្គង់ម្ហូបអាហារគុណភាពខ្ពស់បំផុតពីប្រទេសជប៉ុន",
-  "footer.marketplace": "ផ្សារ",
-  "footer.sashimiFillets": "ស្រា និងស្រាបៀរ",
-  "footer.shellfish": "អាហារសម្រន់ និងបង្អែម",
-  "footer.roeUni": "គ្រឿងផ្សំម្ហូប",
-  "footer.alsoVisit": "ទស្សនាផងដែរ",
-  "footer.followTitle": "តាមដានពួកយើង",
-  "footer.followSub": "រូបមន្ត ការផ្តល់ជូន និងទំនិញថ្មីៗនៅលើបណ្តាញសង្គម។",
-  "footer.privacy": "ឯកជនភាព",
-  "footer.terms": "លក្ខខណ្ឌ",
-  "footer.sitemap": "ផែនទីគេហទំព័រ",
-  "nav.sisterSiteHint": "ទស្សនាហាងសមុទ្របងប្អូនរបស់យើង",
-  "nav.sisterSiteHintSora": "ទស្សនាហាងស្រាសាកេជប៉ុនបងប្អូនរបស់យើង",
-};
-
-const ja: Dict = {
-  "lang.name": "日本語",
-  "bar.storeLocator": "店舗検索",
-  "bar.delivery": "{threshold}$以上のご注文で冷蔵配送無料",
-  "bar.needHelp": "お困りですか？お電話ください：",
-  "bar.freeDelivery": "${threshold}以上のご注文で送料無料",
-  "theme.light": "ライト",
-  "theme.dark": "ダーク",
-  "nav.allCategories": "すべてのカテゴリー",
-  "nav.shopBy": "カテゴリーで探す",
-  "nav.browse": "見る",
-  "nav.allProducts": "すべての商品",
-  "nav.searchPlaceholder": "ビール、梅酒、味噌、お菓子を検索...",
-  "nav.wishlist": "お気に入り",
-  "nav.signIn": "ログイン",
-  "nav.adminDashboard": "管理ダッシュボード",
-  "nav.myOrders": "注文履歴",
-  "nav.myAddresses": "住所帳",
-  "nav.account": "アカウント",
-  "nav.signOut": "ログアウト",
-  "nav.cart": "カート",
-  "home.premiumSelection": "プレミアムセレクション",
-  "home.finestProducts": "厳選された商品",
-  "home.trending": "トレンド商品",
-  "home.viewAll": "すべて見る",
-  "home.newArrivals": "新着商品",
-  "home.categories": "カテゴリーから探す",
-  "home.categoriesSub": "ビールからスイーツまで、すべてここに。",
-  "home.shop": "見る",
-  "home.editorial.uniqueEyebrow": "ユニーク · 便利",
-  "home.editorial.uniqueTitle": "日本のお菓子を ご自宅までお届け",
-  "home.editorial.uniqueCta": "今すぐ購入",
-  "home.editorial.newEyebrow": "今月の新着",
-  "home.editorial.newTitle": "{month}のドリンク＆スナックが入荷",
-  "home.editorial.newCta": "新着を見る",
-  "home.drinks.eyebrow": "毎週入荷",
-  "home.drinks.title": "ビール・日本酒・サワー — 日本から直送",
-  "home.drinks.statBrands": "日本の商品",
-  "home.drinks.statOrders": "出荷済み注文",
-  "home.drinks.statRating": "平均評価",
-  "home.drinks.cta": "ドリンクを見る",
-  "feature.delivery.title": "迅速配送",
-  "feature.delivery.body": "${threshold}以上のご注文で送料無料",
-  "feature.sashimi.title": "日本から直輸入",
-  "feature.sashimi.body": "日本から直接仕入れた本格的な商品",
-  "feature.quality.title": "品質保証",
-  "feature.quality.body": "発送前に全商品を検品",
-  "feature.cold.title": "丁寧な梱包",
-  "feature.cold.body": "安全に梱包し、丁寧に配送",
-  "cta.member": "会員になる",
-  "cta.title": "お買い物のたびにポイントが貯まる。",
-  "cta.body":
-    "BOSBA Drink Snack でのお買い物5ドルにつき1ポイント獲得。貯まったポイントは商品と交換できます。",
-  "cta.join": "BOSBA Plus に参加",
-  "cart.title": "カート（{n}）",
-  "cart.empty": "カートに商品がありません",
-  "cart.emptySub": "お買い物を始めましょう。",
-  "cart.returnToShop": "ショップに戻る",
-  "cart.freeDeliveryHint": "あと {amount} で送料無料",
-  "cart.freeDeliveryUnlocked": "🎉 送料無料の対象です！",
-  "cart.each": "{price} / 個",
-  "cart.subtotal": "小計",
-  "cart.checkout": "レジに進む",
-  "product.addToCart": "カートに追加",
-  "product.noImage": "画像なし",
-  "product.from": "〜",
-  "product.selectOptions": "オプションを選択",
-  "product.freeDelivery": "${threshold} 以上のご注文で冷蔵配送無料。",
-  "product.youMightAlsoLike": "こちらもおすすめ",
-  "shop.title": "マーケットで買う",
-  "shop.count": "{n} 点の新鮮な商品",
-  "shop.filters": "フィルター",
-  "shop.clearAll": "すべてクリア",
-  "shop.categories": "カテゴリー",
-  "shop.allProducts": "すべての商品",
-  "shop.price": "価格",
-  "shop.offers": "セール",
-  "shop.onSaleOnly": "セール商品のみ",
-  "shop.sort": "並び替え",
-  "shop.sort.featured": "おすすめ",
-  "shop.sort.priceAsc": "価格: 安い順",
-  "shop.sort.priceDesc": "価格: 高い順",
-  "shop.sort.rating": "評価が高い順",
-  "shop.noProducts": "商品が見つかりません",
-  "shop.noProductsSub": "フィルターや検索語を調整してください。",
-  "shop.clearFilters": "フィルターをクリア",
-  "nav.offers": "セール",
-  "offers.title": "特別オファー",
-  "offers.subtitle": "厳選商品の期間限定セール。",
-  "offers.empty": "現在開催中のオファーはありません — またチェックしてください！",
-  "offers.viewAll": "すべてのオファーを見る",
-  "offers.ends": "{date}まで",
-  "offer.kind.limited": "数量限定オファー",
-  "offer.kind.seasonal": "シーズンオファー",
-  "offer.kind.special": "特別オファー",
-  "footer.tagline": "日本産の高品質プレミアム食品をご提供します",
-  "footer.marketplace": "マーケット",
-  "footer.sashimiFillets": "ビール・日本酒",
-  "footer.shellfish": "スナック・スイーツ",
-  "footer.roeUni": "調味料",
-  "footer.alsoVisit": "姉妹店もどうぞ",
-  "footer.followTitle": "フォローする",
-  "footer.followSub": "レシピ・お得な情報・新着をSNSでチェック。",
-  "footer.privacy": "プライバシー",
-  "footer.terms": "利用規約",
-  "footer.sitemap": "サイトマップ",
-  "nav.sisterSiteHint": "姉妹店の海鮮専門店もチェック",
-  "nav.sisterSiteHintSora": "姉妹店（日本酒専門店）もチェック",
-};
-
-const DICTS: Record<Locale, Dict> = { en, km, ja };
-
-// Built-in dictionaries exposed for the admin Translations editor, so it can
-// prefill each field and tell whether a value is a real override or the default.
-export const BUILTIN_DICTS: Record<Locale, Record<string, string>> = DICTS;
+export type I18nKey = (typeof I18N_KEYS)[number];
 
 // Ordered sections for the admin Translations editor. The key prefix (before the
 // first ".") groups the strings; anything not listed lands in "Other". `short` is
@@ -409,6 +174,12 @@ function interpolate(s: string, vars?: Record<string, string | number>) {
   );
 }
 
+// All storefront wording, keyed by locale then i18n key. Comes straight from the
+// `translations` table via getTranslationOverrides(); there are no built-in
+// dictionaries in code. A missing key falls back to English, then to the raw key.
+export type TranslationStrings = TranslationOverrides;
+const EMPTY_STRINGS: TranslationStrings = { en: {}, km: {}, ja: {} };
+
 type Ctx = {
   locale: Locale;
   setLocale: (l: Locale) => void;
@@ -417,8 +188,18 @@ type Ctx = {
 
 const I18nContext = createContext<Ctx | null>(null);
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("en");
+export function LanguageProvider({
+  children,
+  initialStrings,
+  initialSiteLocale,
+}: {
+  children: ReactNode;
+  // Seeded from the root route loader so the server-rendered HTML and first
+  // client paint are already translated (no flash of raw keys).
+  initialStrings?: TranslationStrings;
+  initialSiteLocale?: Locale;
+}) {
+  const [locale, setLocaleState] = useState<Locale>(initialSiteLocale ?? "en");
   // True once the visitor has picked a language themselves — from then on their
   // choice wins over the admin's store-wide default.
   const [userChose, setUserChose] = useState(false);
@@ -428,17 +209,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const { data: siteLocale } = useQuery<Locale>({
     queryKey: ["site-locale"],
     queryFn: () => getSiteLocale(),
+    initialData: initialSiteLocale,
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
 
-  // Admin-editable overrides (src/routes/admin/translations.tsx). Merged on top
-  // of the built-in dictionaries below; absent/blank falls back to the default.
-  // staleTime 0 + focus refetch so edits show up when you switch back to a
-  // storefront tab without a hard refresh.
-  const { data: overrides } = useQuery<TranslationOverrides>({
+  // Every storefront string, from the `translations` table. staleTime 0 + focus
+  // refetch so admin edits show up when you switch back to a storefront tab
+  // without a hard refresh.
+  const { data: strings } = useQuery<TranslationStrings>({
     queryKey: ["translations"],
     queryFn: () => getTranslationOverrides(),
+    initialData: initialStrings,
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
@@ -468,8 +250,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [qc]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("locale") as Locale | null;
-    if (saved && saved in DICTS) {
+    const saved = localStorage.getItem("locale");
+    if (saved && isLocale(saved)) {
       setUserChose(true);
       setLocaleState(saved);
       document.documentElement.lang = saved;
@@ -478,7 +260,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   // Follow the admin's store-wide default until the visitor picks a language.
   useEffect(() => {
-    if (userChose || !siteLocale || !(siteLocale in DICTS)) return;
+    if (userChose || !siteLocale || !isLocale(siteLocale)) return;
     setLocaleState(siteLocale);
     document.documentElement.lang = siteLocale;
   }, [siteLocale, userChose]);
@@ -491,9 +273,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const t = useCallback<Ctx["t"]>(
-    (key, vars) =>
-      interpolate(overrides?.[locale]?.[key] ?? DICTS[locale][key] ?? en[key] ?? key, vars),
-    [locale, overrides],
+    (key, vars) => {
+      const dict = strings ?? EMPTY_STRINGS;
+      return interpolate(dict[locale]?.[key] ?? dict.en?.[key] ?? key, vars);
+    },
+    [locale, strings],
   );
 
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
