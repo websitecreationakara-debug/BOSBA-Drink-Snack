@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listMedia, uploadMedia, deleteMedia, renameMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/confirm-dialog";
 import { Upload, Trash2, Copy, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import type { Media } from "@/lib/types";
@@ -18,6 +19,7 @@ function MediaAdmin() {
     queryFn: () => listMedia() as Promise<Media[]>,
   });
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -61,7 +63,13 @@ function MediaAdmin() {
   };
 
   const del = async (m: Media) => {
-    if (!confirm(`Delete ${m.filename}?`)) return;
+    const ok = await confirm({
+      title: `Delete ${m.filename}?`,
+      description:
+        "Any product or banner still using this image will show a broken image. This action cannot be undone.",
+      confirmText: "Delete image",
+    });
+    if (!ok) return;
     try {
       await deleteMedia({ data: { id: m.id } });
     } catch (err) {

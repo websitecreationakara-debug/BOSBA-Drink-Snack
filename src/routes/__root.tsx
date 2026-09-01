@@ -17,6 +17,7 @@ import { WishlistProvider } from "@/hooks/use-wishlist";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { LanguageProvider } from "@/lib/i18n";
 import { CartDrawer } from "@/components/cart-drawer";
+import { ConfirmProvider } from "@/components/confirm-dialog";
 import { InstallPrompt } from "@/components/install-prompt";
 import { Toaster } from "@/components/ui/sonner";
 import { MetaPixelProvider } from "@adkit/meta-pixel-react";
@@ -274,10 +275,12 @@ function RootComponent() {
             <AuthProvider>
               <WishlistProvider>
                 <CartProvider>
-                  <Outlet />
-                  <CartDrawer />
-                  <InstallPrompt />
-                  <Toaster />
+                  <ConfirmProvider>
+                    <Outlet />
+                    <CartDrawer />
+                    <InstallPrompt />
+                    <Toaster />
+                  </ConfirmProvider>
                 </CartProvider>
               </WishlistProvider>
             </AuthProvider>

@@ -5,6 +5,7 @@ import { listMedia, uploadMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -35,6 +36,7 @@ function CategoriesAdmin() {
     queryFn: () => listMedia() as Promise<Media[]>,
   });
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
 
@@ -95,7 +97,14 @@ function CategoriesAdmin() {
     qc.invalidateQueries({ queryKey: ["categories"] });
   };
 
-  const del = async (id: string) => {
+  const del = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: `Delete "${name}"?`,
+      description:
+        "This category will be permanently removed. Products in it won't be deleted but will lose this category. This action cannot be undone.",
+      confirmText: "Delete category",
+    });
+    if (!ok) return;
     try {
       await deleteCategory({ data: { id } });
     } catch (err) {
@@ -213,7 +222,12 @@ function CategoriesAdmin() {
         <Button variant="ghost" size="icon" onClick={() => openImage(c)} aria-label="Image">
           <ImageIcon className="size-4" />
         </Button>
-        <Button variant="ghost" size="icon" onClick={() => del(c.id)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => del(c.id, c.name)}
+          aria-label="Delete category"
+        >
           <Trash2 className="size-4 text-destructive" />
         </Button>
       </div>
