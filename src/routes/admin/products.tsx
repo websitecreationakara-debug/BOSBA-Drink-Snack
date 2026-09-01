@@ -543,6 +543,8 @@ function ProductsAdmin() {
     qc.invalidateQueries({ queryKey: ["variations"] });
   };
 
+  const categoryName = (p: Product) => categories.find((c) => c.id === p.category_id)?.name ?? "—";
+
   // Price/stock/weight columns reflect variations for variable products.
   const priceLabel = (p: Product) => {
     if (p.type !== "variable") return `$${(p.sale_price ?? p.price).toFixed(2)}`;
@@ -665,6 +667,7 @@ function ProductsAdmin() {
             <tr>
               <th className="w-8 px-2 py-3"></th>
               <th className="text-left px-6 py-3">Product</th>
+              <th className="text-left px-6 py-3">Category</th>
               <th className="text-left px-6 py-3">Price</th>
               <th className="text-left px-6 py-3">Weight</th>
               <th className="text-left px-6 py-3">Stock</th>
@@ -675,7 +678,7 @@ function ProductsAdmin() {
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
                   No products match your filters.
                 </td>
               </tr>
@@ -733,6 +736,9 @@ function ProductsAdmin() {
                       </span>
                     )}
                   </div>
+                </td>
+                <td className="px-6 py-3 text-muted-foreground whitespace-nowrap">
+                  {categoryName(p)}
                 </td>
                 <td className="px-6 py-3 font-bold whitespace-nowrap">{priceLabel(p)}</td>
                 <td className="px-6 py-3 text-muted-foreground whitespace-nowrap">
