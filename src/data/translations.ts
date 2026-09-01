@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { translations } from "@/db/schema";
+import { translationDefaults, translations } from "@/db/schema";
 import { requireAdmin } from "./_auth";
 
 const LOCALES = ["en", "km", "ja"] as const;
@@ -13,6 +13,21 @@ export type TranslationOverrides = Record<Locale, Record<string, string>>;
 // so src/lib/i18n.tsx can merge them straight over the built-in defaults.
 export const getTranslationOverrides = createServerFn({ method: "GET" }).handler(async () => {
   const rows = await getDb().select().from(translations);
+  const out: TranslationOverrides = { en: {}, km: {}, ja: {} };
+  for (const r of rows) {
+    if ((LOCALES as readonly string[]).includes(r.locale)) {
+      out[r.locale as Locale][r.key] = r.value;
+    }
+  }
+  return out;
+});
+
+// Admin: the strings as originally shipped (migration 0041), same shape as the
+// overrides. The editor diffs the live values against these to flag what an admin
+// has changed and show the original wording.
+export const getTranslationDefaults = createServerFn({ method: "GET" }).handler(async () => {
+  await requireAdmin();
+  const rows = await getDb().select().from(translationDefaults);
   const out: TranslationOverrides = { en: {}, km: {}, ja: {} };
   for (const r of rows) {
     if ((LOCALES as readonly string[]).includes(r.locale)) {

@@ -245,6 +245,19 @@ export const translations = sqliteTable(
   (t) => [primaryKey({ columns: [t.locale, t.key] })],
 );
 
+// Immutable copy of the strings shipped in migration 0040. The admin Translations
+// editor diffs the live `translations` rows against this to show what an admin has
+// customised and what the original wording was. Never written to at runtime.
+export const translationDefaults = sqliteTable(
+  "translation_defaults",
+  {
+    locale: text("locale").notNull(),
+    key: text("key").notNull(),
+    value: text("value").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.locale, t.key] })],
+);
+
 // ---------- better-auth tables ----------
 // Shapes follow better-auth's drizzle (sqlite) conventions, including the
 // `admin` plugin fields (user.role/banned/..., session.impersonatedBy).

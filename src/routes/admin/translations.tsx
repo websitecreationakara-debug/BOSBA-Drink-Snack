@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   getAcceptedKeys,
   getSiteLocale,
+  getTranslationDefaults,
   getTranslationOverrides,
   saveTranslations,
   setAcceptedKey,
@@ -178,6 +179,13 @@ function TranslationsAdmin() {
     queryKey: ["translations"],
     queryFn: () => getTranslationOverrides(),
   });
+  // The strings as originally shipped — used to tell which fields an admin has
+  // changed and to show the original wording. Immutable, so cache forever.
+  const { data: defaults } = useQuery<TranslationOverrides>({
+    queryKey: ["translation-defaults"],
+    queryFn: () => getTranslationDefaults(),
+    staleTime: Infinity,
+  });
   // Per-language: keys the editor accepted as "same as English is fine here", so
   // that field isn't flagged even though it holds no Khmer/Japanese script.
   const { data: acceptedList } = useQuery<Record<"km" | "ja", string[]>>({
@@ -217,6 +225,9 @@ function TranslationsAdmin() {
   const [saving, setSaving] = useState(false);
 
   const searching = query.trim() !== "";
+  // "Edited" spans every section (like search does) — you want to see everything
+  // you've changed, not just what's changed in the section you're looking at.
+  const spanAllSections = searching || mode === "edited";
 
   // Current value shown in a field: unsaved edit → value stored in the DB → "".
   const valueOf = (locale: LocaleCode, key: string) =>
@@ -226,15 +237,26 @@ function TranslationsAdmin() {
   // section filter run off this, so nothing moves until you actually click Save.
   const savedValue = (locale: LocaleCode, key: string) => overrides?.[locale]?.[key] ?? "";
 
+  // The string as originally shipped.
+  const defaultValue = (locale: LocaleCode, key: string) => defaults?.[locale]?.[key] ?? "";
+
+  // This field's saved value has been changed away from the shipped default.
+  const savedEdited = (locale: LocaleCode, key: string) =>
+    savedValue(locale, key).trim() !== defaultValue(locale, key).trim();
+
+  // This field has an unsaved edit in the draft.
+  const draftDirty = (locale: LocaleCode, key: string) => {
+    const d = draft[key]?.[locale];
+    return d !== undefined && d.trim() !== savedValue(locale, key).trim();
+  };
+
   const setValue = (locale: LocaleCode, key: string, v: string) =>
     setDraft((d) => ({ ...d, [key]: { ...d[key], [locale]: v } }));
 
-  // Has an unsaved edit in some language (drives the "Edited" filter).
+  // Drives the "Edited" filter: a customised string (saved differs from the
+  // shipped default) in any language, or an unsaved edit.
   const keyEdited = (key: string) =>
-    LOCALES.some((l) => {
-      const d = draft[key]?.[l.code];
-      return d !== undefined && d.trim() !== savedValue(l.code, key).trim();
-    });
+    LOCALES.some((l) => savedEdited(l.code, key) || draftDirty(l.code, key));
 
   // Section counts + the "Needs ខ្មែរ/日本語" filter: based on the saved value.
   // A field accepted as "same as English" never counts as needing work.
@@ -273,7 +295,9 @@ function TranslationsAdmin() {
             (KEY_LABELS[k] ?? "").toLowerCase().includes(q) ||
             LOCALES.some((l) => valueOf(l.code, k).toLowerCase().includes(q)),
         )
-      : KEYS_BY_SECTION[section];
+      : spanAllSections
+        ? ALL_KEYS
+        : KEYS_BY_SECTION[section];
     return base.filter((k) => {
       if (mode === "edited") return keyEdited(k);
       if (mode === "km") return savedNeeds("km", k);
@@ -281,7 +305,15 @@ function TranslationsAdmin() {
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, searching, section, mode, draft, overrides, acceptedList]);
+  }, [query, searching, spanAllSections, section, mode, draft, overrides, defaults, acceptedList]);
+
+  // How many strings across the whole store have been customised — shown on the
+  // "Edited" filter so the admin can see at a glance whether anything was changed.
+  const editedCount = useMemo(
+    () => ALL_KEYS.filter((k) => keyEdited(k)).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft, overrides, defaults],
+  );
 
   // Nothing is saved until the button is pressed — warn before losing edits.
   const hasUnsaved = dirtyEntries.length > 0;
@@ -380,7 +412,7 @@ function TranslationsAdmin() {
           {/* ── Section tabs ─────────────────────────────────────────── */}
           <div className="flex flex-wrap gap-1.5">
             {SECTIONS.map((s) => {
-              const active = !searching && section === s.label;
+              const active = !spanAllSections && section === s.label;
               return (
                 <button
                   key={s.label}
@@ -470,6 +502,18 @@ function TranslationsAdmin() {
                   )}
                 >
                   {m.label}
+                  {m.key === "edited" && editedCount > 0 && (
+                    <span
+                      className={cn(
+                        "ms-1.5 rounded-full px-1.5 py-0.5 text-[11px] tabular-nums",
+                        mode === "edited"
+                          ? "bg-brand-foreground/20 text-brand-foreground"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {editedCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -489,119 +533,151 @@ function TranslationsAdmin() {
                   : mode === "ja"
                     ? "Nothing here still needs 日本語. 🎉"
                     : mode === "edited"
-                      ? "Nothing edited here yet."
+                      ? "No customised strings here yet — every field still matches the shipped wording."
                       : `No strings match “${query.trim()}”.`}
               </div>
             ) : (
-              visibleKeys.map((key) => (
-                <article key={key} className="rounded-xl border bg-card p-4">
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold leading-tight">
-                        {KEY_LABELS[key] ?? key}
-                      </p>
-                      {searching && (
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {SECTION_FOR(key)}
-                        </p>
-                      )}
-                    </div>
-                    <code className="shrink-0 text-[10px] text-muted-foreground/70">{key}</code>
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {orderedLocales.map((l) => {
-                      const changed = valueOf(l.code, key) !== savedValue(l.code, key);
-                      const tgt = l.code as "km" | "ja";
-                      const acceptedHere = l.code !== "en" && acceptedFor(tgt).has(key);
-                      // Live: the dot clears as soon as you type text in that
-                      // script, even before saving.
-                      const needs =
-                        l.code !== "en" &&
-                        !acceptedHere &&
-                        missingScript(tgt, valueOf(l.code, key));
-                      const isFocus = focusLocale === l.code;
-                      const isSecondary =
-                        !!focusLocale && l.code !== "en" && l.code !== focusLocale;
-                      return (
-                        <div key={l.code} className={cn(isSecondary && "opacity-50")}>
-                          <div className="mb-1 flex items-center justify-between gap-2">
-                            <span
-                              className={cn(
-                                "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide",
-                                isFocus
-                                  ? "text-amber-700 dark:text-amber-400"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              {l.label}
-                              {isFocus && <span className="normal-case">— translate this</span>}
-                              {acceptedHere && (
-                                <span className="flex items-center gap-1 normal-case font-medium text-emerald-600 dark:text-emerald-400">
-                                  <Check className="size-3" /> = English
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleAccept(key, tgt, false)}
-                                    className="underline hover:no-underline"
-                                  >
-                                    undo
-                                  </button>
-                                </span>
-                              )}
-                              {needs && (
-                                <>
-                                  {!isFocus && (
-                                    <span
-                                      className="size-1.5 rounded-full bg-amber-500"
-                                      title={`No ${l.label} text yet`}
-                                    />
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleAccept(key, tgt, true)}
-                                    className="normal-case font-medium text-muted-foreground underline hover:text-foreground"
-                                  >
-                                    same as English
-                                  </button>
-                                </>
-                              )}
+              visibleKeys.map((key) => {
+                const keyIsEdited = LOCALES.some((l) => savedEdited(l.code, key));
+                return (
+                  <article key={key} className="rounded-xl border bg-card p-4">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2 text-sm font-semibold leading-tight">
+                          {KEY_LABELS[key] ?? key}
+                          {keyIsEdited && (
+                            <span className="rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand">
+                              Edited
                             </span>
-                            {changed && (
+                          )}
+                        </p>
+                        {spanAllSections && (
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            {SECTION_FOR(key)}
+                          </p>
+                        )}
+                      </div>
+                      <code className="shrink-0 text-[10px] text-muted-foreground/70">{key}</code>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {orderedLocales.map((l) => {
+                        const changed = valueOf(l.code, key) !== savedValue(l.code, key);
+                        // Persistently customised: the saved value no longer matches
+                        // the shipped default.
+                        const editedFromDefault = savedEdited(l.code, key);
+                        const def = defaultValue(l.code, key);
+                        const showOriginal =
+                          (editedFromDefault || draftDirty(l.code, key)) &&
+                          def.trim() !== valueOf(l.code, key).trim();
+                        const tgt = l.code as "km" | "ja";
+                        const acceptedHere = l.code !== "en" && acceptedFor(tgt).has(key);
+                        // Live: the dot clears as soon as you type text in that
+                        // script, even before saving.
+                        const needs =
+                          l.code !== "en" &&
+                          !acceptedHere &&
+                          missingScript(tgt, valueOf(l.code, key));
+                        const isFocus = focusLocale === l.code;
+                        const isSecondary =
+                          !!focusLocale && l.code !== "en" && l.code !== focusLocale;
+                        return (
+                          <div key={l.code} className={cn(isSecondary && "opacity-50")}>
+                            <div className="mb-1 flex items-center justify-between gap-2">
+                              <span
+                                className={cn(
+                                  "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide",
+                                  isFocus
+                                    ? "text-amber-700 dark:text-amber-400"
+                                    : "text-muted-foreground",
+                                )}
+                              >
+                                {l.label}
+                                {editedFromDefault && (
+                                  <span className="normal-case font-medium text-brand">
+                                    changed
+                                  </span>
+                                )}
+                                {isFocus && <span className="normal-case">— translate this</span>}
+                                {acceptedHere && (
+                                  <span className="flex items-center gap-1 normal-case font-medium text-emerald-600 dark:text-emerald-400">
+                                    <Check className="size-3" /> = English
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleAccept(key, tgt, false)}
+                                      className="underline hover:no-underline"
+                                    >
+                                      undo
+                                    </button>
+                                  </span>
+                                )}
+                                {needs && (
+                                  <>
+                                    {!isFocus && (
+                                      <span
+                                        className="size-1.5 rounded-full bg-amber-500"
+                                        title={`No ${l.label} text yet`}
+                                      />
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleAccept(key, tgt, true)}
+                                      className="normal-case font-medium text-muted-foreground underline hover:text-foreground"
+                                    >
+                                      same as English
+                                    </button>
+                                  </>
+                                )}
+                              </span>
+                              {changed && (
+                                <button
+                                  type="button"
+                                  onClick={() => setValue(l.code, key, savedValue(l.code, key))}
+                                  title="Discard this change"
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <RotateCcw className="size-3" />
+                                </button>
+                              )}
+                            </div>
+                            <Textarea
+                              value={valueOf(l.code, key)}
+                              onChange={(e) => setValue(l.code, key, e.target.value)}
+                              rows={isFocus ? 3 : 2}
+                              dir="ltr"
+                              placeholder={
+                                isFocus
+                                  ? `${l.label} translation of “${valueOf("en", key)}”`
+                                  : undefined
+                              }
+                              className={cn(
+                                "min-h-10 resize-y text-sm",
+                                changed && "border-brand/50 bg-brand/5",
+                                isFocus &&
+                                  needs &&
+                                  "border-amber-400 bg-amber-50/50 ring-2 ring-amber-300 dark:bg-amber-500/5",
+                                isFocus && !needs && "border-emerald-400",
+                              )}
+                            />
+                            {showOriginal && (
                               <button
                                 type="button"
-                                onClick={() => setValue(l.code, key, savedValue(l.code, key))}
-                                title="Discard this change"
-                                className="text-muted-foreground hover:text-foreground"
+                                onClick={() => setValue(l.code, key, def)}
+                                title={`Restore the original: ${def || "(blank)"}`}
+                                className="mt-1 flex w-full items-baseline gap-1 text-left text-[11px] leading-snug text-muted-foreground hover:text-foreground"
                               >
-                                <RotateCcw className="size-3" />
+                                <span className="shrink-0 text-muted-foreground/70">Original:</span>
+                                <span className="truncate">{def || "—"}</span>
+                                <span className="ms-auto shrink-0 underline">restore</span>
                               </button>
                             )}
                           </div>
-                          <Textarea
-                            value={valueOf(l.code, key)}
-                            onChange={(e) => setValue(l.code, key, e.target.value)}
-                            rows={isFocus ? 3 : 2}
-                            dir="ltr"
-                            placeholder={
-                              isFocus
-                                ? `${l.label} translation of “${valueOf("en", key)}”`
-                                : undefined
-                            }
-                            className={cn(
-                              "min-h-10 resize-y text-sm",
-                              changed && "border-brand/50 bg-brand/5",
-                              isFocus &&
-                                needs &&
-                                "border-amber-400 bg-amber-50/50 ring-2 ring-amber-300 dark:bg-amber-500/5",
-                              isFocus && !needs && "border-emerald-400",
-                            )}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </article>
-              ))
+                        );
+                      })}
+                    </div>
+                  </article>
+                );
+              })
             )}
           </div>
         </div>
