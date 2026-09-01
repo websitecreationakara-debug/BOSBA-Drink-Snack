@@ -661,24 +661,24 @@ function ProductsAdmin() {
           : "Clear filters and search to drag-reorder products."}
       </p>
 
-      <div className="bg-card border rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-card border rounded-2xl overflow-x-auto">
+        <table className="w-full min-w-[880px] text-sm">
           <thead className="bg-muted text-xs uppercase tracking-widest text-muted-foreground">
             <tr>
               <th className="w-8 px-2 py-3"></th>
-              <th className="text-left px-6 py-3">Product</th>
-              <th className="text-left px-6 py-3">Category</th>
-              <th className="text-left px-6 py-3">Price</th>
-              <th className="text-left px-6 py-3">Weight</th>
-              <th className="text-left px-6 py-3">Stock</th>
-              <th className="text-left px-6 py-3">Status</th>
-              <th className="px-6 py-3"></th>
+              <th className="text-left px-4 py-3">Product</th>
+              <th className="text-left px-4 py-3">Category</th>
+              <th className="text-left px-4 py-3">Price</th>
+              <th className="text-left px-4 py-3">Weight</th>
+              <th className="text-left px-4 py-3">Stock</th>
+              <th className="text-left px-4 py-3">Status</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
+                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
                   No products match your filters.
                 </td>
               </tr>
@@ -715,7 +715,7 @@ function ProductsAdmin() {
                     <GripVertical className="size-4 text-muted-foreground/20 inline-block" />
                   )}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="size-10 rounded-lg bg-muted overflow-hidden shrink-0">
                       {p.image_url && (
@@ -737,14 +737,20 @@ function ProductsAdmin() {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-3 text-muted-foreground whitespace-nowrap">
-                  {categoryName(p)}
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {p.category_id ? (
+                    <span className="inline-flex items-center rounded-full border bg-muted/50 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      {categoryName(p)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/50">—</span>
+                  )}
                 </td>
-                <td className="px-6 py-3 font-bold whitespace-nowrap">{priceLabel(p)}</td>
-                <td className="px-6 py-3 text-muted-foreground whitespace-nowrap">
+                <td className="px-4 py-3 font-bold whitespace-nowrap">{priceLabel(p)}</td>
+                <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                   {weightLabel(p)}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3">
                   {p.type === "variable" ? (
                     stockLabel(p)
                   ) : editingStock?.id === p.id ? (
@@ -784,12 +790,12 @@ function ProductsAdmin() {
                     </button>
                   )}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <span className="px-2 py-0.5 bg-muted rounded text-xs font-bold uppercase">
                     {p.status}
                   </span>
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className="px-4 py-3 text-right whitespace-nowrap">
                   <div className="flex justify-end gap-1">
                     <Button
                       variant="ghost"
