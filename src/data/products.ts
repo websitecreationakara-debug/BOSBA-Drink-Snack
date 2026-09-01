@@ -298,6 +298,18 @@ export const setProductStock = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Quick inline category change from the admin list.
+export const setProductCategory = createServerFn({ method: "POST" })
+  .inputValidator((d: { id: string; category_id: string | null }) => d)
+  .handler(async ({ data }) => {
+    await requireManager();
+    await getDb()
+      .update(products)
+      .set({ category_id: data.category_id, updated_at: new Date().toISOString() })
+      .where(eq(products.id, data.id));
+    return { ok: true };
+  });
+
 // Persist a new global product order from admin drag-and-drop: sort_order
 // becomes each id's position in the array. Ids not passed keep their old value.
 export const reorderProducts = createServerFn({ method: "POST" })

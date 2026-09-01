@@ -14,6 +14,7 @@ import {
   saveProductTabs,
   setProductStatus,
   setProductStock,
+  setProductCategory,
 } from "@/data/products";
 import { listMedia, uploadMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
@@ -543,6 +544,23 @@ function ProductsAdmin() {
     qc.invalidateQueries({ queryKey: ["variations"] });
   };
 
+  const NO_CATEGORY = "__none__";
+  const saveCategory = async (p: Product, categoryId: string | null) => {
+    if (categoryId === (p.category_id ?? null)) return;
+    qc.setQueryData(["products", "all"], (rows: Product[] = []) =>
+      rows.map((r) => (r.id === p.id ? { ...r, category_id: categoryId } : r)),
+    );
+    try {
+      await setProductCategory({ data: { id: p.id, category_id: categoryId } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update category");
+      qc.invalidateQueries({ queryKey: ["products"] });
+      return;
+    }
+    toast.success("Category updated");
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
+
   // Price/stock/weight columns reflect variations for variable products.
   const priceLabel = (p: Product) => {
     if (p.type !== "variable") return `$${(p.sale_price ?? p.price).toFixed(2)}`;
@@ -659,23 +677,24 @@ function ProductsAdmin() {
           : "Clear filters and search to drag-reorder products."}
       </p>
 
-      <div className="bg-card border rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-card border rounded-2xl overflow-x-auto">
+        <table className="w-full min-w-[880px] text-sm">
           <thead className="bg-muted text-xs uppercase tracking-widest text-muted-foreground">
             <tr>
               <th className="w-8 px-2 py-3"></th>
-              <th className="text-left px-6 py-3">Product</th>
-              <th className="text-left px-6 py-3">Price</th>
-              <th className="text-left px-6 py-3">Weight</th>
-              <th className="text-left px-6 py-3">Stock</th>
-              <th className="text-left px-6 py-3">Status</th>
-              <th className="px-6 py-3"></th>
+              <th className="text-left px-4 py-3">Product</th>
+              <th className="text-left px-4 py-3">Category</th>
+              <th className="text-left px-4 py-3">Price</th>
+              <th className="text-left px-4 py-3">Weight</th>
+              <th className="text-left px-4 py-3">Stock</th>
+              <th className="text-left px-4 py-3">Status</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
                   No products match your filters.
                 </td>
               </tr>
@@ -712,7 +731,7 @@ function ProductsAdmin() {
                     <GripVertical className="size-4 text-muted-foreground/20 inline-block" />
                   )}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="size-10 rounded-lg bg-muted overflow-hidden shrink-0">
                       {p.image_url && (
@@ -734,11 +753,32 @@ function ProductsAdmin() {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-3 font-bold whitespace-nowrap">{priceLabel(p)}</td>
-                <td className="px-6 py-3 text-muted-foreground whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <Select
+                    value={p.category_id ?? NO_CATEGORY}
+                    onValueChange={(v) => saveCategory(p, v === NO_CATEGORY ? null : v)}
+                  >
+                    <SelectTrigger
+                      aria-label="Change category"
+                      className="h-7 w-[150px] rounded-full border-transparent bg-muted/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted [&>svg]:size-3"
+                    >
+                      <SelectValue placeholder="Uncategorized" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_CATEGORY}>Uncategorized</SelectItem>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </td>
+                <td className="px-4 py-3 font-bold whitespace-nowrap">{priceLabel(p)}</td>
+                <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                   {weightLabel(p)}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3">
                   {p.type === "variable" ? (
                     stockLabel(p)
                   ) : editingStock?.id === p.id ? (
@@ -778,12 +818,12 @@ function ProductsAdmin() {
                     </button>
                   )}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <span className="px-2 py-0.5 bg-muted rounded text-xs font-bold uppercase">
                     {p.status}
                   </span>
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className="px-4 py-3 text-right whitespace-nowrap">
                   <div className="flex justify-end gap-1">
                     <Button
                       variant="ghost"

@@ -263,7 +263,7 @@ function AdminLayout() {
           </Link>
         </div>
       </aside>
-      <main className="flex-1 bg-background p-8 overflow-x-auto">
+      <main className="flex-1 min-w-0 bg-background p-8 overflow-x-auto">
         {salesBlocked || marketingBlocked || stockBlocked ? (
           <div className="text-muted-foreground">Redirecting…</div>
         ) : (
