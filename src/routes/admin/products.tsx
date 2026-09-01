@@ -21,6 +21,7 @@ import { groupVariations } from "@/lib/variants";
 import { downloadProductsXlsx } from "@/lib/products-export";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -119,6 +120,7 @@ function ProductsAdmin() {
     queryFn: () => listMedia() as Promise<Media[]>,
   });
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   // Full-size image lightbox for the table's row thumbnails.
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -470,6 +472,12 @@ function ProductsAdmin() {
   };
 
   const del = async (p: Product) => {
+    const ok = await confirm({
+      title: `Delete "${p.title}"?`,
+      description: "This product will be permanently removed. This action cannot be undone.",
+      confirmText: "Delete product",
+    });
+    if (!ok) return;
     try {
       await deleteProduct({ data: { id: p.id } });
     } catch (err) {
