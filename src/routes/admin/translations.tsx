@@ -493,115 +493,120 @@ function TranslationsAdmin() {
                       : `No strings match “${query.trim()}”.`}
               </div>
             ) : (
-              visibleKeys.map((key) => (
-                <article key={key} className="rounded-xl border bg-card p-4">
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold leading-tight">
-                        {KEY_LABELS[key] ?? key}
-                      </p>
-                      {searching && (
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {SECTION_FOR(key)}
+              <div className="flex gap-3 overflow-x-auto pb-3">
+                {visibleKeys.map((key) => (
+                  <article
+                    key={key}
+                    className="flex w-[22rem] shrink-0 flex-col rounded-xl border bg-card p-4"
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold leading-tight">
+                          {KEY_LABELS[key] ?? key}
                         </p>
-                      )}
+                        {searching && (
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            {SECTION_FOR(key)}
+                          </p>
+                        )}
+                      </div>
+                      <code className="shrink-0 text-[10px] text-muted-foreground/70">{key}</code>
                     </div>
-                    <code className="shrink-0 text-[10px] text-muted-foreground/70">{key}</code>
-                  </div>
 
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {orderedLocales.map((l) => {
-                      const changed = valueOf(l.code, key) !== savedValue(l.code, key);
-                      const tgt = l.code as "km" | "ja";
-                      const acceptedHere = l.code !== "en" && acceptedFor(tgt).has(key);
-                      // Live: the dot clears as soon as you type text in that
-                      // script, even before saving.
-                      const needs =
-                        l.code !== "en" &&
-                        !acceptedHere &&
-                        missingScript(tgt, valueOf(l.code, key));
-                      const isFocus = focusLocale === l.code;
-                      const isSecondary =
-                        !!focusLocale && l.code !== "en" && l.code !== focusLocale;
-                      return (
-                        <div key={l.code} className={cn(isSecondary && "opacity-50")}>
-                          <div className="mb-1 flex items-center justify-between gap-2">
-                            <span
-                              className={cn(
-                                "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide",
-                                isFocus
-                                  ? "text-amber-700 dark:text-amber-400"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              {l.label}
-                              {isFocus && <span className="normal-case">— translate this</span>}
-                              {acceptedHere && (
-                                <span className="flex items-center gap-1 normal-case font-medium text-emerald-600 dark:text-emerald-400">
-                                  <Check className="size-3" /> = English
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleAccept(key, tgt, false)}
-                                    className="underline hover:no-underline"
-                                  >
-                                    undo
-                                  </button>
-                                </span>
-                              )}
-                              {needs && (
-                                <>
-                                  {!isFocus && (
-                                    <span
-                                      className="size-1.5 rounded-full bg-amber-500"
-                                      title={`No ${l.label} text yet`}
-                                    />
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleAccept(key, tgt, true)}
-                                    className="normal-case font-medium text-muted-foreground underline hover:text-foreground"
-                                  >
-                                    same as English
-                                  </button>
-                                </>
-                              )}
-                            </span>
-                            {changed && (
-                              <button
-                                type="button"
-                                onClick={() => setValue(l.code, key, savedValue(l.code, key))}
-                                title="Discard this change"
-                                className="text-muted-foreground hover:text-foreground"
+                    <div className="flex flex-1 flex-col gap-3">
+                      {orderedLocales.map((l) => {
+                        const changed = valueOf(l.code, key) !== savedValue(l.code, key);
+                        const tgt = l.code as "km" | "ja";
+                        const acceptedHere = l.code !== "en" && acceptedFor(tgt).has(key);
+                        // Live: the dot clears as soon as you type text in that
+                        // script, even before saving.
+                        const needs =
+                          l.code !== "en" &&
+                          !acceptedHere &&
+                          missingScript(tgt, valueOf(l.code, key));
+                        const isFocus = focusLocale === l.code;
+                        const isSecondary =
+                          !!focusLocale && l.code !== "en" && l.code !== focusLocale;
+                        return (
+                          <div key={l.code} className={cn(isSecondary && "opacity-50")}>
+                            <div className="mb-1 flex items-center justify-between gap-2">
+                              <span
+                                className={cn(
+                                  "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide",
+                                  isFocus
+                                    ? "text-amber-700 dark:text-amber-400"
+                                    : "text-muted-foreground",
+                                )}
                               >
-                                <RotateCcw className="size-3" />
-                              </button>
-                            )}
+                                {l.label}
+                                {isFocus && <span className="normal-case">— translate this</span>}
+                                {acceptedHere && (
+                                  <span className="flex items-center gap-1 normal-case font-medium text-emerald-600 dark:text-emerald-400">
+                                    <Check className="size-3" /> = English
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleAccept(key, tgt, false)}
+                                      className="underline hover:no-underline"
+                                    >
+                                      undo
+                                    </button>
+                                  </span>
+                                )}
+                                {needs && (
+                                  <>
+                                    {!isFocus && (
+                                      <span
+                                        className="size-1.5 rounded-full bg-amber-500"
+                                        title={`No ${l.label} text yet`}
+                                      />
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleAccept(key, tgt, true)}
+                                      className="normal-case font-medium text-muted-foreground underline hover:text-foreground"
+                                    >
+                                      same as English
+                                    </button>
+                                  </>
+                                )}
+                              </span>
+                              {changed && (
+                                <button
+                                  type="button"
+                                  onClick={() => setValue(l.code, key, savedValue(l.code, key))}
+                                  title="Discard this change"
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <RotateCcw className="size-3" />
+                                </button>
+                              )}
+                            </div>
+                            <Textarea
+                              value={valueOf(l.code, key)}
+                              onChange={(e) => setValue(l.code, key, e.target.value)}
+                              rows={isFocus ? 3 : 2}
+                              dir="ltr"
+                              placeholder={
+                                isFocus
+                                  ? `${l.label} translation of “${valueOf("en", key)}”`
+                                  : undefined
+                              }
+                              className={cn(
+                                "min-h-10 resize-y text-sm",
+                                changed && "border-brand/50 bg-brand/5",
+                                isFocus &&
+                                  needs &&
+                                  "border-amber-400 bg-amber-50/50 ring-2 ring-amber-300 dark:bg-amber-500/5",
+                                isFocus && !needs && "border-emerald-400",
+                              )}
+                            />
                           </div>
-                          <Textarea
-                            value={valueOf(l.code, key)}
-                            onChange={(e) => setValue(l.code, key, e.target.value)}
-                            rows={isFocus ? 3 : 2}
-                            dir="ltr"
-                            placeholder={
-                              isFocus
-                                ? `${l.label} translation of “${valueOf("en", key)}”`
-                                : undefined
-                            }
-                            className={cn(
-                              "min-h-10 resize-y text-sm",
-                              changed && "border-brand/50 bg-brand/5",
-                              isFocus &&
-                                needs &&
-                                "border-amber-400 bg-amber-50/50 ring-2 ring-amber-300 dark:bg-amber-500/5",
-                              isFocus && !needs && "border-emerald-400",
-                            )}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </article>
-              ))
+                        );
+                      })}
+                    </div>
+                  </article>
+                ))}
+              </div>
             )}
           </div>
         </div>
