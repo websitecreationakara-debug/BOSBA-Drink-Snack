@@ -32,7 +32,6 @@ import {
   Heart,
   Play,
   MessageCircle,
-  Sparkles,
 } from "lucide-react";
 import { cn, slugify } from "@/lib/utils";
 import { PIXEL_CURRENCY, trackPixel } from "@/lib/integrations/meta-pixel";
@@ -268,6 +267,28 @@ function ProductDetail() {
         <ArrowLeft className="size-4" /> Back to shop
       </Link>
 
+      {(desc.tagline || desc.badges.length > 0) && (
+        <div className="mb-6 rounded-2xl border bg-card px-4 py-4 text-center sm:px-6">
+          {desc.tagline && (
+            <p className="font-display text-lg font-semibold text-brand sm:text-xl">
+              {renderFormattedDescription(desc.tagline)}
+            </p>
+          )}
+          {desc.badges.length > 0 && (
+            <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+              {desc.badges.map((b, i) => (
+                <span
+                  key={i}
+                  className="rounded-full border bg-background px-3 py-1 text-xs font-medium text-foreground/80"
+                >
+                  {b}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid md:grid-cols-2 gap-6 md:gap-10">
         <div>
           <div className="relative aspect-square rounded-3xl overflow-hidden bg-muted">
@@ -361,28 +382,6 @@ function ProductDetail() {
           <h1 className="font-display font-semibold tracking-tight text-2xl sm:text-3xl md:text-4xl leading-tight">
             {title}
           </h1>
-
-          {(desc.tagline || desc.badges.length > 0) && (
-            <div className="mt-3 rounded-xl border border-brand/25 bg-brand/5 px-4 py-3">
-              {desc.tagline && (
-                <p className="text-sm font-semibold leading-snug text-foreground">
-                  {renderFormattedDescription(desc.tagline)}
-                </p>
-              )}
-              {desc.badges.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {desc.badges.map((b, i) => (
-                    <span
-                      key={i}
-                      className="rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand"
-                    >
-                      {b}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1">
@@ -496,6 +495,16 @@ function ProductDetail() {
             </div>
           )}
 
+          {desc.callouts.length > 0 && (
+            <ul className="mt-6 space-y-1.5 text-sm text-muted-foreground">
+              {desc.callouts.map((c, i) => (
+                <li key={i} className="leading-snug">
+                  {renderFormattedDescription(c)}
+                </li>
+              ))}
+            </ul>
+          )}
+
           {desc.body && (
             <div className="mt-5">
               <p
@@ -532,20 +541,6 @@ function ProductDetail() {
                 </AccordionItem>
               ))}
             </Accordion>
-          )}
-
-          {desc.callouts.length > 0 && (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {desc.callouts.map((c, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand/30 bg-brand/5 px-3 py-1.5 text-sm font-medium text-foreground"
-                >
-                  <Sparkles className="size-3.5 shrink-0 text-brand" />
-                  {renderFormattedDescription(c)}
-                </span>
-              ))}
-            </div>
           )}
 
           {/* Narrow phones can't fit stepper + button + wishlist on one line, so
