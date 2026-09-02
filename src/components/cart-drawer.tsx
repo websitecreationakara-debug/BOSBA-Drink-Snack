@@ -10,7 +10,7 @@ import { useI18n } from "@/lib/i18n";
 export function CartDrawer() {
   const { items, drawerOpen, setDrawerOpen, setQty, remove, subtotal } = useCart();
   const { data: settings } = useStoreSettings();
-  const { t } = useI18n();
+  const { t, tp } = useI18n();
   const threshold = settings?.free_shipping_threshold ?? 50;
   const progress = Math.min((subtotal / Number(threshold)) * 100, 100);
   const remaining = Math.max(Number(threshold) - subtotal, 0);
@@ -63,13 +63,14 @@ export function CartDrawer() {
                 const { product, variation, qty } = item;
                 const key = itemKey(item);
                 const unit = itemUnitPrice(item);
+                const title = tp(product.id, "title", product.title);
                 return (
                   <div key={key} className="flex gap-3">
                     <div className="size-20 rounded-xl bg-muted overflow-hidden shrink-0">
                       {product.image_url && (
                         <img
                           src={product.image_url}
-                          alt={product.title}
+                          alt={title}
                           className="w-full h-full object-cover"
                           loading="lazy"
                         />
@@ -78,7 +79,7 @@ export function CartDrawer() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-medium text-sm leading-tight">
-                          {product.title}
+                          {title}
                           {variation && (
                             <span className="text-muted-foreground">
                               {" "}

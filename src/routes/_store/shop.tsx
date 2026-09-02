@@ -55,7 +55,7 @@ function Shop() {
   // their own price.
   const variationsByProduct = groupVariations(variations);
   const displayPrice = (p: Product) => productFromPrice(p, variationsByProduct.get(p.id) ?? []);
-  const { t } = useI18n();
+  const { t, tp } = useI18n();
   const [query, setQuery] = useState(search.q ?? "");
   const [activeCat, setActiveCat] = useState<string | undefined>(search.category);
   const [sort, setSort] = useState<Sort>("featured");
@@ -91,7 +91,11 @@ function Shop() {
 
   const filtered = products.filter((p) => {
     if (catId && p.category_id !== catId) return false;
-    if (query && !p.title.toLowerCase().includes(query.toLowerCase())) return false;
+    if (query) {
+      const q = query.toLowerCase();
+      const localized = tp(p.id, "title", p.title).toLowerCase();
+      if (!p.title.toLowerCase().includes(q) && !localized.includes(q)) return false;
+    }
     if (onSale && !isOnSale(p)) return false;
     const price = displayPrice(p);
     if (price < lo || price > hi) return false;

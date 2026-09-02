@@ -150,6 +150,12 @@ export const I18N_KEYS = [
 
 export type I18nKey = (typeof I18N_KEYS)[number];
 
+// `t()` accepts any string so pages can use keys added at runtime in
+// /admin/translations → "Custom" (which aren't in I18N_KEYS). The union keeps
+// editor autocomplete for the known keys. An unknown key falls back to English
+// then to the raw key, same as a known key with no translation row.
+export type I18nKeyLoose = I18nKey | (string & {});
+
 // Ordered sections for the admin Translations editor. The key prefix (before the
 // first ".") groups the strings; anything not listed lands in "Other". `short` is
 // the label on the section picker buttons; `label` is the group heading.
@@ -157,7 +163,7 @@ export const I18N_SECTIONS: { prefix: string; label: string; short: string }[] =
   { prefix: "home", label: "Homepage", short: "Homepage" },
   { prefix: "feature", label: "Homepage — Feature Highlights", short: "Features" },
   { prefix: "shop", label: "Shop", short: "Shop" },
-  { prefix: "product", label: "Product Page", short: "Product" },
+  { prefix: "product", label: "Product Page", short: "Product Page" },
   { prefix: "offers", label: "Offers", short: "Offers" },
   { prefix: "offer", label: "Offers — Badges", short: "Badges" },
   { prefix: "nav", label: "Navigation & Search", short: "Navigation" },
@@ -180,11 +186,21 @@ function interpolate(s: string, vars?: Record<string, string | number>) {
 export type TranslationStrings = TranslationOverrides;
 const EMPTY_STRINGS: TranslationStrings = { en: {}, km: {}, ja: {} };
 
+// Fields on a product that can be translated per-locale in /admin/translations.
+// Stored in the same `translations` table under the key `product.<id>.<field>`;
+// English always comes from the product's own column, so only km/ja rows exist.
+export type ProductTextField = "title" | "description" | "badge";
+
 type Ctx = {
   locale: Locale;
   setLocale: (l: Locale) => void;
-  t: (key: I18nKey, vars?: Record<string, string | number>) => string;
+  t: (key: I18nKeyLoose, vars?: Record<string, string | number>) => string;
+  // Localized product text: the km/ja override when set, otherwise `fallback`
+  // (the product's English column). Returns "" only if both are empty.
+  tp: (id: string, field: ProductTextField, fallback?: string | null) => string;
 };
+
+export const productTextKey = (id: string, field: ProductTextField) => `product.${id}.${field}`;
 
 const I18nContext = createContext<Ctx | null>(null);
 
@@ -280,7 +296,18 @@ export function LanguageProvider({
     [locale, strings],
   );
 
-  return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
+  const tp = useCallback<Ctx["tp"]>(
+    (id, field, fallback) => {
+      const dict = strings ?? EMPTY_STRINGS;
+      const override = dict[locale]?.[productTextKey(id, field)];
+      return (override ?? fallback ?? "").toString();
+    },
+    [locale, strings],
+  );
+
+  return (
+    <I18nContext.Provider value={{ locale, setLocale, t, tp }}>{children}</I18nContext.Provider>
+  );
 }
 
 export function useI18n() {
