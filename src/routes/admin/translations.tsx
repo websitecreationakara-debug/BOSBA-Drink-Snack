@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Check, Loader2, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/admin/translations")({ component: TranslationsAdmin });
 
@@ -260,6 +261,7 @@ const MODES: { key: Mode; label: string }[] = [
 
 function TranslationsAdmin() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const { data: overrides, isLoading } = useQuery<TranslationOverrides>({
     queryKey: ["translations"],
     queryFn: () => getTranslationOverrides(),
@@ -543,6 +545,13 @@ function TranslationsAdmin() {
   };
 
   const deleteCustomKey = async (key: string) => {
+    const ok = await confirm({
+      title: `Delete “${key}”?`,
+      description:
+        "This text will be permanently removed in all languages. Anywhere a page uses it will fall back to the key name. This cannot be undone.",
+      confirmText: "Delete text",
+    });
+    if (!ok) return;
     setDeletingKey(key);
     try {
       await deleteTranslationKey({ data: { key } });
