@@ -952,8 +952,18 @@ function ProductsAdmin() {
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={6}
-                placeholder="Use **bold** for emphasis. Leave a blank line between paragraphs."
+                placeholder={
+                  "Use **bold** for emphasis. Leave a blank line between paragraphs.\n\n" +
+                  "Optional extras, each on its own line:\n" +
+                  "> Tagline text for a hero banner (add more > lines for small badges under it)\n" +
+                  "- Offer callout for a buy-box callout row"
+                }
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                A line starting with <code>&gt;</code> shows as a hero banner above the description
+                — the first is the tagline, extra <code>&gt;</code> lines become small badges. A
+                line starting with <code>-</code> shows as an offer callout next to Add to Cart.
+              </p>
             </div>
 
             <div className="space-y-3 border rounded-xl p-4">

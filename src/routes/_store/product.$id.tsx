@@ -9,7 +9,7 @@ import {
   useAllVariations,
 } from "@/hooks/use-products";
 import { getProduct } from "@/data/products";
-import { renderFormattedDescription } from "@/lib/format-description";
+import { parseProductDescription, renderFormattedDescription } from "@/lib/format-description";
 import type { Product } from "@/types";
 import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
@@ -56,7 +56,10 @@ function relatedProducts(current: Product, all: Product[]): Product[] {
 const SITE = "https://bosbadrinksnack.com";
 
 const metaDescription = (p: Product) =>
-  (p.description?.trim() || `${p.title} — premium quality foods from BOSBA Drink Snack.`)
+  (
+    parseProductDescription(p.description).body ||
+    `${p.title} — premium quality foods from BOSBA Drink Snack.`
+  )
     .replace(/\s+/g, " ")
     .slice(0, 160);
 
@@ -104,7 +107,7 @@ function ProductJsonLd({ product }: { product: Product }) {
     "@type": "Product",
     name: product.title,
     image: product.image_url ?? undefined,
-    description: product.description ?? undefined,
+    description: parseProductDescription(product.description).body || undefined,
     brand: { "@type": "Brand", name: "BOSBA Drink Snack" },
   };
   if (price > 0) {
@@ -239,6 +242,8 @@ function ProductDetail() {
   // Localized product text (admin-set km/ja overrides, else the English column).
   const title = tp(product.id, "title", product.title);
   const description = tp(product.id, "description", product.description);
+  // Pull the `>` hero lines and `- ` offer callouts out of the description.
+  const desc = parseProductDescription(description);
   const badgeLabel = product.badge ? tp(product.id, "badge", product.badge) : null;
 
   const related = relatedProducts(product, allProducts);
@@ -261,6 +266,28 @@ function ProductDetail() {
       >
         <ArrowLeft className="size-4" /> Back to shop
       </Link>
+
+      {(desc.tagline || desc.badges.length > 0) && (
+        <div className="mb-6 rounded-2xl border bg-card px-4 py-4 text-center sm:px-6">
+          {desc.tagline && (
+            <p className="font-display text-lg font-semibold text-brand sm:text-xl">
+              {renderFormattedDescription(desc.tagline)}
+            </p>
+          )}
+          {desc.badges.length > 0 && (
+            <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+              {desc.badges.map((b, i) => (
+                <span
+                  key={i}
+                  className="rounded-full border bg-background px-3 py-1 text-xs font-medium text-foreground/80"
+                >
+                  {b}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6 md:gap-10">
         <div>
@@ -468,7 +495,17 @@ function ProductDetail() {
             </div>
           )}
 
-          {description && (
+          {desc.callouts.length > 0 && (
+            <ul className="mt-6 space-y-1.5 text-sm text-muted-foreground">
+              {desc.callouts.map((c, i) => (
+                <li key={i} className="leading-snug">
+                  {renderFormattedDescription(c)}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {desc.body && (
             <div className="mt-5">
               <p
                 ref={descRef}
@@ -477,7 +514,7 @@ function ProductDetail() {
                   !descExpanded && "line-clamp-3",
                 )}
               >
-                {renderFormattedDescription(description)}
+                {renderFormattedDescription(desc.body)}
               </p>
               {(descOverflows || descExpanded) && (
                 <button
