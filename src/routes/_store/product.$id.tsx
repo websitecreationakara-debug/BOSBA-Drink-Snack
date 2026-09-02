@@ -9,7 +9,7 @@ import {
   useAllVariations,
 } from "@/hooks/use-products";
 import { getProduct } from "@/data/products";
-import { renderFormattedDescription } from "@/lib/format-description";
+import { parseProductDescription, renderFormattedDescription } from "@/lib/format-description";
 import type { Product } from "@/types";
 import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
@@ -32,6 +32,7 @@ import {
   Heart,
   Play,
   MessageCircle,
+  Sparkles,
 } from "lucide-react";
 import { cn, slugify } from "@/lib/utils";
 import { PIXEL_CURRENCY, trackPixel } from "@/lib/integrations/meta-pixel";
@@ -56,7 +57,10 @@ function relatedProducts(current: Product, all: Product[]): Product[] {
 const SITE = "https://bosbadrinksnack.com";
 
 const metaDescription = (p: Product) =>
-  (p.description?.trim() || `${p.title} — premium quality foods from BOSBA Drink Snack.`)
+  (
+    parseProductDescription(p.description).body ||
+    `${p.title} — premium quality foods from BOSBA Drink Snack.`
+  )
     .replace(/\s+/g, " ")
     .slice(0, 160);
 
@@ -104,7 +108,7 @@ function ProductJsonLd({ product }: { product: Product }) {
     "@type": "Product",
     name: product.title,
     image: product.image_url ?? undefined,
-    description: product.description ?? undefined,
+    description: parseProductDescription(product.description).body || undefined,
     brand: { "@type": "Brand", name: "BOSBA Drink Snack" },
   };
   if (price > 0) {
@@ -239,6 +243,8 @@ function ProductDetail() {
   // Localized product text (admin-set km/ja overrides, else the English column).
   const title = tp(product.id, "title", product.title);
   const description = tp(product.id, "description", product.description);
+  // Pull the `>` hero lines and `- ` offer callouts out of the description.
+  const desc = parseProductDescription(description);
   const badgeLabel = product.badge ? tp(product.id, "badge", product.badge) : null;
 
   const related = relatedProducts(product, allProducts);
@@ -356,6 +362,28 @@ function ProductDetail() {
             {title}
           </h1>
 
+          {(desc.tagline || desc.badges.length > 0) && (
+            <div className="mt-3 rounded-xl border border-brand/25 bg-brand/5 px-4 py-3">
+              {desc.tagline && (
+                <p className="text-sm font-semibold leading-snug text-foreground">
+                  {renderFormattedDescription(desc.tagline)}
+                </p>
+              )}
+              {desc.badges.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {desc.badges.map((b, i) => (
+                    <span
+                      key={i}
+                      className="rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand"
+                    >
+                      {b}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Star className="size-4 fill-warning text-warning" />
@@ -468,7 +496,7 @@ function ProductDetail() {
             </div>
           )}
 
-          {description && (
+          {desc.body && (
             <div className="mt-5">
               <p
                 ref={descRef}
@@ -477,7 +505,7 @@ function ProductDetail() {
                   !descExpanded && "line-clamp-3",
                 )}
               >
-                {renderFormattedDescription(description)}
+                {renderFormattedDescription(desc.body)}
               </p>
               {(descOverflows || descExpanded) && (
                 <button
@@ -504,6 +532,20 @@ function ProductDetail() {
                 </AccordionItem>
               ))}
             </Accordion>
+          )}
+
+          {desc.callouts.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-2">
+              {desc.callouts.map((c, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand/30 bg-brand/5 px-3 py-1.5 text-sm font-medium text-foreground"
+                >
+                  <Sparkles className="size-3.5 shrink-0 text-brand" />
+                  {renderFormattedDescription(c)}
+                </span>
+              ))}
+            </div>
           )}
 
           {/* Narrow phones can't fit stepper + button + wishlist on one line, so
