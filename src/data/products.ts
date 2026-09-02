@@ -310,6 +310,26 @@ export const setProductCategory = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Quick inline edit of a product's English wording (name / description / badge)
+// from the Translations screen, so an editor doesn't have to open the full
+// product form just to fix the source text.
+export const setProductText = createServerFn({ method: "POST" })
+  .inputValidator((d: { id: string; field: "title" | "description" | "badge"; value: string }) => d)
+  .handler(async ({ data }) => {
+    await requireManager();
+    const value = data.value.trim();
+    // title is required; description/badge fall back to null when cleared.
+    const next = data.field === "title" ? value : value === "" ? null : value;
+    if (data.field === "title" && next === "") {
+      throw new Error("A product needs a name.");
+    }
+    await getDb()
+      .update(products)
+      .set({ [data.field]: next, updated_at: new Date().toISOString() })
+      .where(eq(products.id, data.id));
+    return { ok: true };
+  });
+
 // Persist a new global product order from admin drag-and-drop: sort_order
 // becomes each id's position in the array. Ids not passed keep their old value.
 export const reorderProducts = createServerFn({ method: "POST" })

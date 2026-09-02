@@ -135,7 +135,7 @@ function ProductDetail() {
   const { data: settings } = useStoreSettings();
   const { add } = useCart();
   const { has: inWishlist, toggle: toggleWishlist } = useWishlist();
-  const { t } = useI18n();
+  const { t, tp, locale } = useI18n();
   const [qty, setQty] = useState(1);
   const [selectedFlavor, setSelectedFlavor] = useState<string | null>(null);
   const [selectedWeight, setSelectedWeight] = useState<string | null>(null);
@@ -155,7 +155,7 @@ function ProductDetail() {
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, [product?.description]);
+  }, [product?.description, product?.id, locale]);
 
   // Meta Pixel: one ViewContent per product viewed.
   useEffect(() => {
@@ -236,6 +236,11 @@ function ProductDetail() {
   const unpriced = variable && (!selected || !hasValidPrice(selected));
   const addDisabled = (variable && !selected) || soldOut || unpriced;
 
+  // Localized product text (admin-set km/ja overrides, else the English column).
+  const title = tp(product.id, "title", product.title);
+  const description = tp(product.id, "description", product.description);
+  const badgeLabel = product.badge ? tp(product.id, "badge", product.badge) : null;
+
   const related = relatedProducts(product, allProducts);
   const variationsByProduct = groupVariations(allVariations);
 
@@ -264,13 +269,13 @@ function ProductDetail() {
               <iframe
                 key={videoId}
                 src={youtubeEmbedSrc(videoId)}
-                title={product.title}
+                title={title}
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             ) : mainImage ? (
-              <img src={mainImage} alt={product.title} className="w-full h-full object-cover" />
+              <img src={mainImage} alt={title} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full grid place-items-center text-muted-foreground text-sm">
                 No image
@@ -292,7 +297,7 @@ function ProductDetail() {
                     product.badge === "SALE" && "bg-destructive text-destructive-foreground",
                   )}
                 >
-                  {product.badge}
+                  {badgeLabel}
                 </span>
               )}
             </div>
@@ -348,7 +353,7 @@ function ProductDetail() {
 
         <div className="flex flex-col">
           <h1 className="font-display font-semibold tracking-tight text-2xl sm:text-3xl md:text-4xl leading-tight">
-            {product.title}
+            {title}
           </h1>
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-sm text-muted-foreground">
@@ -463,7 +468,7 @@ function ProductDetail() {
             </div>
           )}
 
-          {product.description && (
+          {description && (
             <div className="mt-5">
               <p
                 ref={descRef}
@@ -472,7 +477,7 @@ function ProductDetail() {
                   !descExpanded && "line-clamp-3",
                 )}
               >
-                {renderFormattedDescription(product.description)}
+                {renderFormattedDescription(description)}
               </p>
               {(descOverflows || descExpanded) && (
                 <button

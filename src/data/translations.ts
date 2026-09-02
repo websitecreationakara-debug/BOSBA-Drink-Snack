@@ -95,6 +95,18 @@ export const setAcceptedKey = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Admin-only: remove a translation key entirely — every locale row plus any
+// "same as English" sentinels. Used by /admin/translations → "Custom" to delete
+// a string an editor added there.
+export const deleteTranslationKey = createServerFn({ method: "POST" })
+  .inputValidator((d: { key: string }) => d)
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    if (!data.key) return { ok: false };
+    await getDb().delete(translations).where(eq(translations.key, data.key));
+    return { ok: true };
+  });
+
 type Entry = { locale: string; key: string; value: string };
 
 // Admin-only: upsert a batch of overrides. A blank value removes the override
