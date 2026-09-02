@@ -5,7 +5,7 @@ import { listMedia, uploadMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { useConfirm } from "@/components/confirm-dialog";
+import { useConfirm } from "@/components/common/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,7 +19,7 @@ import {
 import { Fragment, useRef, useState } from "react";
 import { Trash2, Upload, ImageIcon, Loader2, X, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
-import type { Category, Media } from "@/lib/types";
+import type { Category, Media } from "@/types";
 
 const slugify = (s: string) =>
   s

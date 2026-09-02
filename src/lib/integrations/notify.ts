@@ -2,7 +2,7 @@
 // emails the customer a confirmation. Reuses the same Resend setup as auth
 // emails. Never throws — a failed notification must not fail the order itself.
 import { Resend } from "resend";
-import { formatShippingAddress } from "./utils";
+import { formatShippingAddress } from "@/lib/utils";
 
 type OrderItem = { id: string; title: string; qty: number; price: number };
 

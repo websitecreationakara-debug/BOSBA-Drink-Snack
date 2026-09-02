@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyOrders } from "@/hooks/use-products";
-import { downloadInvoice } from "@/lib/invoice";
-import type { Order } from "@/lib/types";
+import { downloadInvoice } from "@/lib/pdf/invoice";
+import type { Order } from "@/types";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_store/orders")({ component: MyOrders });

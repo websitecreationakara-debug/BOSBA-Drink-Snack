@@ -24,7 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { TwoFactorSetup } from "@/components/two-factor-setup";
+import { TwoFactorSetup } from "@/components/common/two-factor-setup";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,

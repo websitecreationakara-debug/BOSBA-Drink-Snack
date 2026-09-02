@@ -4,7 +4,7 @@ const uuid = () => crypto.randomUUID();
 const nowIso = () => new Date().toISOString();
 
 // ---------- Application tables ----------
-// Column names are snake_case to match the frontend types in src/lib/types.ts,
+// Column names are snake_case to match the frontend types in src/types/index.ts,
 // so query results can flow straight to the UI without remapping.
 
 export const categories = sqliteTable("categories", {

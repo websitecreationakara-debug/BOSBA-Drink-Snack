@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Heart } from "lucide-react";
-import { ProductCard } from "@/components/product-card";
+import { ProductCard } from "@/components/product/product-card";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useProducts, useAllVariations } from "@/hooks/use-products";
-import { groupVariations, productFromPrice } from "@/lib/variants";
+import { groupVariations, productFromPrice } from "@/lib/commerce/variants";
 
 export const Route = createFileRoute("/_store/wishlist")({ component: Wishlist });
 

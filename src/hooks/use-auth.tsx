@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { authClient } from "@/lib/auth-client";
-import { withCaptcha } from "@/lib/recaptcha";
+import { withCaptcha } from "@/lib/integrations/recaptcha";
 
 type AuthUser = {
   id: string;

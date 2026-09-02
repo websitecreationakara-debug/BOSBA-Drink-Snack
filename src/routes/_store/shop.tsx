@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useCategories, useProducts } from "@/hooks/use-products";
-import { ProductCard } from "@/components/product-card";
+import { ProductCard } from "@/components/product/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,8 +17,8 @@ import { SlidersHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useI18n } from "@/lib/i18n";
 import { useAllVariations } from "@/hooks/use-products";
-import { groupVariations, productFromPrice } from "@/lib/variants";
-import type { Product } from "@/lib/types";
+import { groupVariations, productFromPrice } from "@/lib/commerce/variants";
+import type { Product } from "@/types";
 
 type Search = { category?: string; q?: string };
 

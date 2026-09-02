@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { downloadInvoice } from "@/lib/invoice";
-import { PIXEL_CURRENCY, trackPixel } from "@/lib/meta-pixel";
+import { downloadInvoice } from "@/lib/pdf/invoice";
+import { PIXEL_CURRENCY, trackPixel } from "@/lib/integrations/meta-pixel";
 import { toast } from "sonner";
 
 type LastOrder = {

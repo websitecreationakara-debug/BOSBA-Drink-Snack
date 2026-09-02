@@ -5,7 +5,7 @@ import { admin, captcha, emailOTP, twoFactor } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { Resend } from "resend";
 import { getDb, schema } from "@/db";
-import { emailShell } from "@/lib/notify";
+import { emailShell } from "@/lib/integrations/notify";
 import { logAdminLogin } from "@/lib/audit";
 import type { SessionUser } from "@/data/_auth";
 

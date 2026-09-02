@@ -24,7 +24,7 @@ import type {
   StoreSettings,
   Order,
   Address,
-} from "@/lib/types";
+} from "@/types";
 
 export function useProducts(opts?: { all?: boolean }) {
   return useQuery({

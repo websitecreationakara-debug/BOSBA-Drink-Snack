@@ -6,7 +6,7 @@
 // (ad blocker, offline, consent tooling, …) or hasn't initialised yet.
 
 // Storefront prices are all in USD — the store formats everything with a leading
-// "$" and src/lib/payment.ts defaults to "USD".
+// "$" and src/lib/commerce/payment.ts defaults to "USD".
 export const PIXEL_CURRENCY = "USD";
 
 type Fbq = (...args: unknown[]) => void;

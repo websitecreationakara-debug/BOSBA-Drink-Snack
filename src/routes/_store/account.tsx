@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { authClient } from "@/lib/auth-client";
-import { TwoFactorSetup } from "@/components/two-factor-setup";
+import { TwoFactorSetup } from "@/components/common/two-factor-setup";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_store/account")({ component: Account });

@@ -1,4 +1,4 @@
-import type { Promotion, PromotionKind } from "./types";
+import type { Promotion, PromotionKind } from "@/types";
 
 // Loose shape so raw DB rows (whose `kind` is a plain string) pass without
 // casting — the helpers only read timing + discount.
