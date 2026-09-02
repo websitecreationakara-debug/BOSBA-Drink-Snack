@@ -10,10 +10,10 @@ import {
   store_settings,
   user as userTable,
 } from "@/db/schema";
-import { applyPromo } from "@/lib/promotions";
-import { promoCodeDiscount } from "@/lib/promo-code";
-import { notifyNewOrder, notifyOrderShipped } from "@/lib/notify";
-import { notifyPosOfSale } from "@/lib/pos-sync";
+import { applyPromo } from "@/lib/commerce/promotions";
+import { promoCodeDiscount } from "@/lib/commerce/promo-code";
+import { notifyNewOrder, notifyOrderShipped } from "@/lib/integrations/notify";
+import { notifyPosOfSale } from "@/lib/integrations/pos-sync";
 import {
   getSessionUser,
   requireAdmin,

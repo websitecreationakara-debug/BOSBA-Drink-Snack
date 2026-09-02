@@ -9,9 +9,9 @@ import {
   promotions,
 } from "@/db/schema";
 import { slugify, isUuid } from "@/lib/utils";
-import { applyPromo } from "@/lib/promotions";
+import { applyPromo } from "@/lib/commerce/promotions";
 import { requireManager } from "./_auth";
-import { notifyPosOfNewProduct, notifyPosOfStockEdit } from "@/lib/pos-sync";
+import { notifyPosOfNewProduct, notifyPosOfStockEdit } from "@/lib/integrations/pos-sync";
 
 type ProductInput = {
   title: string;

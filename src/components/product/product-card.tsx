@@ -4,8 +4,8 @@ import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useI18n } from "@/lib/i18n";
 import { slugify } from "@/lib/utils";
-import { preOrderChatUrl } from "@/lib/sales-chat";
-import type { Product } from "@/lib/types";
+import { preOrderChatUrl } from "@/lib/integrations/sales-chat";
+import type { Product } from "@/types";
 
 export function ProductCard({
   product,

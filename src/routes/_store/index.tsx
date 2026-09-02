@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { HeroSlider } from "@/components/hero-slider";
-import { ProductCard } from "@/components/product-card";
-import { OfferSection } from "@/components/offer-section";
-import { SpecialOfferBanner } from "@/components/special-offer-banner";
-import { HorizontalScroller } from "@/components/horizontal-scroller";
+import { HeroSlider } from "@/components/marketing/hero-slider";
+import { ProductCard } from "@/components/product/product-card";
+import { OfferSection } from "@/components/marketing/offer-section";
+import { SpecialOfferBanner } from "@/components/marketing/special-offer-banner";
+import { HorizontalScroller } from "@/components/marketing/horizontal-scroller";
 import {
   useProducts,
   usePromotions,
@@ -14,7 +14,7 @@ import {
 } from "@/hooks/use-products";
 import { ArrowRight, Truck, Globe, ShieldCheck, PackageCheck, Star } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import { groupVariations, productFromPrice } from "@/lib/variants";
+import { groupVariations, productFromPrice } from "@/lib/commerce/variants";
 
 export const Route = createFileRoute("/_store/")({
   head: () => ({

@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMyAddresses } from "@/hooks/use-products";
 import { saveAddress, updateAddress, deleteAddress, setDefaultAddress } from "@/data/addresses";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Address } from "@/lib/types";
+import type { Address } from "@/types";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_store/addresses")({ component: MyAddresses });

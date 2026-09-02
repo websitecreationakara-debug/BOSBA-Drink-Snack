@@ -3,7 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { orders } from "@/db/schema";
-import { createKhqr, paymentMockMode, retrievePaymentResult } from "@/lib/payment";
+import { createKhqr, paymentMockMode, retrievePaymentResult } from "@/lib/commerce/payment";
 import { markOrderPaid } from "./orders";
 
 // Generate (or re-use) the KHQR for an awaiting-payment order and return what the

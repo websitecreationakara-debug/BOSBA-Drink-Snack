@@ -18,11 +18,11 @@ import {
 } from "@/data/products";
 import { listMedia, uploadMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
-import { groupVariations } from "@/lib/variants";
-import { downloadProductsXlsx } from "@/lib/products-export";
+import { groupVariations } from "@/lib/commerce/variants";
+import { downloadProductsXlsx } from "@/lib/pdf/products-export";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { useConfirm } from "@/components/confirm-dialog";
+import { useConfirm } from "@/components/common/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,7 +56,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { extractYoutubeId, youtubeThumbnail } from "@/lib/youtube";
-import type { Product, Media } from "@/lib/types";
+import type { Product, Media } from "@/types";
 
 export const Route = createFileRoute("/admin/products")({
   component: ProductsAdmin,

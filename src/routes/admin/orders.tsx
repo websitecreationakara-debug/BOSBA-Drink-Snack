@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listOrders, updateOrderStatus, updateOrderTracking, deleteOrder } from "@/data/orders";
 import { Input } from "@/components/ui/input";
-import { useConfirm } from "@/components/confirm-dialog";
+import { useConfirm } from "@/components/common/confirm-dialog";
 import {
   Select,
   SelectContent,
@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { MapPin, Trash2, FileDown } from "lucide-react";
 import { formatShippingAddress } from "@/lib/utils";
-import { downloadInvoice } from "@/lib/invoice";
+import { downloadInvoice } from "@/lib/pdf/invoice";
 
 export const Route = createFileRoute("/admin/orders")({ component: OrdersAdmin });
 

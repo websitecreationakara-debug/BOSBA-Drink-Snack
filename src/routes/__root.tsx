@@ -17,12 +17,12 @@ import { WishlistProvider } from "@/hooks/use-wishlist";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { LanguageProvider } from "@/lib/i18n";
 import { getSiteLocale, getTranslationOverrides } from "@/data/translations";
-import { CartDrawer } from "@/components/cart-drawer";
-import { ConfirmProvider } from "@/components/confirm-dialog";
-import { InstallPrompt } from "@/components/install-prompt";
+import { CartDrawer } from "@/components/cart/cart-drawer";
+import { ConfirmProvider } from "@/components/common/confirm-dialog";
+import { InstallPrompt } from "@/components/common/install-prompt";
 import { Toaster } from "@/components/ui/sonner";
 import { MetaPixelProvider } from "@adkit/meta-pixel-react";
-import { trackPixel } from "@/lib/meta-pixel";
+import { trackPixel } from "@/lib/integrations/meta-pixel";
 
 // Web Analytics is auto-injected by Cloudflare for this proxied domain (site tag
 // 392fa229…), so no manual beacon is needed. Left empty intentionally.

@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Check, Loader2, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
-import { useConfirm } from "@/components/confirm-dialog";
+import { useConfirm } from "@/components/common/confirm-dialog";
 
 export const Route = createFileRoute("/admin/translations")({ component: TranslationsAdmin });
 

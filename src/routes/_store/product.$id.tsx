@@ -10,7 +10,7 @@ import {
 } from "@/hooks/use-products";
 import { getProduct } from "@/data/products";
 import { renderFormattedDescription } from "@/lib/format-description";
-import type { Product } from "@/lib/types";
+import type { Product } from "@/types";
 import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ProductCard } from "@/components/product-card";
-import { productFromPrice, groupVariations, hasValidPrice } from "@/lib/variants";
+import { ProductCard } from "@/components/product/product-card";
+import { productFromPrice, groupVariations, hasValidPrice } from "@/lib/commerce/variants";
 import {
   Star,
   ShoppingBag,
@@ -34,8 +34,8 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { cn, slugify } from "@/lib/utils";
-import { PIXEL_CURRENCY, trackPixel } from "@/lib/meta-pixel";
-import { preOrderChatUrl } from "@/lib/sales-chat";
+import { PIXEL_CURRENCY, trackPixel } from "@/lib/integrations/meta-pixel";
+import { preOrderChatUrl } from "@/lib/integrations/sales-chat";
 import { extractYoutubeId, youtubeThumbnail, youtubeEmbedSrc } from "@/lib/youtube";
 import { useI18n } from "@/lib/i18n";
 

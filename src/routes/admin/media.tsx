@@ -4,10 +4,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listMedia, uploadMedia, deleteMedia, renameMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
 import { Button } from "@/components/ui/button";
-import { useConfirm } from "@/components/confirm-dialog";
+import { useConfirm } from "@/components/common/confirm-dialog";
 import { Upload, Trash2, Copy, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import type { Media } from "@/lib/types";
+import type { Media } from "@/types";
 
 export const Route = createFileRoute("/admin/media")({
   component: MediaAdmin,

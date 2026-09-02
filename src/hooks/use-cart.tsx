@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { CartItem, Product, ProductVariation } from "@/lib/types";
-import { PIXEL_CURRENCY, trackPixel } from "@/lib/meta-pixel";
+import type { CartItem, Product, ProductVariation } from "@/types";
+import { PIXEL_CURRENCY, trackPixel } from "@/lib/integrations/meta-pixel";
 
 // A cart line is identified by product + chosen variation, so the same product
 // in two weights is two distinct lines.

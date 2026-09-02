@@ -5,7 +5,7 @@ import { authClient } from "@/lib/auth-client";
 import { recordAdminAction } from "@/data/audit";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { useConfirm } from "@/components/confirm-dialog";
+import { useConfirm } from "@/components/common/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
