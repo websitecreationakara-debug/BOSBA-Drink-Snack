@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useProducts, usePromotions, useAllVariations } from "@/hooks/use-products";
-import { OfferSection } from "@/components/offer-section";
+import { OfferSection } from "@/components/marketing/offer-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
-import { groupVariations } from "@/lib/variants";
+import { groupVariations } from "@/lib/commerce/variants";
 
 export const Route = createFileRoute("/_store/offers")({
   head: () => ({

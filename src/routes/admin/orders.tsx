@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listOrders, updateOrderStatus, updateOrderTracking, deleteOrder } from "@/data/orders";
 import { Input } from "@/components/ui/input";
+import { useConfirm } from "@/components/common/confirm-dialog";
 import {
   Select,
   SelectContent,
@@ -14,12 +15,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { MapPin, Trash2, FileDown } from "lucide-react";
 import { formatShippingAddress } from "@/lib/utils";
-import { downloadInvoice } from "@/lib/invoice";
+import { downloadInvoice } from "@/lib/pdf/invoice";
 
 export const Route = createFileRoute("/admin/orders")({ component: OrdersAdmin });
 
 function OrdersAdmin() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [preview, setPreview] = useState<{ url: string; title: string } | null>(null);
   const { data: orders = [] } = useQuery({
     queryKey: ["orders-admin"],
@@ -57,7 +59,13 @@ function OrdersAdmin() {
   };
 
   const removeOrder = async (id: string) => {
-    if (!confirm("Delete this order? This cannot be undone.")) return;
+    const ok = await confirm({
+      title: "Delete this order?",
+      description:
+        "The order and its history will be permanently removed. This action cannot be undone.",
+      confirmText: "Delete order",
+    });
+    if (!ok) return;
     try {
       await deleteOrder({ data: { id } });
     } catch (err) {

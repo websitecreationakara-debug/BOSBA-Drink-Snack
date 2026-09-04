@@ -2,7 +2,7 @@
 // heavy and only needed on click, so it's imported dynamically — same pattern
 // as the invoice PDF generator (see ./invoice.ts) — to keep it out of the
 // storefront bundle entirely.
-import type { Product, Category, Promotion, ProductVariation } from "./types";
+import type { Product, Category, Promotion, ProductVariation } from "@/types";
 
 function priceRange(vs: ProductVariation[]): string {
   if (!vs.length) return "";

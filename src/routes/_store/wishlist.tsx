@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Heart } from "lucide-react";
-import { ProductCard } from "@/components/product-card";
+import { ProductCard } from "@/components/product/product-card";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useProducts, useAllVariations } from "@/hooks/use-products";
-import { groupVariations, productFromPrice } from "@/lib/variants";
+import { groupVariations, productFromPrice } from "@/lib/commerce/variants";
 
 export const Route = createFileRoute("/_store/wishlist")({ component: Wishlist });
 
@@ -39,14 +39,14 @@ function Wishlist() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 md:px-6 py-8 md:py-12">
+    <div className="mx-auto max-w-7xl px-4 md:px-6 py-8 md:py-12">
       <div className="mb-8">
         <h1 className="font-display font-semibold tracking-tight text-3xl md:text-4xl">Wishlist</h1>
         <p className="text-muted-foreground mt-1">
           {saved.length} {saved.length === 1 ? "item" : "items"} saved
         </p>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         {saved.map((p) => (
           <ProductCard
             key={p.id}

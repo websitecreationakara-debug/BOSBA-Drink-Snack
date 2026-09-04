@@ -1,7 +1,7 @@
 // Client-side invoice PDF generation for admin orders. jspdf + autotable are
 // heavy and only needed on click, so they're imported dynamically — this keeps
 // them out of the storefront bundle entirely.
-import { formatShippingAddress } from "./utils";
+import { formatShippingAddress } from "@/lib/utils";
 
 type InvoiceItem = { id?: string; title: string; qty: number; price: number };
 

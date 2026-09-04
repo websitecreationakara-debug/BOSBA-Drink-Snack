@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
   Link,
@@ -15,9 +16,13 @@ import { CartProvider } from "@/hooks/use-cart";
 import { WishlistProvider } from "@/hooks/use-wishlist";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { LanguageProvider } from "@/lib/i18n";
-import { CartDrawer } from "@/components/cart-drawer";
-import { InstallPrompt } from "@/components/install-prompt";
+import { getSiteLocale, getTranslationOverrides } from "@/data/translations";
+import { CartDrawer } from "@/components/cart/cart-drawer";
+import { ConfirmProvider } from "@/components/common/confirm-dialog";
+import { InstallPrompt } from "@/components/common/install-prompt";
 import { Toaster } from "@/components/ui/sonner";
+import { MetaPixelProvider } from "@adkit/meta-pixel-react";
+import { trackPixel } from "@/lib/integrations/meta-pixel";
 
 // Web Analytics is auto-injected by Cloudflare for this proxied domain (site tag
 // 392fa229…), so no manual beacon is needed. Left empty intentionally.
@@ -53,6 +58,13 @@ const TIKTOK_PIXEL = `!function (w, d, t) {
   ttq.load('${TIKTOK_PIXEL_ID}');
   ttq.page();
 }(window, document, 'ttq');`;
+
+// Meta (Facebook) Pixel — loaded client-side by <MetaPixelProvider> (@adkit/
+// meta-pixel-react) in RootComponent, which installs `fbq`, inits this ID and
+// fires the first PageView. Client-side navigations are tracked from
+// RootComponent; e-commerce events (ViewContent, AddToCart, InitiateCheckout,
+// Purchase) go through trackPixel() from @/lib/meta-pixel.
+const META_PIXEL_ID = "1088916156897289";
 
 // The browser fires `beforeinstallprompt` very early — often before React
 // hydrates and our InstallPrompt listener attaches, so the event is lost and no
@@ -115,6 +127,19 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // Load storefront wording (and the store-wide default language) once, up front,
+  // so the server-rendered HTML and first client paint are already translated.
+  // Storefront text lives entirely in the `translations` D1 table now — there are
+  // no built-in dictionaries in code. LanguageProvider's useQuery refreshes this
+  // on top for live admin edits.
+  loader: async () => {
+    const [translations, siteLocale] = await Promise.all([
+      getTranslationOverrides(),
+      getSiteLocale(),
+    ]);
+    return { translations, siteLocale };
+  },
+  staleTime: 5 * 60 * 1000,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -210,6 +235,20 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { translations, siteLocale } = Route.useLoaderData();
+
+  // The Meta Pixel fires a PageView for the initial load from its inline <head>
+  // snippet; this re-fires it on every client-side route change so SPA
+  // navigations still register as page views.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const firstPath = useRef(true);
+  useEffect(() => {
+    if (firstPath.current) {
+      firstPath.current = false;
+      return;
+    }
+    trackPixel("PageView");
+  }, [pathname]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -239,21 +278,30 @@ function RootComponent() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <WishlistProvider>
-              <CartProvider>
-                <Outlet />
-                <CartDrawer />
-                <InstallPrompt />
-                <Toaster />
-              </CartProvider>
-            </WishlistProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <MetaPixelProvider
+      pixelIds={META_PIXEL_ID}
+      enableLocalhost={true}
+      debug={true}
+      autoTrackPageView={true}
+    >
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <LanguageProvider initialStrings={translations} initialSiteLocale={siteLocale}>
+            <AuthProvider>
+              <WishlistProvider>
+                <CartProvider>
+                  <ConfirmProvider>
+                    <Outlet />
+                    <CartDrawer />
+                    <InstallPrompt />
+                    <Toaster />
+                  </ConfirmProvider>
+                </CartProvider>
+              </WishlistProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </MetaPixelProvider>
   );
 }

@@ -10,15 +10,19 @@ import {
   saveVariations,
   getProductImages,
   saveProductImages,
+  getProductTabs,
+  saveProductTabs,
   setProductStatus,
   setProductStock,
+  setProductCategory,
 } from "@/data/products";
 import { listMedia, uploadMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
-import { groupVariations } from "@/lib/variants";
-import { downloadProductsXlsx } from "@/lib/products-export";
+import { groupVariations } from "@/lib/commerce/variants";
+import { downloadProductsXlsx } from "@/lib/pdf/products-export";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/common/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,7 +56,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { extractYoutubeId, youtubeThumbnail } from "@/lib/youtube";
-import type { Product, Media } from "@/lib/types";
+import type { Product, Media } from "@/types";
 
 export const Route = createFileRoute("/admin/products")({
   component: ProductsAdmin,
@@ -79,6 +83,11 @@ const empty = {
   video_url: "",
 };
 
+// Spelled-out status for the confirmation toasts, so whoever saved/toggled a
+// product can see at a glance whether it's live or hidden.
+const statusLabel = (status: string) =>
+  status === "published" ? "published — live in the store" : "draft — hidden from customers";
+
 type VarRow = {
   id?: string;
   weight: string;
@@ -99,6 +108,9 @@ const blankVar = (): VarRow => ({
   image_url: "",
 });
 
+type TabRow = { id?: string; title: string; body: string };
+const blankTab = (): TabRow => ({ title: "", body: "" });
+
 function ProductsAdmin() {
   const { data: products = [] } = useProducts({ all: true });
   const { data: categories = [] } = useCategories();
@@ -109,11 +121,13 @@ function ProductsAdmin() {
     queryFn: () => listMedia() as Promise<Media[]>,
   });
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   // Full-size image lightbox for the table's row thumbnails.
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [vars, setVars] = useState<VarRow[]>([]);
+  const [tabs, setTabs] = useState<TabRow[]>([]);
   const editing = !!form.id;
   const isVariable = form.type === "variable";
   const videoId = form.video_url.trim() ? extractYoutubeId(form.video_url) : null;
@@ -272,6 +286,7 @@ function ProductsAdmin() {
   const openNew = () => {
     setForm(empty);
     setVars([]);
+    setTabs([]);
     setGallery([]);
     setPicker(false);
     setGalleryPicker(false);
@@ -281,8 +296,12 @@ function ProductsAdmin() {
     setPicker(false);
     setGalleryPicker(false);
     setGallery([]);
+    setTabs([]);
     getProductImages({ data: { productId: p.id } }).then((rows) =>
       setGallery(rows.map((r) => r.url)),
+    );
+    getProductTabs({ data: { productId: p.id } }).then((rows) =>
+      setTabs(rows.map((r) => ({ id: r.id, title: r.title, body: r.body }))),
     );
     setForm({
       id: p.id,
@@ -392,14 +411,25 @@ function ProductsAdmin() {
       else productId = (await createProduct({ data: payload })).id;
       if (variable) await saveVariations({ data: { productId, variations: variationPayload() } });
       await saveProductImages({ data: { productId, urls: gallery } });
+      await saveProductTabs({
+        data: {
+          productId,
+          tabs: tabs
+            .filter((t) => t.title.trim() !== "")
+            .map((t, i) => ({ id: t.id, title: t.title.trim(), body: t.body, sort_order: i })),
+        },
+      });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save product");
       return;
     }
-    toast.success(editing ? "Product updated" : "Product created");
+    toast.success(
+      `"${form.title.trim() || "Product"}" ${editing ? "saved" : "created"} · ${statusLabel(form.status)}`,
+    );
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["variations"] });
     qc.invalidateQueries({ queryKey: ["product_images"] });
+    qc.invalidateQueries({ queryKey: ["product_tabs"] });
     setOpen(false);
   };
 
@@ -415,7 +445,7 @@ function ProductsAdmin() {
       qc.invalidateQueries({ queryKey: ["products"] });
       return;
     }
-    toast.success(next === "published" ? "Product enabled" : "Product disabled");
+    toast.success(`"${p.title}" is now ${statusLabel(next)}`);
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
@@ -442,15 +472,20 @@ function ProductsAdmin() {
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
-  const del = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
+  const del = async (p: Product) => {
+    const ok = await confirm({
+      title: `Delete "${p.title}"?`,
+      description: "This product will be permanently removed. This action cannot be undone.",
+      confirmText: "Delete product",
+    });
+    if (!ok) return;
     try {
-      await deleteProduct({ data: { id } });
+      await deleteProduct({ data: { id: p.id } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete");
       return;
     }
-    toast.success("Deleted");
+    toast.success(`"${p.title}" deleted`);
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["variations"] });
   };
@@ -504,9 +539,26 @@ function ProductsAdmin() {
       toast.error(err instanceof Error ? err.message : "Failed to duplicate");
       return;
     }
-    toast.success("Product duplicated as draft");
+    toast.success(`Copied "${p.title}" → new draft "${p.title} (Copy)"`);
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["variations"] });
+  };
+
+  const NO_CATEGORY = "__none__";
+  const saveCategory = async (p: Product, categoryId: string | null) => {
+    if (categoryId === (p.category_id ?? null)) return;
+    qc.setQueryData(["products", "all"], (rows: Product[] = []) =>
+      rows.map((r) => (r.id === p.id ? { ...r, category_id: categoryId } : r)),
+    );
+    try {
+      await setProductCategory({ data: { id: p.id, category_id: categoryId } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update category");
+      qc.invalidateQueries({ queryKey: ["products"] });
+      return;
+    }
+    toast.success("Category updated");
+    qc.invalidateQueries({ queryKey: ["products"] });
   };
 
   // Price/stock/weight columns reflect variations for variable products.
@@ -625,23 +677,24 @@ function ProductsAdmin() {
           : "Clear filters and search to drag-reorder products."}
       </p>
 
-      <div className="bg-card border rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-card border rounded-2xl overflow-x-auto">
+        <table className="w-full min-w-[880px] text-sm">
           <thead className="bg-muted text-xs uppercase tracking-widest text-muted-foreground">
             <tr>
               <th className="w-8 px-2 py-3"></th>
-              <th className="text-left px-6 py-3">Product</th>
-              <th className="text-left px-6 py-3">Price</th>
-              <th className="text-left px-6 py-3">Weight</th>
-              <th className="text-left px-6 py-3">Stock</th>
-              <th className="text-left px-6 py-3">Status</th>
-              <th className="px-6 py-3"></th>
+              <th className="text-left px-4 py-3">Product</th>
+              <th className="text-left px-4 py-3">Category</th>
+              <th className="text-left px-4 py-3">Price</th>
+              <th className="text-left px-4 py-3">Weight</th>
+              <th className="text-left px-4 py-3">Stock</th>
+              <th className="text-left px-4 py-3">Status</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
                   No products match your filters.
                 </td>
               </tr>
@@ -678,7 +731,7 @@ function ProductsAdmin() {
                     <GripVertical className="size-4 text-muted-foreground/20 inline-block" />
                   )}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="size-10 rounded-lg bg-muted overflow-hidden shrink-0">
                       {p.image_url && (
@@ -700,11 +753,32 @@ function ProductsAdmin() {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-3 font-bold whitespace-nowrap">{priceLabel(p)}</td>
-                <td className="px-6 py-3 text-muted-foreground whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <Select
+                    value={p.category_id ?? NO_CATEGORY}
+                    onValueChange={(v) => saveCategory(p, v === NO_CATEGORY ? null : v)}
+                  >
+                    <SelectTrigger
+                      aria-label="Change category"
+                      className="h-7 w-[150px] rounded-full border-transparent bg-muted/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted [&>svg]:size-3"
+                    >
+                      <SelectValue placeholder="Uncategorized" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_CATEGORY}>Uncategorized</SelectItem>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </td>
+                <td className="px-4 py-3 font-bold whitespace-nowrap">{priceLabel(p)}</td>
+                <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                   {weightLabel(p)}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3">
                   {p.type === "variable" ? (
                     stockLabel(p)
                   ) : editingStock?.id === p.id ? (
@@ -744,12 +818,12 @@ function ProductsAdmin() {
                     </button>
                   )}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <span className="px-2 py-0.5 bg-muted rounded text-xs font-bold uppercase">
                     {p.status}
                   </span>
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className="px-4 py-3 text-right whitespace-nowrap">
                   <div className="flex justify-end gap-1">
                     <Button
                       variant="ghost"
@@ -784,12 +858,7 @@ function ProductsAdmin() {
                     >
                       <Copy className="size-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => del(p.id)}
-                      aria-label="Delete"
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => del(p)} aria-label="Delete">
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
                   </div>
@@ -883,8 +952,71 @@ function ProductsAdmin() {
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={6}
-                placeholder="Use **bold** for emphasis. Leave a blank line between paragraphs."
+                placeholder={
+                  "Use **bold** for emphasis. Leave a blank line between paragraphs.\n\n" +
+                  "Optional extras, each on its own line:\n" +
+                  "> Tagline text for a hero banner (add more > lines for small badges under it)\n" +
+                  "- Offer callout for a buy-box callout row"
+                }
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                A line starting with <code>&gt;</code> shows as a hero banner above the description
+                — the first is the tagline, extra <code>&gt;</code> lines become small badges. A
+                line starting with <code>-</code> shows as an offer callout next to Add to Cart.
+              </p>
+            </div>
+
+            <div className="space-y-3 border rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-bold">Tabs</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTabs((t) => [...t, blankTab()])}
+                >
+                  <Plus className="size-4 mr-1.5" /> Add tab
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Shown as an accordion under the description on the product page (e.g. "What Makes It
+                Special?", "Preparation"). Same **bold** / blank-line formatting as the description.
+              </p>
+              {tabs.map((t, i) => (
+                <div key={i} className="space-y-2 pb-3 border-b last:border-b-0 last:pb-0">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Tab title"
+                      value={t.title}
+                      onChange={(e) =>
+                        setTabs((rows) =>
+                          rows.map((r, j) => (j === i ? { ...r, title: e.target.value } : r)),
+                        )
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => setTabs((rows) => rows.filter((_, j) => j !== i))}
+                      aria-label="Remove tab"
+                    >
+                      <Trash2 className="size-4 text-destructive" />
+                    </Button>
+                  </div>
+                  <Textarea
+                    rows={4}
+                    placeholder="Tab content"
+                    value={t.body}
+                    onChange={(e) =>
+                      setTabs((rows) =>
+                        rows.map((r, j) => (j === i ? { ...r, body: e.target.value } : r)),
+                      )
+                    }
+                  />
+                </div>
+              ))}
             </div>
 
             <div>
@@ -1187,6 +1319,23 @@ function ProductsAdmin() {
                               )
                             }
                           />
+                          {v.image_url.trim() !== "" && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2 shrink-0"
+                              onClick={() =>
+                                setVars((rows) =>
+                                  rows.map((r, j) => (j === i ? { ...r, image_url: "" } : r)),
+                                )
+                              }
+                              aria-label="Remove this size's photo"
+                              title="Remove this size's photo"
+                            >
+                              <X className="size-3.5" />
+                            </Button>
+                          )}
                           <Button
                             type="button"
                             variant="outline"

@@ -6,6 +6,7 @@ import { listMedia, uploadMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/common/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, Upload, ImageIcon, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import type { HeroSlide, Media } from "@/lib/types";
+import type { HeroSlide, Media } from "@/types";
 
 export const Route = createFileRoute("/admin/banners")({ component: BannersAdmin });
 
@@ -44,6 +45,7 @@ function BannersAdmin() {
     queryFn: () => listMedia() as Promise<Media[]>,
   });
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(empty);
   const editing = !!form.id;
@@ -119,7 +121,12 @@ function BannersAdmin() {
   };
 
   const del = async (id: string) => {
-    if (!confirm("Delete this slide?")) return;
+    const ok = await confirm({
+      title: "Delete this slide?",
+      description: "It will be removed from the homepage hero. This action cannot be undone.",
+      confirmText: "Delete slide",
+    });
+    if (!ok) return;
     try {
       await deleteHeroSlide({ data: { id } });
     } catch (err) {

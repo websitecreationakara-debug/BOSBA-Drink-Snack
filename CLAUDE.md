@@ -43,7 +43,13 @@ E-commerce store (BOSBA Drink Snack, served on bosbadrinksnack.com). Fork of the
 - `src/routes/` — file-based routes: `_store/` (storefront), `admin/`, `auth.tsx`
 - `src/data/` — TanStack Start server functions (db access; `_auth.ts` has role helpers: `requireAdmin`/`requireManager`/`requireStaff`)
 - `src/db/` — Drizzle `schema.ts` + `getDb()`; migrations in `drizzle/migrations/`
-- `src/lib/` — auth, i18n, payment, promotions, invoice (jspdf), utils
+- `src/hooks/` — shared React hooks (`use-cart`, `use-auth`, `use-products`, …)
+- `src/types/` — shared domain types (`index.ts`, imported as `@/types`)
+- `src/lib/` — cross-cutting helpers at the root (`i18n`, `auth`, `utils`, `image`, `error-*`, …), plus:
+  - `lib/commerce/` — `payment`, `promotions`, `promo-code`, `variants`
+  - `lib/integrations/` — third-party wiring: `meta-pixel`, `recaptcha`, `pos-sync`, `sales-chat`, `notify` (Resend)
+  - `lib/pdf/` — `invoice`, `products-export` (jspdf / xlsx)
+- `src/components/` — `ui/` (shadcn primitives) + domain folders: `layout/`, `marketing/`, `product/`, `cart/`, `checkout/`, `common/`
 
 ## Env vars
 

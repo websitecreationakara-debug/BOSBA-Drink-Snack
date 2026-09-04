@@ -5,6 +5,7 @@ import { authClient } from "@/lib/auth-client";
 import { recordAdminAction } from "@/data/audit";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/common/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -39,6 +40,7 @@ type AdminUser = {
 
 function UsersAdmin() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const { user: me } = useAuth();
 
   const [addOpen, setAddOpen] = useState(false);
@@ -105,7 +107,12 @@ function UsersAdmin() {
   };
 
   const remove = async (u: AdminUser) => {
-    if (!confirm(`Delete ${u.email}? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: `Delete ${u.email}?`,
+      description: "This user account will be permanently removed. This action cannot be undone.",
+      confirmText: "Delete user",
+    });
+    if (!ok) return;
     const res = await authClient.admin.removeUser({ userId: u.id });
     if (res.error) return toast.error(res.error.message ?? "Failed to delete");
     recordAdminAction({

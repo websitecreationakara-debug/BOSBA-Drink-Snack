@@ -3,8 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useHeroSlides, usePromotions } from "@/hooks/use-products";
 import { useI18n } from "@/lib/i18n";
-import type { HeroSlide } from "@/lib/types";
-import imagebannerall from "../../public/bannerbosbadrinkandsnake3.jpg";
+import type { HeroSlide } from "@/types";
+import imagebannerall from "../../../public/bannerbosbadrinkandsnake3.jpg";
 
 const FALLBACK_IMAGE = "/logo.png";
 

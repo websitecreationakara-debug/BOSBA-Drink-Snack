@@ -1,7 +1,7 @@
-import { ProductCard } from "./product-card";
+import { ProductCard } from "@/components/product/product-card";
 import { useI18n, type I18nKey } from "@/lib/i18n";
-import { productFromPrice } from "@/lib/variants";
-import type { Product, ProductVariation, Promotion } from "@/lib/types";
+import { productFromPrice } from "@/lib/commerce/variants";
+import type { Product, ProductVariation, Promotion } from "@/types";
 
 export function OfferSection({
   promotion,

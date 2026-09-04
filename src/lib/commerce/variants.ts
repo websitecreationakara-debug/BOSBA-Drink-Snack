@@ -1,4 +1,4 @@
-import type { Product, ProductVariation } from "./types";
+import type { Product, ProductVariation } from "@/types";
 
 export const variationPrice = (v: ProductVariation) => v.sale_price ?? v.price;
 

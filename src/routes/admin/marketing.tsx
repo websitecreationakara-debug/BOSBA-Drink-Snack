@@ -15,6 +15,7 @@ import {
 } from "@/data/promo-codes";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/common/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,8 +29,8 @@ import {
 } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, X, Search, Tag, Percent, Ticket } from "lucide-react";
 import { toast } from "sonner";
-import { KIND_LABEL } from "@/lib/promotions";
-import type { Promotion, PromoCode } from "@/lib/types";
+import { KIND_LABEL } from "@/lib/commerce/promotions";
+import type { Promotion, PromoCode } from "@/types";
 
 export const Route = createFileRoute("/admin/marketing")({ component: MarketingAdmin });
 
@@ -70,6 +71,7 @@ function MarketingAdmin() {
   const { data: promos = [] } = usePromotions({ all: true });
   const { data: products = [] } = useProducts({ all: true });
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(empty);
   const editing = !!form.id;
@@ -128,7 +130,12 @@ function MarketingAdmin() {
     setCodeOpen(false);
   };
   const delCode = async (id: string) => {
-    if (!confirm("Delete this promo code?")) return;
+    const ok = await confirm({
+      title: "Delete this promo code?",
+      description: "Customers will no longer be able to redeem it. This action cannot be undone.",
+      confirmText: "Delete code",
+    });
+    if (!ok) return;
     try {
       await deletePromoCode({ data: { id } });
     } catch (err) {
@@ -183,7 +190,12 @@ function MarketingAdmin() {
   };
 
   const del = async (id: string) => {
-    if (!confirm("Delete this offer? Assigned products keep their normal price.")) return;
+    const ok = await confirm({
+      title: "Delete this offer?",
+      description: "Assigned products keep their normal price. This action cannot be undone.",
+      confirmText: "Delete offer",
+    });
+    if (!ok) return;
     try {
       await deletePromotion({ data: { id } });
     } catch (err) {

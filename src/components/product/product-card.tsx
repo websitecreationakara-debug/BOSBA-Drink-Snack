@@ -4,8 +4,8 @@ import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useI18n } from "@/lib/i18n";
 import { slugify } from "@/lib/utils";
-import { preOrderChatUrl } from "@/lib/sales-chat";
-import type { Product } from "@/lib/types";
+import { preOrderChatUrl } from "@/lib/integrations/sales-chat";
+import type { Product } from "@/types";
 
 export function ProductCard({
   product,
@@ -18,8 +18,9 @@ export function ProductCard({
 }) {
   const { add } = useCart();
   const { has: inWishlist, toggle: toggleWishlist } = useWishlist();
-  const { t } = useI18n();
+  const { t, tp } = useI18n();
   const saved = inWishlist(product.id);
+  const title = tp(product.id, "title", product.title);
   // Variable products can't be added from the grid — the customer must pick a
   // weight, so the card leads with "from $X" and links through to the page.
   const variable = product.type === "variable";
@@ -41,7 +42,7 @@ export function ProductCard({
         {product.image_url ? (
           <img
             src={product.image_url}
-            alt={product.title}
+            alt={title}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
@@ -92,7 +93,7 @@ export function ProductCard({
       {/* Body */}
       <div className="flex flex-1 flex-col gap-3 px-2 pb-1 pt-4">
         <h3 className="line-clamp-1 text-[17px] font-medium leading-tight text-foreground">
-          {product.title}
+          {title}
         </h3>
 
         <div className="mt-auto flex items-end justify-between gap-2">

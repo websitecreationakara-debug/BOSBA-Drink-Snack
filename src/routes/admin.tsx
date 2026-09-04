@@ -19,11 +19,12 @@ import {
   PanelLeftOpen,
   ShieldCheck,
   DatabaseBackup,
+  Languages,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { TwoFactorSetup } from "@/components/two-factor-setup";
+import { TwoFactorSetup } from "@/components/common/two-factor-setup";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -40,6 +41,7 @@ const nav = [
   { to: "/admin/categories", label: "Categories", icon: Tag },
   { to: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/translations", label: "Translations", icon: Languages },
   { to: "/admin/settings", label: "Settings", icon: Settings },
   { to: "/admin/restore", label: "Restore Backup", icon: DatabaseBackup },
 ] as const;
@@ -261,7 +263,7 @@ function AdminLayout() {
           </Link>
         </div>
       </aside>
-      <main className="flex-1 bg-background p-8 overflow-x-auto">
+      <main className="flex-1 min-w-0 bg-background p-8 overflow-x-auto">
         {salesBlocked || marketingBlocked || stockBlocked ? (
           <div className="text-muted-foreground">Redirecting…</div>
         ) : (

@@ -4,17 +4,24 @@ import {
   useStoreSettings,
   useProductVariations,
   useProductImages,
+  useProductTabs,
   useProducts,
   useAllVariations,
 } from "@/hooks/use-products";
 import { getProduct } from "@/data/products";
-import { renderFormattedDescription } from "@/lib/format-description";
-import type { Product } from "@/lib/types";
+import { parseProductDescription, renderFormattedDescription } from "@/lib/format-description";
+import type { Product } from "@/types";
 import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { Button } from "@/components/ui/button";
-import { ProductCard } from "@/components/product-card";
-import { productFromPrice, groupVariations, hasValidPrice } from "@/lib/variants";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { ProductCard } from "@/components/product/product-card";
+import { productFromPrice, groupVariations, hasValidPrice } from "@/lib/commerce/variants";
 import {
   Star,
   ShoppingBag,
@@ -27,7 +34,8 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { cn, slugify } from "@/lib/utils";
-import { preOrderChatUrl } from "@/lib/sales-chat";
+import { PIXEL_CURRENCY, trackPixel } from "@/lib/integrations/meta-pixel";
+import { preOrderChatUrl } from "@/lib/integrations/sales-chat";
 import { extractYoutubeId, youtubeThumbnail, youtubeEmbedSrc } from "@/lib/youtube";
 import { useI18n } from "@/lib/i18n";
 
@@ -48,7 +56,10 @@ function relatedProducts(current: Product, all: Product[]): Product[] {
 const SITE = "https://bosbadrinksnack.com";
 
 const metaDescription = (p: Product) =>
-  (p.description?.trim() || `${p.title} — premium quality foods from BOSBA Drink Snack.`)
+  (
+    parseProductDescription(p.description).body ||
+    `${p.title} — premium quality foods from BOSBA Drink Snack.`
+  )
     .replace(/\s+/g, " ")
     .slice(0, 160);
 
@@ -96,7 +107,7 @@ function ProductJsonLd({ product }: { product: Product }) {
     "@type": "Product",
     name: product.title,
     image: product.image_url ?? undefined,
-    description: product.description ?? undefined,
+    description: parseProductDescription(product.description).body || undefined,
     brand: { "@type": "Brand", name: "BOSBA Drink Snack" },
   };
   if (price > 0) {
@@ -121,12 +132,13 @@ function ProductDetail() {
   const product = Route.useLoaderData();
   const { data: variations = [] } = useProductVariations(product?.id ?? "");
   const { data: galleryImages = [] } = useProductImages(product?.id ?? "");
+  const { data: tabs = [] } = useProductTabs(product?.id ?? "");
   const { data: allProducts = [] } = useProducts();
   const { data: allVariations = [] } = useAllVariations();
   const { data: settings } = useStoreSettings();
   const { add } = useCart();
   const { has: inWishlist, toggle: toggleWishlist } = useWishlist();
-  const { t } = useI18n();
+  const { t, tp, locale } = useI18n();
   const [qty, setQty] = useState(1);
   const [selectedFlavor, setSelectedFlavor] = useState<string | null>(null);
   const [selectedWeight, setSelectedWeight] = useState<string | null>(null);
@@ -146,7 +158,20 @@ function ProductDetail() {
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, [product?.description]);
+  }, [product?.description, product?.id, locale]);
+
+  // Meta Pixel: one ViewContent per product viewed.
+  useEffect(() => {
+    if (!product) return;
+    trackPixel("ViewContent", {
+      content_ids: [product.id],
+      content_name: product.title,
+      content_type: "product",
+      value: Number((product.sale_price ?? product.price ?? 0).toFixed(2)),
+      currency: PIXEL_CURRENCY,
+    });
+  }, [product]);
+
   const shipThreshold = Number(settings?.free_shipping_threshold ?? 50);
 
   const variable = product?.type === "variable";
@@ -161,9 +186,7 @@ function ProductDetail() {
   const effectiveFlavor = hasFlavorAxis ? (selectedFlavor ?? flavors[0] ?? null) : null;
   const weightOptions = [
     ...new Set(
-      variations
-        .filter((v) => !hasFlavorAxis || v.flavor === effectiveFlavor)
-        .map((v) => v.weight),
+      variations.filter((v) => !hasFlavorAxis || v.flavor === effectiveFlavor).map((v) => v.weight),
     ),
   ];
   // Weight selection stays put across a flavor switch (most products offer
@@ -216,6 +239,13 @@ function ProductDetail() {
   const unpriced = variable && (!selected || !hasValidPrice(selected));
   const addDisabled = (variable && !selected) || soldOut || unpriced;
 
+  // Localized product text (admin-set km/ja overrides, else the English column).
+  const title = tp(product.id, "title", product.title);
+  const description = tp(product.id, "description", product.description);
+  // Pull the `>` hero lines and `- ` offer callouts out of the description.
+  const desc = parseProductDescription(description);
+  const badgeLabel = product.badge ? tp(product.id, "badge", product.badge) : null;
+
   const related = relatedProducts(product, allProducts);
   const variationsByProduct = groupVariations(allVariations);
 
@@ -237,6 +267,28 @@ function ProductDetail() {
         <ArrowLeft className="size-4" /> Back to shop
       </Link>
 
+      {(desc.tagline || desc.badges.length > 0) && (
+        <div className="mb-6 rounded-2xl border bg-card px-4 py-4 text-center sm:px-6">
+          {desc.tagline && (
+            <p className="font-display text-lg font-semibold text-brand sm:text-xl">
+              {renderFormattedDescription(desc.tagline)}
+            </p>
+          )}
+          {desc.badges.length > 0 && (
+            <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+              {desc.badges.map((b, i) => (
+                <span
+                  key={i}
+                  className="rounded-full border bg-background px-3 py-1 text-xs font-medium text-foreground/80"
+                >
+                  {b}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid md:grid-cols-2 gap-6 md:gap-10">
         <div>
           <div className="relative aspect-square rounded-3xl overflow-hidden bg-muted">
@@ -244,13 +296,13 @@ function ProductDetail() {
               <iframe
                 key={videoId}
                 src={youtubeEmbedSrc(videoId)}
-                title={product.title}
+                title={title}
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             ) : mainImage ? (
-              <img src={mainImage} alt={product.title} className="w-full h-full object-cover" />
+              <img src={mainImage} alt={title} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full grid place-items-center text-muted-foreground text-sm">
                 No image
@@ -272,7 +324,7 @@ function ProductDetail() {
                     product.badge === "SALE" && "bg-destructive text-destructive-foreground",
                   )}
                 >
-                  {product.badge}
+                  {badgeLabel}
                 </span>
               )}
             </div>
@@ -328,7 +380,7 @@ function ProductDetail() {
 
         <div className="flex flex-col">
           <h1 className="font-display font-semibold tracking-tight text-2xl sm:text-3xl md:text-4xl leading-tight">
-            {product.title}
+            {title}
           </h1>
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-sm text-muted-foreground">
@@ -443,7 +495,17 @@ function ProductDetail() {
             </div>
           )}
 
-          {product.description && (
+          {desc.callouts.length > 0 && (
+            <ul className="mt-6 space-y-1.5 text-sm text-muted-foreground">
+              {desc.callouts.map((c, i) => (
+                <li key={i} className="leading-snug">
+                  {renderFormattedDescription(c)}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {desc.body && (
             <div className="mt-5">
               <p
                 ref={descRef}
@@ -452,7 +514,7 @@ function ProductDetail() {
                   !descExpanded && "line-clamp-3",
                 )}
               >
-                {renderFormattedDescription(product.description)}
+                {renderFormattedDescription(desc.body)}
               </p>
               {(descOverflows || descExpanded) && (
                 <button
@@ -464,6 +526,21 @@ function ProductDetail() {
                 </button>
               )}
             </div>
+          )}
+
+          {tabs.length > 0 && (
+            <Accordion type="single" collapsible className="mt-5 border-t">
+              {tabs.map((tab) => (
+                <AccordionItem key={tab.id} value={tab.id}>
+                  <AccordionTrigger>{tab.title}</AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                      {renderFormattedDescription(tab.body)}
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           )}
 
           {/* Narrow phones can't fit stepper + button + wishlist on one line, so

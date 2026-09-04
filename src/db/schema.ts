@@ -1,10 +1,10 @@
-import { sqliteTable, text, integer, real, blob } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, blob, primaryKey } from "drizzle-orm/sqlite-core";
 
 const uuid = () => crypto.randomUUID();
 const nowIso = () => new Date().toISOString();
 
 // ---------- Application tables ----------
-// Column names are snake_case to match the frontend types in src/lib/types.ts,
+// Column names are snake_case to match the frontend types in src/types/index.ts,
 // so query results can flow straight to the UI without remapping.
 
 export const categories = sqliteTable("categories", {
@@ -92,6 +92,22 @@ export const product_images = sqliteTable("product_images", {
     .notNull()
     .references(() => products.id, { onDelete: "cascade" }),
   url: text("url").notNull(),
+  sort_order: integer("sort_order").notNull().default(0),
+  created_at: text("created_at").notNull().$defaultFn(nowIso),
+});
+
+// Extra titled content blocks shown as an accordion under the description on
+// the product page (e.g. "What Makes It Special?", "Preparation"). Ordered by
+// sort_order; edited as a replace-all list in the admin product form.
+export const product_tabs = sqliteTable("product_tabs", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  product_id: text("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  // Plain text with the same lightweight markdown as descriptions (blank line =
+  // paragraph break, **text** = bold).
+  body: text("body").notNull().default(""),
   sort_order: integer("sort_order").notNull().default(0),
   created_at: text("created_at").notNull().$defaultFn(nowIso),
 });
@@ -211,6 +227,23 @@ export const store_settings = sqliteTable("store_settings", {
   free_shipping_threshold: real("free_shipping_threshold").default(30),
   updated_at: text("updated_at").notNull().$defaultFn(nowIso),
 });
+
+// Admin-editable overrides for the storefront UI text (labels on the homepage,
+// shop, navigation, footer, …). The built-in strings in src/lib/i18n.tsx are the
+// defaults; a row here replaces one string for one locale. Deleting the row (or
+// saving it blank in the admin) reverts to the built-in default. Keyed by
+// (locale, key) — locale is "en" | "km" | "ja", key is an i18n key like
+// "home.trending".
+export const translations = sqliteTable(
+  "translations",
+  {
+    locale: text("locale").notNull(),
+    key: text("key").notNull(),
+    value: text("value").notNull(),
+    updated_at: text("updated_at").notNull().$defaultFn(nowIso),
+  },
+  (t) => [primaryKey({ columns: [t.locale, t.key] })],
+);
 
 // ---------- better-auth tables ----------
 // Shapes follow better-auth's drizzle (sqlite) conventions, including the

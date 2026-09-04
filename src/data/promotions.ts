@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { promotions, products } from "@/db/schema";
-import { isPromoLive } from "@/lib/promotions";
+import { isPromoLive } from "@/lib/commerce/promotions";
 import { requireManager } from "./_auth";
 
 type PromotionInput = {

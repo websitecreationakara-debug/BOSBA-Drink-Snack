@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { CartItem, Product, ProductVariation } from "@/lib/types";
+import type { CartItem, Product, ProductVariation } from "@/types";
+import { PIXEL_CURRENCY, trackPixel } from "@/lib/integrations/meta-pixel";
 
 // A cart line is identified by product + chosen variation, so the same product
 // in two weights is two distinct lines.
@@ -56,6 +57,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...prev, { product: p, variation, qty }];
     });
     setDrawerOpen(true);
+
+    const unitPrice = variation
+      ? (variation.sale_price ?? variation.price)
+      : (p.sale_price ?? p.price);
+    trackPixel("AddToCart", {
+      content_ids: [p.id],
+      content_name: p.title,
+      content_type: "product",
+      contents: [{ id: p.id, quantity: qty }],
+      value: Number((unitPrice * qty).toFixed(2)),
+      currency: PIXEL_CURRENCY,
+    });
   };
 
   const remove: CartCtx["remove"] = (key) =>
