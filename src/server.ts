@@ -1,7 +1,7 @@
 import "./lib/error-capture";
 
 import { env } from "cloudflare:workers";
-import { eq, like, asc, inArray } from "drizzle-orm";
+import { eq, and, like, asc, inArray } from "drizzle-orm";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { getDb } from "./db";
@@ -165,14 +165,22 @@ async function handleProductSearch(request: Request): Promise<Response> {
 }
 
 // ---- Products API ----------------------------------------------------------
-// GET    /api/products            -> published products (raw stored values, no
-//                                    live-promotion discount). ?status=all with
-//                                    a valid token also returns drafts.
-// GET    /api/products/:idOrSlug  -> one product by UUID or title slug
-// POST   /api/products            -> create a product          (token required)
-// PATCH  /api/products/:id        -> partial update            (token required)
-// PUT    /api/products/:id        -> alias of PATCH             (token required)
-// DELETE /api/products/:id        -> delete (cascades vars/images/tabs) (token)
+// GET    /api/products                                -> published products
+//                                    (raw stored values, no live-promotion
+//                                    discount). ?status=all with a valid token
+//                                    also returns drafts.
+// GET    /api/products/:idOrSlug                      -> one product by UUID or title slug
+// POST   /api/products                                -> create a product          (token required)
+// PATCH  /api/products/:id                            -> partial update            (token required)
+// PUT    /api/products/:id                            -> alias of PATCH             (token required)
+// DELETE /api/products/:id                            -> delete (cascades vars/images/tabs) (token)
+// PATCH  /api/products/:id/variations/:variationId    -> partial update of one
+//                                    variation's own price/stock/weight/etc.
+//                                    (token required) -- the plain product
+//                                    PATCH/PUT above never touches child
+//                                    variation rows, so a "variable" product's
+//                                    sizes need this dedicated sub-route.
+// PUT    /api/products/:id/variations/:variationId    -> alias of the above
 //
 // Writes need `Authorization: Bearer <PRODUCTS_API_TOKEN>` (wrangler secret).
 // GET is CORS-open so another site can fetch it straight from the browser;
@@ -352,11 +360,121 @@ function coerceProductWrite(body: unknown): { value: ProductWrite } | { error: s
   return { value: out };
 }
 
+type VariationWrite = Partial<{
+  weight: string;
+  flavor: string | null;
+  price: number;
+  sale_price: number | null;
+  image_url: string | null;
+  stock: number | null;
+  pcs: number | null;
+}>;
+
+// Same coerce-a-partial-patch shape as coerceProductWrite, for one variation
+// row instead of the parent product.
+function coerceVariationWrite(body: unknown): { value: VariationWrite } | { error: string } {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { error: "Body must be a JSON object" };
+  }
+  const b = body as Record<string, unknown>;
+  const out: VariationWrite = {};
+  const strOrNull = (v: unknown) => (v == null || v === "" ? null : String(v));
+  const numOrNull = (v: unknown) => {
+    if (v == null || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : NaN;
+  };
+
+  if ("weight" in b) {
+    const w = String(b.weight ?? "").trim();
+    if (!w) return { error: "weight cannot be empty" };
+    out.weight = w;
+  }
+  if ("flavor" in b) out.flavor = strOrNull(b.flavor);
+  if ("image_url" in b) out.image_url = strOrNull(b.image_url);
+
+  for (const key of ["price", "sale_price", "stock", "pcs"] as const) {
+    if (key in b) {
+      const n = numOrNull(b[key]);
+      if (Number.isNaN(n)) return { error: `${key} must be a number` };
+      if (key === "price") out.price = n ?? 0;
+      else out[key] = n;
+    }
+  }
+  return { value: out };
+}
+
+// PATCH/PUT /api/products/:productIdOrSlug/variations/:variationId -- the one
+// write path for a "variable" product's own size/flavor row. Split out of
+// handleProductsApi (rather than folded into its PATCH/PUT branch) since it
+// targets a child table keyed by its own id, not the products row.
+async function handleVariationApi(
+  request: Request,
+  productIdOrSlug: string,
+  variationId: string,
+): Promise<Response> {
+  const method = request.method.toUpperCase();
+  if (method !== "PATCH" && method !== "PUT") {
+    return apiJson({ error: "Method not allowed" }, 405);
+  }
+  if (!apiTokenOk(request)) {
+    return apiJson({ error: "Unauthorized — send Authorization: Bearer <PRODUCTS_API_TOKEN>" }, 401);
+  }
+
+  const db = getDb();
+  const target = UUID_RE.test(productIdOrSlug)
+    ? (await db.select().from(products).where(eq(products.id, productIdOrSlug)))[0]
+    : (await db.select().from(products)).find((p) => apiSlug(p.title) === productIdOrSlug);
+  if (!target) return apiJson({ error: "Product not found" }, 404);
+
+  const [variation] = await db
+    .select()
+    .from(product_variations)
+    .where(
+      and(eq(product_variations.id, variationId), eq(product_variations.product_id, target.id)),
+    );
+  if (!variation) return apiJson({ error: "Variation not found on this product" }, 404);
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return apiJson({ error: "Invalid JSON body" }, 400);
+  }
+  const parsed = coerceVariationWrite(body);
+  if ("error" in parsed) return apiJson({ error: parsed.error }, 422);
+  if (Object.keys(parsed.value).length === 0) {
+    return apiJson({ error: "No writable fields in body" }, 422);
+  }
+
+  await db
+    .update(product_variations)
+    .set(parsed.value)
+    .where(eq(product_variations.id, variationId));
+  // Bump the parent's own updated_at too -- POS's catalog poll diffs on this
+  // field, so a variation-only change would otherwise go unnoticed until
+  // something else touched the parent row.
+  await db
+    .update(products)
+    .set({ updated_at: new Date().toISOString() })
+    .where(eq(products.id, target.id));
+
+  const [row] = await db.select().from(products).where(eq(products.id, target.id));
+  const [shaped] = await withChildren([row]);
+  return apiJson({ product: shaped });
+}
+
 async function handleProductsApi(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const rest = decodeURIComponent(
     url.pathname.replace(/^\/api\/products\/?/, "").replace(/\/+$/, ""),
   );
+
+  const variationMatch = rest.match(/^(.+)\/variations\/([^/]+)$/);
+  if (variationMatch) {
+    return handleVariationApi(request, variationMatch[1], variationMatch[2]);
+  }
+
   const db = getDb();
   const method = request.method.toUpperCase();
 

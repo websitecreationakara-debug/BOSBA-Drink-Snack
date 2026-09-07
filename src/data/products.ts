@@ -11,7 +11,11 @@ import {
 import { slugify, isUuid } from "@/lib/utils";
 import { applyPromo } from "@/lib/commerce/promotions";
 import { requireManager } from "./_auth";
-import { notifyPosOfNewProduct, notifyPosOfStockEdit } from "@/lib/integrations/pos-sync";
+import {
+  notifyPosOfNewProduct,
+  notifyPosOfStockEdit,
+  notifyPosOfVariationEdit,
+} from "@/lib/integrations/pos-sync";
 
 type ProductInput = {
   title: string;
@@ -159,9 +163,10 @@ export const saveVariations = createServerFn({ method: "POST" })
     await requireManager();
     const db = getDb();
     const existing = await db
-      .select({ id: product_variations.id })
+      .select()
       .from(product_variations)
       .where(eq(product_variations.product_id, data.productId));
+    const existingById = new Map(existing.map((e) => [e.id, e]));
 
     const keepIds = data.variations.map((v) => v.id).filter((id): id is string => !!id);
     const toDelete = existing.filter((e) => !keepIds.includes(e.id)).map((e) => e.id);
@@ -179,9 +184,22 @@ export const saveVariations = createServerFn({ method: "POST" })
         sort_order: v.sort_order,
         image_url: v.image_url,
       };
-      if (v.id)
+      if (v.id) {
         await db.update(product_variations).set(fields).where(eq(product_variations.id, v.id));
-      else await db.insert(product_variations).values({ product_id: data.productId, ...fields });
+        // Tell POS about this size directly (not through the whole-product
+        // notifyPosOfStockEdit below, which has no notion of variations) --
+        // only for the fields that actually changed, so an edit to one size
+        // doesn't spuriously re-notify about an untouched sibling.
+        const before = existingById.get(v.id);
+        if (before) {
+          const changes: { price?: number; stock?: number | null } = {};
+          if (before.price !== v.price) changes.price = v.price;
+          if (before.stock !== v.stock) changes.stock = v.stock;
+          if (Object.keys(changes).length > 0) {
+            await notifyPosOfVariationEdit(data.productId, v.id, changes);
+          }
+        }
+      } else await db.insert(product_variations).values({ product_id: data.productId, ...fields });
     }
     return { ok: true };
   });
