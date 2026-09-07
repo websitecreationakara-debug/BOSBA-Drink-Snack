@@ -50,6 +50,41 @@ export async function notifyPosOfStockEdit(productId: string, stock: number): Pr
   }
 }
 
+// Push side of variation-level sync: when an admin edits a "variable"
+// product's own size/flavor (price and/or stock) directly here rather than
+// through POS, tell POS so its own linked product for that size stays
+// correct too. POS looks the link up by (site, productId, variationId); a
+// price/stock left undefined here just isn't included in the payload rather
+// than sent as an explicit "no change" value.
+export async function notifyPosOfVariationEdit(
+  productId: string,
+  variationId: string,
+  changes: { price?: number; stock?: number | null },
+): Promise<void> {
+  const secret = (env as { STOCK_SYNC_SECRET?: string }).STOCK_SYNC_SECRET;
+  if (!secret) return;
+  if (changes.price === undefined && changes.stock === undefined) return;
+
+  try {
+    await fetch(POS_STOCK_SYNC_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify({
+        site: SITE_ID,
+        siteProductId: productId,
+        variationId,
+        ...changes,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (error) {
+    console.error(`POS variation-sync notify failed for product ${productId}/${variationId}`, error);
+  }
+}
+
 // Push side of Phase 7's product creation sync: when a brand-new simple
 // product is created here, tell POS so it appears there automatically
 // instead of needing to be added and linked by hand. Skipped for variable
