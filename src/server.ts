@@ -181,6 +181,9 @@ async function handleProductSearch(request: Request): Promise<Response> {
 //                                    variation rows, so a "variable" product's
 //                                    sizes need this dedicated sub-route.
 // PUT    /api/products/:id/variations/:variationId    -> alias of the above
+// DELETE /api/products/:id/variations/:variationId    -> remove one variation
+//                                    (token required) -- leaves the parent
+//                                    product and its other sizes untouched.
 //
 // Writes need `Authorization: Bearer <PRODUCTS_API_TOKEN>` (wrangler secret).
 // GET is CORS-open so another site can fetch it straight from the browser;
@@ -414,7 +417,7 @@ async function handleVariationApi(
   variationId: string,
 ): Promise<Response> {
   const method = request.method.toUpperCase();
-  if (method !== "PATCH" && method !== "PUT") {
+  if (method !== "PATCH" && method !== "PUT" && method !== "DELETE") {
     return apiJson({ error: "Method not allowed" }, 405);
   }
   if (!apiTokenOk(request)) {
@@ -434,6 +437,20 @@ async function handleVariationApi(
       and(eq(product_variations.id, variationId), eq(product_variations.product_id, target.id)),
     );
   if (!variation) return apiJson({ error: "Variation not found on this product" }, 404);
+
+  // DELETE /api/products/:id/variations/:variationId -- drop one size/flavor
+  // row without touching the parent product or its other variations. (Deleting
+  // the whole product is the plain DELETE /api/products/:id above.)
+  if (method === "DELETE") {
+    await db.delete(product_variations).where(eq(product_variations.id, variationId));
+    // Bump the parent's own updated_at so POS's catalog poll (which diffs on
+    // this field) notices the change -- same reason as the PATCH branch below.
+    await db
+      .update(products)
+      .set({ updated_at: new Date().toISOString() })
+      .where(eq(products.id, target.id));
+    return apiJson({ ok: true, deleted: variationId });
+  }
 
   let body: unknown;
   try {
