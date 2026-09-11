@@ -139,6 +139,12 @@ export async function notifyPosOfOrder(order: {
   deliveryFee?: number;
   total: number;
   paymentMethod?: "cash" | "bank_qr" | null;
+  // Must be a real ISO timestamp with an explicit offset (e.g. ending
+  // "+07:00" or "Z") -- see orders.ts's call site for why: scheduled_at is
+  // stored here as a bare "no offset" local wall-clock string, which POS
+  // would otherwise parse as UTC and silently shift by this site's actual
+  // offset from UTC.
+  deliveryAt?: string | null;
 }): Promise<void> {
   const secret = (env as { STOCK_SYNC_SECRET?: string }).STOCK_SYNC_SECRET;
   if (!secret || order.items.length === 0) return;

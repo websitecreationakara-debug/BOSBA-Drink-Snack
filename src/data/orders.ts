@@ -54,6 +54,19 @@ type CreateOrderInput = {
 // store-front summary in checkout.tsx).
 const SHIPPING_FEE = 2.5;
 
+// scheduled_at is stored as a bare "YYYY-MM-DDTHH:mm" local wall-clock string
+// (see schedMode/schedDate/schedTime in checkout.tsx) -- no timezone info,
+// and every other place in this app that displays it (admin/orders.tsx,
+// notify.ts's formatSchedule) treats it as literal Cambodia local time.
+// Appending the fixed +07:00 offset (Cambodia has no DST) turns it into an
+// unambiguous instant before handing it to POS, which would otherwise parse
+// the bare string as UTC and silently shift it off by 7 hours.
+function scheduledAtToIso(scheduledAt: string | null): string | null {
+  if (!scheduledAt) return null;
+  const d = new Date(`${scheduledAt}:00+07:00`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 const parseItems = (row: typeof orders.$inferSelect) => ({
   ...row,
   items: JSON.parse(row.items || "[]") as OrderItem[],
@@ -336,6 +349,7 @@ export const createOrder = createServerFn({ method: "POST" })
         deliveryFee: shipping,
         total,
         paymentMethod: method === "khqr" ? "bank_qr" : "cash",
+        deliveryAt: scheduledAtToIso(row.scheduled_at),
       });
     }
 
