@@ -5,7 +5,7 @@ import { eq, and, like, asc, inArray } from "drizzle-orm";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { getDb } from "./db";
-import { products, product_variations, product_images, product_tabs } from "./db/schema";
+import { products, product_variations, product_images, product_tabs, orders } from "./db/schema";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -123,6 +123,55 @@ async function handleStockSync(request: Request): Promise<Response> {
     .update(products)
     .set({ stock: Math.max(0, Math.floor(body.stock)) })
     .where(eq(products.id, body.productId));
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+const POS_ORDER_STATUSES = ["pending", "processing", "shipped", "completed", "cancelled"];
+
+// Inbound side of order status sync (POS -> site direction): NOVA POS calls
+// this when staff change a synced order's status there, so this order's own
+// admin view (src/routes/admin/orders.tsx) shows the same status instead of
+// staying frozen at whatever it started as. Mirror of notifyPosOfOrderStatus
+// in pos-sync.ts, which pushes the other direction. Deliberately a plain
+// status write with no side effects (no restock, no notification) -- same as
+// /api/order-status-sync on the POS side, so neither system double-processes
+// something the other already handled for its own change.
+async function handlePosOrderStatus(request: Request): Promise<Response> {
+  const secret = (env as { STOCK_SYNC_SECRET?: string }).STOCK_SYNC_SECRET;
+  const auth = request.headers.get("authorization");
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  let body: { siteOrderId?: string; status?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  if (
+    typeof body.siteOrderId !== "string" ||
+    typeof body.status !== "string" ||
+    !POS_ORDER_STATUSES.includes(body.status)
+  ) {
+    return new Response(JSON.stringify({ error: "Invalid payload" }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  await getDb().update(orders).set({ status: body.status }).where(eq(orders.id, body.siteOrderId));
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
@@ -421,7 +470,10 @@ async function handleVariationApi(
     return apiJson({ error: "Method not allowed" }, 405);
   }
   if (!apiTokenOk(request)) {
-    return apiJson({ error: "Unauthorized — send Authorization: Bearer <PRODUCTS_API_TOKEN>" }, 401);
+    return apiJson(
+      { error: "Unauthorized — send Authorization: Bearer <PRODUCTS_API_TOKEN>" },
+      401,
+    );
   }
 
   const db = getDb();
@@ -668,6 +720,20 @@ export default {
     if (url.pathname === "/api/stock-sync" && request.method === "POST") {
       try {
         return withSecurityHeaders(await handleStockSync(request));
+      } catch (error) {
+        console.error(error);
+        return withSecurityHeaders(
+          new Response(JSON.stringify({ error: "Internal error" }), {
+            status: 500,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      }
+    }
+
+    if (url.pathname === "/api/pos-order-status" && request.method === "POST") {
+      try {
+        return withSecurityHeaders(await handlePosOrderStatus(request));
       } catch (error) {
         console.error(error);
         return withSecurityHeaders(
