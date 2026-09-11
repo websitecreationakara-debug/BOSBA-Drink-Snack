@@ -13,7 +13,11 @@ import {
 import { applyPromo } from "@/lib/commerce/promotions";
 import { promoCodeDiscount } from "@/lib/commerce/promo-code";
 import { notifyNewOrder, notifyOrderShipped } from "@/lib/integrations/notify";
-import { notifyPosOfOrder, notifyPosOfSale } from "@/lib/integrations/pos-sync";
+import {
+  notifyPosOfOrder,
+  notifyPosOfOrderStatus,
+  notifyPosOfSale,
+} from "@/lib/integrations/pos-sync";
 import {
   getSessionUser,
   requireAdmin,
@@ -377,6 +381,12 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     const [before] = await db.select().from(orders).where(eq(orders.id, data.id));
     if (!before) throw new Error("Order not found");
     await db.update(orders).set({ status: data.status }).where(eq(orders.id, data.id));
+
+    // Phase 8: keep POS's copy of this order (if it has one -- see
+    // notifyPosOfOrder) in step with whatever staff set it to here.
+    if (data.status !== before.status) {
+      await notifyPosOfOrderStatus(before.id, data.status);
+    }
 
     // Notify on the transition into "shipped" — but only if a tracking link is
     // already set. Normally the link is added after shipping (the admin input

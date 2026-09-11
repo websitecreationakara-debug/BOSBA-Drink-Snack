@@ -4,6 +4,7 @@ const POS_BASE_URL = "https://nova-pos.websitecreation-akara.workers.dev";
 const POS_STOCK_SYNC_URL = `${POS_BASE_URL}/api/stock-sync`;
 const POS_PRODUCT_SYNC_URL = `${POS_BASE_URL}/api/product-sync`;
 const POS_ORDER_SYNC_URL = `${POS_BASE_URL}/api/order-sync`;
+const POS_ORDER_STATUS_SYNC_URL = `${POS_BASE_URL}/api/order-status-sync`;
 const SITE_ID = "bosba-drink-snack";
 
 export type PosOrderItem = { siteProductId: string; quantity: number; unitPrice: number };
@@ -154,5 +155,31 @@ export async function notifyPosOfOrder(order: {
     });
   } catch (error) {
     console.error(`POS order-sync notify failed for order ${order.siteOrderId}`, error);
+  }
+}
+
+// Push side of order status sync: tell POS whenever this order's status
+// changes here (cancel, ship, complete, ...) so its own copy -- created by
+// notifyPosOfOrder above -- doesn't stay frozen at whatever it started as.
+// POS maps this site's status strings to its own fulfillment_status and
+// no-ops if it never received this order in the first place (nothing on it
+// was linkable). Safe to call for every status, even ones POS won't
+// recognize -- it just rejects those rather than this throwing.
+export async function notifyPosOfOrderStatus(siteOrderId: string, status: string): Promise<void> {
+  const secret = (env as { STOCK_SYNC_SECRET?: string }).STOCK_SYNC_SECRET;
+  if (!secret) return;
+
+  try {
+    await fetch(POS_ORDER_STATUS_SYNC_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify({ site: SITE_ID, siteOrderId, status }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (error) {
+    console.error(`POS order-status-sync notify failed for order ${siteOrderId}`, error);
   }
 }
