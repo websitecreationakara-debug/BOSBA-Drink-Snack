@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 
-const POS_BASE_URL = "https://pos-system-inky-ten.vercel.app";
+const POS_BASE_URL = "https://nova-pos.websitecreation-akara.workers.dev";
 const POS_STOCK_SYNC_URL = `${POS_BASE_URL}/api/stock-sync`;
 const POS_PRODUCT_SYNC_URL = `${POS_BASE_URL}/api/product-sync`;
 const POS_ORDER_SYNC_URL = `${POS_BASE_URL}/api/order-sync`;
