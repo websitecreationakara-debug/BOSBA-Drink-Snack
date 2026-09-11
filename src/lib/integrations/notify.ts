@@ -134,7 +134,6 @@ export async function notifyNewOrder(order: OrderNotification): Promise<void> {
 
   // Fan out to every configured channel; one failing must not block the others or the order.
   const results = await Promise.allSettled([
-    sendTelegram(textSummary),
     sendEmail(order, short, shipTo),
     sendCustomerEmail(order, short, shipTo),
   ]);
@@ -142,30 +141,6 @@ export async function notifyNewOrder(order: OrderNotification): Promise<void> {
     // Nothing configured (e.g. local dev) — log so the order is still visible.
     console.log(`[order-notify]\n${textSummary}`);
   }
-}
-
-async function sendTelegram(text: string): Promise<"sent" | "skipped"> {
-  const token = env.TELEGRAM_BOT_TOKEN;
-  const chatId = env.TELEGRAM_CHAT_ID;
-  if (!token || !chatId) return "skipped";
-  try {
-    const payload: Record<string, unknown> = {
-      chat_id: chatId,
-      text: `🌐 Website: ${siteName()}\n🛎️ New order\n\n${text}`,
-      disable_web_page_preview: true,
-    };
-    // Forum supergroups route messages into a specific topic by thread id.
-    if (env.TELEGRAM_TOPIC_ID) payload.message_thread_id = Number(env.TELEGRAM_TOPIC_ID);
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) console.error("[order-notify] telegram failed", res.status, await res.text());
-  } catch (e) {
-    console.error("[order-notify] telegram error", e);
-  }
-  return "sent";
 }
 
 async function sendEmail(
