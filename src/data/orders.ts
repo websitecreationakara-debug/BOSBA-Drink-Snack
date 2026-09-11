@@ -13,7 +13,7 @@ import {
 import { applyPromo } from "@/lib/commerce/promotions";
 import { promoCodeDiscount } from "@/lib/commerce/promo-code";
 import { notifyNewOrder, notifyOrderShipped } from "@/lib/integrations/notify";
-import { notifyPosOfSale } from "@/lib/integrations/pos-sync";
+import { notifyPosOfOrder, notifyPosOfSale } from "@/lib/integrations/pos-sync";
 import {
   getSessionUser,
   requireAdmin,
@@ -312,6 +312,28 @@ export const createOrder = createServerFn({ method: "POST" })
         return notifyPosOfSale(id, need);
       }),
     );
+
+    // Phase 8: give this order a matching order + invoice in POS too, not
+    // just a stock nudge. Only top-level product lines can be linked to a POS
+    // product (variations aren't modeled there, same limitation as the stock
+    // sync just above) -- a variation-only order has nothing to send.
+    const posItems = items
+      .filter((i) => productIdSet.has(i.id))
+      .map((i) => ({ siteProductId: i.id, quantity: i.qty, unitPrice: i.price }));
+    if (posItems.length > 0) {
+      await notifyPosOfOrder({
+        siteOrderId: row.id,
+        items: posItems,
+        customerName: row.customer_name,
+        customerPhone: row.customer_phone,
+        customerEmail: row.customer_email,
+        subtotal,
+        discount,
+        deliveryFee: shipping,
+        total,
+        paymentMethod: method === "khqr" ? "bank_qr" : "cash",
+      });
+    }
 
     // COD: notify the store now. KHQR: hold the notification until payment is
     // confirmed (markOrderPaid), so an unpaid online order never alerts the store.
