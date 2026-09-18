@@ -719,6 +719,7 @@ function Checkout() {
           {items.map((item) => {
             const key = itemKey(item);
             const unit = itemUnitPrice(item);
+            const image = item.variation?.image_url || item.product.image_url;
             return (
               // Two rows per item: thumbnail + title/line-total on top, unit
               // price + stepper below. A single row can't fit all six controls
@@ -726,17 +727,14 @@ function Checkout() {
               <div key={key} className="flex gap-3 text-sm">
                 <button
                   type="button"
-                  onClick={() =>
-                    item.product.image_url &&
-                    setPreview({ url: item.product.image_url, title: item.product.title })
-                  }
-                  disabled={!item.product.image_url}
-                  title={item.product.image_url ? `View ${item.product.title} image` : undefined}
+                  onClick={() => image && setPreview({ url: image, title: item.product.title })}
+                  disabled={!image}
+                  title={image ? `View ${item.product.title} image` : undefined}
                   className="size-12 rounded-lg bg-background overflow-hidden shrink-0 hover:ring-2 hover:ring-brand transition-shadow disabled:cursor-default"
                 >
-                  {item.product.image_url && (
+                  {image && (
                     <img
-                      src={item.product.image_url}
+                      src={image}
                       alt={item.product.title}
                       className="w-full h-full object-cover"
                       loading="lazy"
