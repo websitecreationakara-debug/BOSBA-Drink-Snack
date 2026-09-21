@@ -161,7 +161,9 @@ export function SiteFooter() {
             <Link to="/privacy" className="hover:text-foreground transition-colors">
               {t("footer.privacy")}
             </Link>
-            <a href="#">{t("footer.terms")}</a>
+            <Link to="/terms" className="hover:text-foreground transition-colors">
+              {t("footer.terms")}
+            </Link>
             <a href="/sitemap.xml">{t("footer.sitemap")}</a>
           </div>
         </div>

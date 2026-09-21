@@ -33,6 +33,13 @@ export async function requireManager(): Promise<SessionUser> {
   return user;
 }
 
+// Social publishing (Facebook/Instagram/TikTok connections + posts): admin or marketing.
+export async function requireSocial(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (user.role !== "admin" && user.role !== "marketing") throw new Error("Forbidden: social only");
+  return user;
+}
+
 // Admin or sales — sales staff are scoped to order handling only.
 export async function requireStaff(): Promise<SessionUser> {
   const user = await requireUser();
