@@ -32,6 +32,14 @@ function privacyLevel(visibility: TiktokVisibility): string {
   return visibility === "public" ? "PUBLIC_TO_EVERYONE" : "SELF_ONLY";
 }
 
+// TikTok caps the photo post_info.title at 90 chars (video allows more, but
+// still isn't unlimited) -- the full caption goes in `description` instead
+// (4000 char cap for photos), so a long product caption doesn't get rejected
+// with "the request post info is empty or incorrect".
+function truncate(s: string, max: number): string {
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+}
+
 export async function tiktokPublish(
   accessToken: string,
   caption: string,
@@ -40,16 +48,17 @@ export async function tiktokPublish(
   visibility: TiktokVisibility,
 ): Promise<{ publishId: string }> {
   const privacy_level = privacyLevel(visibility);
+  const title = truncate(caption.split("\n")[0] || caption, mediaType === "video" ? 2200 : 90);
   const body =
     mediaType === "video"
       ? {
-          post_info: { title: caption, privacy_level },
+          post_info: { title, privacy_level },
           source_info: { source: "PULL_FROM_URL", video_url: mediaUrl },
         }
       : {
           post_mode: "DIRECT_POST",
           media_type: "PHOTO",
-          post_info: { title: caption, privacy_level },
+          post_info: { title, description: truncate(caption, 4000), privacy_level },
           source_info: { source: "PULL_FROM_URL", photo_images: [mediaUrl], photo_cover_index: 0 },
         };
   const json = await tiktokPost<{ data?: { publish_id?: string } }>(
