@@ -17,13 +17,17 @@ import {
 const TARGET_W = 1080;
 const TARGET_H = 1920;
 
+// Each padding_* call consumes (moves) its Rgba argument rather than
+// borrowing it -- the wasm side frees it, leaving the JS-side handle
+// pointing at freed memory. A fresh Rgba per call avoids reusing a
+// already-consumed one ("null pointer passed to rust" on the 2nd+ call).
 function padSide(
   img: PhotonImage,
   amount: number,
   fn: (img: PhotonImage, padding: number, rgba: Rgba) => PhotonImage,
-  color: Rgba,
 ): PhotonImage {
   if (amount <= 0) return img;
+  const color = new Rgba(255, 255, 255, 255);
   const out = fn(img, amount, color);
   img.free();
   return out;
@@ -40,20 +44,21 @@ export function padForTiktok(bytes: Uint8Array): Uint8Array {
   const newW = Math.max(1, Math.round(srcW * scale));
   const newH = Math.max(1, Math.round(srcH * scale));
 
-  let img = resize(input, newW, newH, SamplingFilter.Lanczos3);
+  // Lanczos3 is noticeably more CPU-expensive than Triangle for not much
+  // visible difference at this output size, and Workers has a tight CPU-time
+  // budget per request -- Triangle keeps this comfortably inside it.
+  let img = resize(input, newW, newH, SamplingFilter.Triangle);
   input.free();
 
   const padX = TARGET_W - newW;
   const padY = TARGET_H - newH;
-  const white = new Rgba(255, 255, 255, 255);
 
-  img = padSide(img, Math.floor(padX / 2), padding_left, white);
-  img = padSide(img, padX - Math.floor(padX / 2), padding_right, white);
-  img = padSide(img, Math.floor(padY / 2), padding_top, white);
-  img = padSide(img, padY - Math.floor(padY / 2), padding_bottom, white);
+  img = padSide(img, Math.floor(padX / 2), padding_left);
+  img = padSide(img, padX - Math.floor(padX / 2), padding_right);
+  img = padSide(img, Math.floor(padY / 2), padding_top);
+  img = padSide(img, padY - Math.floor(padY / 2), padding_bottom);
 
   const out = img.get_bytes_jpeg(90);
-  white.free();
   img.free();
   return out;
 }

@@ -57,6 +57,27 @@ const authMiddleware = createMiddleware().server(async ({ next }) => {
   return next();
 });
 
+// Shared by mediaMiddleware and tiktokImageMiddleware below. A past
+// bulk-insert wrote these rows as SQL text literals instead of bound blob
+// params, so many `data` values now have TEXT storage class: any byte that
+// isn't valid UTF-8 already got mangled into U+FFFD before it ever reached
+// SQLite. Selecting `data` directly (via Drizzle or the raw D1 binding)
+// re-decodes that stored text as UTF-8 and mangles it a second time.
+// `hex(data)` operates on the raw stored bytes and survives intact, so pull
+// the blob through that instead and decode the hex back to bytes.
+async function loadMediaBlob(
+  key: string,
+): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  const row = await env.DB.prepare("SELECT hex(data) AS hex, content_type FROM media WHERE key = ?")
+    .bind(key)
+    .first<{ hex: string | null; content_type: string | null }>();
+  if (!row?.hex) return null;
+
+  const bytes = new Uint8Array(row.hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(row.hex.slice(i * 2, i * 2 + 2), 16);
+  return { bytes, contentType: row.content_type ?? "application/octet-stream" };
+}
+
 // Serve uploaded media stored as BLOBs in D1, same-origin under /media/<key>.
 const mediaMiddleware = createMiddleware().server(async ({ next }) => {
   const request = getRequest();
@@ -64,17 +85,8 @@ const mediaMiddleware = createMiddleware().server(async ({ next }) => {
   if (!pathname.startsWith("/media/")) return next();
 
   const key = decodeURIComponent(pathname.slice("/media/".length));
-  // A past bulk-insert wrote these rows as SQL text literals instead of bound
-  // blob params, so many `data` values now have TEXT storage class: any byte
-  // that isn't valid UTF-8 already got mangled into U+FFFD before it ever
-  // reached SQLite. Selecting `data` directly (via Drizzle or the raw D1
-  // binding) re-decodes that stored text as UTF-8 and mangles it a second
-  // time. `hex(data)` operates on the raw stored bytes and survives intact,
-  // so pull the blob through that instead and decode the hex back to bytes.
-  const row = await env.DB.prepare("SELECT hex(data) AS hex, content_type FROM media WHERE key = ?")
-    .bind(key)
-    .first<{ hex: string | null; content_type: string | null }>();
-  if (!row?.hex) {
+  const blob = await loadMediaBlob(key);
+  if (!blob) {
     // Local dev never has media BLOBs synced down (db-sync.mjs deliberately
     // skips them) — fall back to the real site so synced products still
     // show their real images instead of broken thumbnails.
@@ -82,12 +94,9 @@ const mediaMiddleware = createMiddleware().server(async ({ next }) => {
     return new Response("Not found", { status: 404 });
   }
 
-  const bytes = new Uint8Array(row.hex.length / 2);
-  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(row.hex.slice(i * 2, i * 2 + 2), 16);
-
-  return new Response(bytes, {
+  return new Response(blob.bytes.slice().buffer, {
     headers: {
-      "content-type": row.content_type ?? "application/octet-stream",
+      "content-type": blob.contentType,
       "cache-control": "public, max-age=31536000, immutable",
     },
   });
@@ -100,13 +109,19 @@ const mediaMiddleware = createMiddleware().server(async ({ next }) => {
 // this instead of the raw product image. Keyed by post id rather than an
 // arbitrary source URL so this can't double as an open image proxy -- it only
 // ever serves an image an authenticated admin already queued.
+// Path carries a real .jpg extension (/api/social/tiktok-image/<id>.jpg)
+// rather than a query string -- some pull-based fetchers, TikTok's included,
+// fast-path-reject URLs with no recognizable image extension before ever
+// requesting them.
+const TIKTOK_IMAGE_PATH = /^\/api\/social\/tiktok-image\/([^/]+)\.jpg$/;
+
 const tiktokImageMiddleware = createMiddleware().server(async ({ next }) => {
   const request = getRequest();
-  const { pathname, searchParams } = new URL(request.url);
-  if (pathname !== "/api/social/tiktok-image") return next();
+  const { pathname } = new URL(request.url);
+  const match = pathname.match(TIKTOK_IMAGE_PATH);
+  if (!match) return next();
 
-  const postId = searchParams.get("post");
-  if (!postId) return new Response("Missing post", { status: 400 });
+  const postId = match[1];
 
   const [post] = await getDb()
     .select({ image_url: social_posts.image_url })
@@ -114,10 +129,29 @@ const tiktokImageMiddleware = createMiddleware().server(async ({ next }) => {
     .where(eq(social_posts.id, postId));
   if (!post?.image_url) return new Response("Not found", { status: 404 });
 
-  const source = await fetch(absoluteMediaUrl(post.image_url));
-  if (!source.ok) return new Response("Source image unavailable", { status: 502 });
+  // A Worker can't reliably fetch() a URL on its own zone (Cloudflare treats
+  // same-zone subrequests as a potential loop and the connection times out
+  // with a 522) -- so a same-origin /media/<key> path is read straight out of
+  // D1 like mediaMiddleware does, and only a genuinely external image_url
+  // (an admin-pasted URL never uploaded to Media) goes through fetch().
+  let bytes: Uint8Array;
+  if (post.image_url.startsWith("/media/")) {
+    const blob = await loadMediaBlob(decodeURIComponent(post.image_url.slice("/media/".length)));
+    if (!blob) return new Response("Source image unavailable", { status: 502 });
+    bytes = blob.bytes;
+  } else {
+    const source = await fetch(absoluteMediaUrl(post.image_url)).catch(() => null);
+    if (!source?.ok) return new Response("Source image unavailable", { status: 502 });
+    bytes = new Uint8Array(await source.arrayBuffer());
+  }
 
-  const jpeg = padForTiktok(new Uint8Array(await source.arrayBuffer()));
+  let jpeg: Uint8Array;
+  try {
+    jpeg = padForTiktok(bytes);
+  } catch (err) {
+    console.error("padForTiktok failed", err);
+    return new Response("Image processing failed", { status: 500 });
+  }
   return new Response(jpeg.slice().buffer, {
     headers: { "content-type": "image/jpeg", "cache-control": "public, max-age=3600" },
   });

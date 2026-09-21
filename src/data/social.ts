@@ -215,7 +215,7 @@ async function publishToPlatform(
   const { publishId } = await tiktokPublish(
     settings.tiktok_access_token!,
     caption,
-    `${SITE}/api/social/tiktok-image?post=${postId}`,
+    `${SITE}/api/social/tiktok-image/${postId}.jpg`,
     "image",
     (settings.tiktok_post_visibility === "public" ? "public" : "private") as TiktokVisibility,
   );
