@@ -6,8 +6,10 @@ import { eq } from "drizzle-orm";
 import { renderErrorPage } from "./lib/error-page";
 import { getAuth } from "./lib/auth";
 import { getDb } from "./db";
-import { products, categories } from "./db/schema";
+import { products, categories, social_posts } from "./db/schema";
 import { slugify } from "./lib/utils";
+import { absoluteMediaUrl } from "./lib/integrations/social/shared";
+import { padForTiktok } from "./lib/integrations/social/tiktok-image.server";
 
 const SITE = "https://bosbadrinksnack.com";
 
@@ -88,6 +90,36 @@ const mediaMiddleware = createMiddleware().server(async ({ next }) => {
       "content-type": row.content_type ?? "application/octet-stream",
       "cache-control": "public, max-age=31536000, immutable",
     },
+  });
+});
+
+// Serves a TikTok-safe (1080x1920, letterboxed) version of a queued social
+// post's photo. TikTok's photo Direct Post rejects square/landscape product
+// shots with "picture_size_check_failed" when pulled as-is, so tiktokPublish
+// (src/lib/integrations/social/tiktok.ts) points TikTok's PULL_FROM_URL at
+// this instead of the raw product image. Keyed by post id rather than an
+// arbitrary source URL so this can't double as an open image proxy -- it only
+// ever serves an image an authenticated admin already queued.
+const tiktokImageMiddleware = createMiddleware().server(async ({ next }) => {
+  const request = getRequest();
+  const { pathname, searchParams } = new URL(request.url);
+  if (pathname !== "/api/social/tiktok-image") return next();
+
+  const postId = searchParams.get("post");
+  if (!postId) return new Response("Missing post", { status: 400 });
+
+  const [post] = await getDb()
+    .select({ image_url: social_posts.image_url })
+    .from(social_posts)
+    .where(eq(social_posts.id, postId));
+  if (!post?.image_url) return new Response("Not found", { status: 404 });
+
+  const source = await fetch(absoluteMediaUrl(post.image_url));
+  if (!source.ok) return new Response("Source image unavailable", { status: 502 });
+
+  const jpeg = padForTiktok(new Uint8Array(await source.arrayBuffer()));
+  return new Response(jpeg.slice().buffer, {
+    headers: { "content-type": "image/jpeg", "cache-control": "public, max-age=3600" },
   });
 });
 
@@ -186,6 +218,7 @@ export const startInstance = createStart(() => ({
     csrfMiddleware,
     authMiddleware,
     mediaMiddleware,
+    tiktokImageMiddleware,
     assetlinksMiddleware,
     sitemapMiddleware,
   ],

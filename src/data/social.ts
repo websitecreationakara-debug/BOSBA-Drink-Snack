@@ -175,6 +175,7 @@ async function publishToPlatform(
   settings: SettingsRow,
   caption: string,
   mediaUrl: string | null,
+  postId: string,
 ): Promise<string> {
   if (platform === "facebook") {
     const { remoteId } = await facebookPublish(
@@ -207,10 +208,14 @@ async function publishToPlatform(
     return remoteId;
   }
   if (!mediaUrl) throw new Error("TikTok requires the product to have an image");
+  // TikTok's photo Direct Post rejects square/landscape product photos
+  // outright ("picture_size_check_failed") -- pull from our own resize proxy
+  // instead of the raw image so it always gets a 1080x1920 letterboxed JPEG.
+  // See the tiktokImageMiddleware in src/start.ts.
   const { publishId } = await tiktokPublish(
     settings.tiktok_access_token!,
     caption,
-    mediaUrl,
+    `${SITE}/api/social/tiktok-image?post=${postId}`,
     "image",
     (settings.tiktok_post_visibility === "public" ? "public" : "private") as TiktokVisibility,
   );
@@ -251,7 +256,13 @@ export async function publishQueuedSocialPosts(): Promise<PublishQueueResult> {
     let anySuccess = false;
     for (const platform of platforms) {
       try {
-        const remoteId = await publishToPlatform(platform, settingsRow, post.caption, mediaUrl);
+        const remoteId = await publishToPlatform(
+          platform,
+          settingsRow,
+          post.caption,
+          mediaUrl,
+          post.id,
+        );
         await db.insert(social_post_targets).values({
           post_id: post.id,
           platform,
