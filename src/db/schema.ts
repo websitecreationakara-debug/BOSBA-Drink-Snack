@@ -245,6 +245,77 @@ export const translations = sqliteTable(
   (t) => [primaryKey({ columns: [t.locale, t.key] })],
 );
 
+// Singleton settings row for the admin's Social feature. Every credential is
+// hand-pasted by the admin (Facebook Page access token, Telegram bot token,
+// TikTok access token, ...) rather than obtained via an OAuth connect flow --
+// no Meta/TikTok developer app review needed to use it. "Connected" for a
+// platform is derived (not stored) from whether its required fields are set.
+export const social_settings = sqliteTable("social_settings", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  facebook_page_id: text("facebook_page_id"),
+  facebook_page_access_token: text("facebook_page_access_token"),
+  // Instagram publishes through the linked Facebook Page's access token above
+  // -- it has no token of its own, just the Business account id to post as.
+  instagram_business_account_id: text("instagram_business_account_id"),
+  telegram_bot_token: text("telegram_bot_token"),
+  // @channelname (public) or the numeric -100... id (private).
+  telegram_channel_id: text("telegram_channel_id"),
+  tiktok_access_token: text("tiktok_access_token"),
+  // "private" (SELF_ONLY -- works on an unaudited app) | "public" (needs the
+  // TikTok app to have passed Content Posting API review).
+  tiktok_post_visibility: text("tiktok_post_visibility").notNull().default("private"),
+  updated_at: text("updated_at").notNull().$defaultFn(nowIso),
+});
+
+// A queued/published product post. Created by picking a product from the
+// catalog; its name/description/tabs/price are snapshotted onto `caption` at
+// queue time so history keeps reading correctly even if the product changes
+// or is deleted later. The hourly Cron Trigger (see src/server.ts's
+// `scheduled` handler) publishes every "queued" row to each currently
+// configured platform, then flips it to "published" (or "failed" if every
+// target failed).
+export const social_posts = sqliteTable("social_posts", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  // Soft reference -- kept even if the product is later deleted.
+  product_id: text("product_id"),
+  product_title: text("product_title").notNull(),
+  // The one product photo the admin picked to post (from its cover image +
+  // gallery) -- not necessarily products.image_url.
+  image_url: text("image_url"),
+  caption: text("caption").notNull(),
+  // Admin-written line not on the product page (e.g. a promo/restock note),
+  // appended after the auto-generated caption. Null = none added.
+  extra_note: text("extra_note"),
+  // "queued" | "published" | "failed"
+  status: text("status").notNull().default("queued"),
+  // Not eligible to publish until this time -- lets an admin schedule ahead
+  // instead of it going out on the very next hourly tick.
+  scheduled_for: text("scheduled_for").notNull().$defaultFn(nowIso),
+  // Comma-separated SocialPlatform subset chosen for this post. Empty/null =
+  // publish to every platform configured at publish time (the default).
+  platforms: text("platforms"),
+  created_by: text("created_by"),
+  created_at: text("created_at").notNull().$defaultFn(nowIso),
+  published_at: text("published_at"),
+});
+
+// One row per platform a post published (or tried to publish) to, snapshotted
+// at publish time from whichever platforms were configured then -- so a
+// platform connected after a post was queued doesn't retroactively pick it up.
+export const social_post_targets = sqliteTable("social_post_targets", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  post_id: text("post_id")
+    .notNull()
+    .references(() => social_posts.id, { onDelete: "cascade" }),
+  // "facebook" | "instagram" | "telegram" | "tiktok"
+  platform: text("platform").notNull(),
+  // "success" | "failed"
+  status: text("status").notNull(),
+  remote_post_id: text("remote_post_id"),
+  error: text("error"),
+  created_at: text("created_at").notNull().$defaultFn(nowIso),
+});
+
 // ---------- better-auth tables ----------
 // Shapes follow better-auth's drizzle (sqlite) conventions, including the
 // `admin` plugin fields (user.role/banned/..., session.impersonatedBy).

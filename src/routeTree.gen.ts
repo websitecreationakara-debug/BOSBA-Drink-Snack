@@ -20,6 +20,7 @@ import { Route as StoreOffersRouteImport } from './routes/_store/offers'
 import { Route as StoreOrdersRouteImport } from './routes/_store/orders'
 import { Route as StorePrivacyRouteImport } from './routes/_store/privacy'
 import { Route as StoreShopRouteImport } from './routes/_store/shop'
+import { Route as StoreTermsRouteImport } from './routes/_store/terms'
 import { Route as StoreThankYouRouteImport } from './routes/_store/thank-you'
 import { Route as StoreWishlistRouteImport } from './routes/_store/wishlist'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -35,6 +36,8 @@ import { Route as AdminTranslationsRouteImport } from './routes/admin/translatio
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as StorePayIdRouteImport } from './routes/_store/pay.$id'
 import { Route as StoreProductIdRouteImport } from './routes/_store/product.$id'
+import { Route as AdminSocialConnectionsRouteImport } from './routes/admin/social/connections'
+import { Route as AdminSocialPostsRouteImport } from './routes/admin/social/posts'
 
 const StoreRoute = StoreRouteImport.update({
   id: '/_store',
@@ -88,6 +91,11 @@ const StorePrivacyRoute = StorePrivacyRouteImport.update({
 const StoreShopRoute = StoreShopRouteImport.update({
   id: '/shop',
   path: '/shop',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreTermsRoute = StoreTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => StoreRoute,
 } as any)
 const StoreThankYouRoute = StoreThankYouRouteImport.update({
@@ -165,6 +173,16 @@ const StoreProductIdRoute = StoreProductIdRouteImport.update({
   path: '/product/$id',
   getParentRoute: () => StoreRoute,
 } as any)
+const AdminSocialConnectionsRoute = AdminSocialConnectionsRouteImport.update({
+  id: '/social/connections',
+  path: '/social/connections',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSocialPostsRoute = AdminSocialPostsRouteImport.update({
+  id: '/social/posts',
+  path: '/social/posts',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof StoreIndexRoute
@@ -177,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/orders': typeof StoreOrdersRoute
   '/privacy': typeof StorePrivacyRoute
   '/shop': typeof StoreShopRoute
+  '/terms': typeof StoreTermsRoute
   '/thank-you': typeof StoreThankYouRoute
   '/wishlist': typeof StoreWishlistRoute
   '/admin/banners': typeof AdminBannersRoute
@@ -192,6 +211,8 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/pay/$id': typeof StorePayIdRoute
   '/product/$id': typeof StoreProductIdRoute
+  '/admin/social/connections': typeof AdminSocialConnectionsRoute
+  '/admin/social/posts': typeof AdminSocialPostsRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -202,6 +223,7 @@ export interface FileRoutesByTo {
   '/orders': typeof StoreOrdersRoute
   '/privacy': typeof StorePrivacyRoute
   '/shop': typeof StoreShopRoute
+  '/terms': typeof StoreTermsRoute
   '/thank-you': typeof StoreThankYouRoute
   '/wishlist': typeof StoreWishlistRoute
   '/admin/banners': typeof AdminBannersRoute
@@ -218,6 +240,8 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/pay/$id': typeof StorePayIdRoute
   '/product/$id': typeof StoreProductIdRoute
+  '/admin/social/connections': typeof AdminSocialConnectionsRoute
+  '/admin/social/posts': typeof AdminSocialPostsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -231,6 +255,7 @@ export interface FileRoutesById {
   '/_store/orders': typeof StoreOrdersRoute
   '/_store/privacy': typeof StorePrivacyRoute
   '/_store/shop': typeof StoreShopRoute
+  '/_store/terms': typeof StoreTermsRoute
   '/_store/thank-you': typeof StoreThankYouRoute
   '/_store/wishlist': typeof StoreWishlistRoute
   '/admin/banners': typeof AdminBannersRoute
@@ -247,6 +272,8 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/_store/pay/$id': typeof StorePayIdRoute
   '/_store/product/$id': typeof StoreProductIdRoute
+  '/admin/social/connections': typeof AdminSocialConnectionsRoute
+  '/admin/social/posts': typeof AdminSocialPostsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -261,6 +288,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/privacy'
     | '/shop'
+    | '/terms'
     | '/thank-you'
     | '/wishlist'
     | '/admin/banners'
@@ -276,6 +304,8 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/pay/$id'
     | '/product/$id'
+    | '/admin/social/connections'
+    | '/admin/social/posts'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -286,6 +316,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/privacy'
     | '/shop'
+    | '/terms'
     | '/thank-you'
     | '/wishlist'
     | '/admin/banners'
@@ -302,6 +333,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/pay/$id'
     | '/product/$id'
+    | '/admin/social/connections'
+    | '/admin/social/posts'
   id:
     | '__root__'
     | '/_store'
@@ -314,6 +347,7 @@ export interface FileRouteTypes {
     | '/_store/orders'
     | '/_store/privacy'
     | '/_store/shop'
+    | '/_store/terms'
     | '/_store/thank-you'
     | '/_store/wishlist'
     | '/admin/banners'
@@ -330,6 +364,8 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/_store/pay/$id'
     | '/_store/product/$id'
+    | '/admin/social/connections'
+    | '/admin/social/posts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -415,6 +451,13 @@ declare module '@tanstack/react-router' {
       path: '/shop'
       fullPath: '/shop'
       preLoaderRoute: typeof StoreShopRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/_store/terms': {
+      id: '/_store/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof StoreTermsRouteImport
       parentRoute: typeof StoreRoute
     }
     '/_store/thank-you': {
@@ -522,6 +565,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreProductIdRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/admin/social/connections': {
+      id: '/admin/social/connections'
+      path: '/social/connections'
+      fullPath: '/admin/social/connections'
+      preLoaderRoute: typeof AdminSocialConnectionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/social/posts': {
+      id: '/admin/social/posts'
+      path: '/social/posts'
+      fullPath: '/admin/social/posts'
+      preLoaderRoute: typeof AdminSocialPostsRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -533,6 +590,7 @@ interface StoreRouteChildren {
   StoreOrdersRoute: typeof StoreOrdersRoute
   StorePrivacyRoute: typeof StorePrivacyRoute
   StoreShopRoute: typeof StoreShopRoute
+  StoreTermsRoute: typeof StoreTermsRoute
   StoreThankYouRoute: typeof StoreThankYouRoute
   StoreWishlistRoute: typeof StoreWishlistRoute
   StoreIndexRoute: typeof StoreIndexRoute
@@ -548,6 +606,7 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreOrdersRoute: StoreOrdersRoute,
   StorePrivacyRoute: StorePrivacyRoute,
   StoreShopRoute: StoreShopRoute,
+  StoreTermsRoute: StoreTermsRoute,
   StoreThankYouRoute: StoreThankYouRoute,
   StoreWishlistRoute: StoreWishlistRoute,
   StoreIndexRoute: StoreIndexRoute,
@@ -569,6 +628,8 @@ interface AdminRouteChildren {
   AdminTranslationsRoute: typeof AdminTranslationsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminSocialConnectionsRoute: typeof AdminSocialConnectionsRoute
+  AdminSocialPostsRoute: typeof AdminSocialPostsRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -583,6 +644,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminTranslationsRoute: AdminTranslationsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminSocialConnectionsRoute: AdminSocialConnectionsRoute,
+  AdminSocialPostsRoute: AdminSocialPostsRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

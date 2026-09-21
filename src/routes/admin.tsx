@@ -20,6 +20,11 @@ import {
   ShieldCheck,
   DatabaseBackup,
   Languages,
+  Share2,
+  Send,
+  ChevronUp,
+  ChevronDown,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
@@ -32,7 +37,13 @@ export const Route = createFileRoute("/admin")({
 
 const SIDEBAR_KEY = "bosba:admin-sidebar-collapsed";
 
-const nav = [
+type NavLink = { to: string; label: string; icon: LucideIcon; exact?: boolean };
+type NavGroup = { label: string; icon: LucideIcon; children: NavLink[] };
+type NavEntry = NavLink | NavGroup;
+
+const isNavGroup = (n: NavEntry): n is NavGroup => "children" in n;
+
+const nav: NavEntry[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/banners", label: "Hero Banner", icon: GalleryHorizontalEnd },
   { to: "/admin/products", label: "Products", icon: Package },
@@ -40,11 +51,25 @@ const nav = [
   { to: "/admin/media", label: "Media", icon: Image },
   { to: "/admin/categories", label: "Categories", icon: Tag },
   { to: "/admin/orders", label: "Orders", icon: ShoppingCart },
+  {
+    label: "Social",
+    icon: Share2,
+    children: [
+      { to: "/admin/social/posts", label: "Social Posts", icon: Send },
+      { to: "/admin/social/connections", label: "Social Connections", icon: Share2 },
+    ],
+  },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/translations", label: "Translations", icon: Languages },
   { to: "/admin/settings", label: "Settings", icon: Settings },
   { to: "/admin/restore", label: "Restore Backup", icon: DatabaseBackup },
-] as const;
+];
+
+// A group is visible when any of its children pass `allowed`; a plain link
+// when it does itself — lets the flat per-role path allowlists below (which
+// only ever list leaf paths) work unmodified against the new nested shape.
+const navVisible = (n: NavEntry, allowed: (path: string) => boolean): boolean =>
+  isNavGroup(n) ? n.children.some((c) => allowed(c.to)) : allowed(n.to);
 
 function AdminLayout() {
   const {
@@ -89,6 +114,10 @@ function AdminLayout() {
   useEffect(() => {
     setCollapsed(localStorage.getItem(SIDEBAR_KEY) === "1");
   }, []);
+  // Nav groups (e.g. Social) expand open automatically while a child route is
+  // active, and can otherwise be toggled by hand.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (label: string) => setOpenGroups((g) => ({ ...g, [label]: !g[label] }));
   const toggleSidebar = () =>
     setCollapsed((c) => {
       const next = !c;
@@ -98,27 +127,31 @@ function AdminLayout() {
 
   // Sales can only ever be on the Orders page.
   const salesBlocked = isSales && !isAdmin && !path.startsWith("/admin/orders");
-  // Marketing is scoped to the catalog/marketing sections.
+  // Marketing is scoped to the catalog/marketing sections, plus Social
+  // (connecting/publishing to Facebook, Instagram, TikTok — see requireSocial
+  // in src/data/_auth.ts).
   const marketingPaths = [
     "/admin/products",
     "/admin/marketing",
     "/admin/categories",
     "/admin/media",
+    "/admin/social/connections",
+    "/admin/social/posts",
   ];
   const marketingBlocked =
     isMarketing && !isAdmin && path !== "/admin" && !marketingPaths.some((p) => path.startsWith(p));
   // Stock manages the catalog (products/categories/media) and can view orders,
-  // but not the marketing/promotions page.
+  // but not the marketing/promotions page or Social.
   const stockPaths = ["/admin/products", "/admin/categories", "/admin/media", "/admin/orders"];
   const stockBlocked =
     isStock && !isAdmin && path !== "/admin" && !stockPaths.some((p) => path.startsWith(p));
   const visibleNav = isAdmin
     ? nav
     : isMarketing
-      ? nav.filter((n) => n.to === "/admin" || marketingPaths.includes(n.to))
+      ? nav.filter((n) => navVisible(n, (p) => p === "/admin" || marketingPaths.includes(p)))
       : isStock
-        ? nav.filter((n) => n.to === "/admin" || stockPaths.includes(n.to))
-        : nav.filter((n) => n.to === "/admin/orders");
+        ? nav.filter((n) => navVisible(n, (p) => p === "/admin" || stockPaths.includes(p)))
+        : nav.filter((n) => navVisible(n, (p) => p === "/admin/orders"));
 
   useEffect(() => {
     if (!loading && (!user || !canAccessAdmin)) navigate({ to: "/" });
@@ -203,7 +236,62 @@ function AdminLayout() {
         </Link>
         <nav className="flex-1 w-full space-y-1">
           {visibleNav.map((n) => {
-            const active = "exact" in n && n.exact ? path === n.to : path.startsWith(n.to);
+            if (isNavGroup(n)) {
+              const groupActive = n.children.some((c) => path.startsWith(c.to));
+              const open = openGroups[n.label] ?? groupActive;
+              return (
+                <div key={n.label}>
+                  <button
+                    type="button"
+                    onClick={() => (collapsed ? toggleSidebar() : toggleGroup(n.label))}
+                    title={collapsed ? n.label : undefined}
+                    className={cn(
+                      "flex w-full items-center rounded-lg text-sm font-medium transition-colors",
+                      collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5",
+                      groupActive
+                        ? "text-sidebar-foreground"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent",
+                    )}
+                  >
+                    <n.icon className="size-4 shrink-0" />
+                    {!collapsed && (
+                      <>
+                        <span className="flex-1 text-left">{n.label}</span>
+                        {open ? (
+                          <ChevronUp className="size-4 shrink-0" />
+                        ) : (
+                          <ChevronDown className="size-4 shrink-0" />
+                        )}
+                      </>
+                    )}
+                  </button>
+                  {!collapsed && open && (
+                    <div className="mt-1 space-y-1 pl-4">
+                      {n.children.map((c) => {
+                        const active = path.startsWith(c.to);
+                        return (
+                          <Link
+                            key={c.to}
+                            to={c.to}
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                              active
+                                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                : "text-sidebar-foreground/70 hover:bg-sidebar-accent",
+                            )}
+                          >
+                            <c.icon className="size-4 shrink-0" />
+                            <span className="flex-1">{c.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            const active = n.exact ? path === n.to : path.startsWith(n.to);
             const badge = n.to === "/admin/orders" ? pendingCount : 0;
             return (
               <Link

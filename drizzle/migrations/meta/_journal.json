@@ -288,6 +288,20 @@
       "when": 1788850800000,
       "tag": "0040_seed_translations",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1789782050885,
+      "tag": "0041_sweet_kid_colt",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1789783723056,
+      "tag": "0042_fast_major_mapleleaf",
+      "breakpoints": true
     }
   ]
 }

@@ -118,6 +118,45 @@ export type CartItem = {
   qty: number;
 };
 
+export type SocialPlatform = "facebook" | "instagram" | "telegram" | "tiktok";
+
+// Hand-pasted credentials for each platform -- no OAuth connect flow. A
+// platform counts as "connected" when its required fields are non-empty (see
+// socialPlatformConnected in src/data/social.ts).
+export type SocialSettings = {
+  facebook_page_id: string;
+  facebook_page_access_token: string;
+  instagram_business_account_id: string;
+  telegram_bot_token: string;
+  telegram_channel_id: string;
+  tiktok_access_token: string;
+  tiktok_post_visibility: "private" | "public";
+  updated_at: string;
+};
+
+export type SocialPostTarget = {
+  id: string;
+  platform: SocialPlatform;
+  status: "success" | "failed";
+  remote_post_id: string | null;
+  error: string | null;
+};
+
+export type SocialPost = {
+  id: string;
+  product_id: string | null;
+  product_title: string;
+  image_url: string | null;
+  caption: string;
+  extra_note: string | null;
+  status: "queued" | "published" | "failed";
+  scheduled_for: string;
+  platforms: string | null;
+  created_at: string;
+  published_at: string | null;
+  targets: SocialPostTarget[];
+};
+
 export type OrderItem = { id: string; title: string; qty: number; price: number };
 
 export type Order = {

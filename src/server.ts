@@ -6,6 +6,7 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { getDb } from "./db";
 import { products, product_variations, product_images, product_tabs, orders } from "./db/schema";
+import { publishQueuedSocialPosts } from "./data/social";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -784,5 +785,20 @@ export default {
       console.error(error);
       return withSecurityHeaders(brandedErrorResponse());
     }
+  },
+
+  // Cron Trigger (see wrangler.jsonc's `triggers.crons`, hourly on the hour)
+  // for the admin Social feature: publishes every queued product post to each
+  // configured platform. See src/data/social.ts's publishQueuedSocialPosts.
+  async scheduled(
+    _controller: unknown,
+    _env: unknown,
+    ctx: { waitUntil(p: Promise<unknown>): void },
+  ) {
+    ctx.waitUntil(
+      publishQueuedSocialPosts().catch((error) => {
+        console.error("publishQueuedSocialPosts failed", error);
+      }),
+    );
   },
 };
