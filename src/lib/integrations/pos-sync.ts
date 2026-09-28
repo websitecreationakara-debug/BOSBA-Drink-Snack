@@ -7,7 +7,21 @@ const POS_ORDER_SYNC_URL = `${POS_BASE_URL}/api/order-sync`;
 const POS_ORDER_STATUS_SYNC_URL = `${POS_BASE_URL}/api/order-status-sync`;
 const SITE_ID = "bosba-drink-snack";
 
-export type PosOrderItem = { siteProductId: string; quantity: number; unitPrice: number };
+// variationId is the specific size the customer bought, for a product sold
+// in multiple sizes -- omitted for a simple (single-size) product. POS's
+// product_site_links stores the parent product under siteProductId and the
+// size under variation_id (see create_online_order()'s NOVA-POS migration
+// 0039), so a sized line needs both to land on the right linked product.
+// title lets POS name a brand-new product it has to auto-create when this
+// line doesn't match any existing product_site_links row (migration 0043)
+// -- omitted falls back to a generic placeholder name there.
+export type PosOrderItem = {
+  siteProductId: string;
+  quantity: number;
+  unitPrice: number;
+  variationId?: string;
+  title?: string;
+};
 
 // Push side of Phase 7's POS<->site stock sync: after an online order decrements
 // this site's own stock, tell POS so its count (source of truth for products

@@ -325,12 +325,22 @@ export const createOrder = createServerFn({ method: "POST" })
     // same tracked top-level lines, which double-decremented POS's stock for
     // every linked product sold online (create_online_order's own deduct,
     // called below via notifyPosOfOrder, plus the Phase 7 nudge, both firing
-    // for the same unit). Only top-level product lines can be linked to a POS
-    // product (variations aren't modeled there, same limitation as the stock
-    // deduction just above) -- a variation-only order has nothing to send.
-    const posItems = items
-      .filter((i) => productIdSet.has(i.id))
-      .map((i) => ({ siteProductId: i.id, quantity: i.qty, unitPrice: i.price }));
+    // for the same unit). A top-level product line links directly by its own
+    // id; a sized line links via its parent product's id plus the
+    // variation's own id -- POS's product_site_links keys a size under the
+    // parent's siteProductId + variation_id (see NOVA-POS migration 0039),
+    // so sending the variation id alone (as siteProductId) would never match
+    // anything there and silently vanish.
+    const variationParentById = new Map(varRows.map((v) => [v.id, v.product_id]));
+    const posItems = items.flatMap((i) => {
+      if (productIdSet.has(i.id)) {
+        return [{ siteProductId: i.id, quantity: i.qty, unitPrice: i.price, title: i.title }];
+      }
+      const parentId = variationParentById.get(i.id);
+      return parentId
+        ? [{ siteProductId: parentId, variationId: i.id, quantity: i.qty, unitPrice: i.price, title: i.title }]
+        : [];
+    });
     if (posItems.length > 0) {
       await notifyPosOfOrder({
         siteOrderId: row.id,
