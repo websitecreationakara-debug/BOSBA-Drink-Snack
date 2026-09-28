@@ -16,7 +16,6 @@ import { notifyNewOrder, notifyOrderShipped } from "@/lib/integrations/notify";
 import {
   notifyPosOfOrder,
   notifyPosOfOrderStatus,
-  notifyPosOfSale,
 } from "@/lib/integrations/pos-sync";
 import {
   getSessionUser,
@@ -320,20 +319,15 @@ export const createOrder = createServerFn({ method: "POST" })
       }),
     );
 
-    // Phase 7 stock sync: only top-level products can be linked to a POS
-    // product (variations aren't modeled in POS), and only fires for tracked
-    // (non-null stock) lines -- matches the deduction guard just above.
-    await Promise.all(
-      [...neededById].map(([id, need]) => {
-        if (!productIdSet.has(id) || stockById.get(id) == null) return null;
-        return notifyPosOfSale(id, need);
-      }),
-    );
-
-    // Phase 8: give this order a matching order + invoice in POS too, not
-    // just a stock nudge. Only top-level product lines can be linked to a POS
+    // Phase 8: give this order a matching order + invoice in POS too. This is
+    // now the only path that pushes an online sale's stock to POS -- it used
+    // to run alongside a separate "Phase 7" notifyPosOfSale nudge for the
+    // same tracked top-level lines, which double-decremented POS's stock for
+    // every linked product sold online (create_online_order's own deduct,
+    // called below via notifyPosOfOrder, plus the Phase 7 nudge, both firing
+    // for the same unit). Only top-level product lines can be linked to a POS
     // product (variations aren't modeled there, same limitation as the stock
-    // sync just above) -- a variation-only order has nothing to send.
+    // deduction just above) -- a variation-only order has nothing to send.
     const posItems = items
       .filter((i) => productIdSet.has(i.id))
       .map((i) => ({ siteProductId: i.id, quantity: i.qty, unitPrice: i.price }));
