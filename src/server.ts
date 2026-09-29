@@ -5,7 +5,14 @@ import { eq, and, like, asc, inArray } from "drizzle-orm";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { getDb } from "./db";
-import { products, product_variations, product_images, product_tabs, orders } from "./db/schema";
+import {
+  products,
+  product_variations,
+  product_images,
+  product_tabs,
+  orders,
+  categories,
+} from "./db/schema";
 import { publishQueuedSocialPosts } from "./data/social";
 
 type ServerEntry = {
@@ -659,6 +666,82 @@ async function handleProductsApi(request: Request): Promise<Response> {
   return apiJson({ error: "Method not allowed" }, 405);
 }
 
+// ---- Categories API ---------------------------------------------------------
+// GET  /api/categories -> all categories, flat list. Read-only, no auth
+//                         required -- same as the plain GET /api/products route
+//                         above (public, CORS-open) -- so an external POS app
+//                         can pull the live category list.
+// POST /api/categories -> create a category (token required, same
+//                         Authorization: Bearer <PRODUCTS_API_TOKEN> as the
+//                         products API above). Body = { name, slug?, parent_id?,
+//                         image_url? } -- `slug` is derived from `name` via
+//                         apiSlug when omitted.
+async function handleCategoriesApi(request: Request): Promise<Response> {
+  const method = request.method.toUpperCase();
+
+  if (method === "GET") {
+    const rows = await getDb()
+      .select({
+        id: categories.id,
+        name: categories.name,
+        slug: categories.slug,
+        parent_id: categories.parent_id,
+        image_url: categories.image_url,
+      })
+      .from(categories)
+      .orderBy(asc(categories.created_at));
+    return apiJson({ count: rows.length, categories: rows }, 200, "public, max-age=300");
+  }
+
+  if (method === "POST") {
+    if (!apiTokenOk(request)) {
+      return apiJson(
+        { error: "Unauthorized — send Authorization: Bearer <PRODUCTS_API_TOKEN>" },
+        401,
+      );
+    }
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return apiJson({ error: "Invalid JSON body" }, 400);
+    }
+    if (!body || typeof body !== "object") {
+      return apiJson({ error: "Body must be a JSON object" }, 400);
+    }
+    const input = body as Record<string, unknown>;
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    if (!name) return apiJson({ error: "name is required" }, 422);
+    const rawSlug = typeof input.slug === "string" ? input.slug.trim() : "";
+    const slug = apiSlug(rawSlug || name);
+    if (!slug) return apiJson({ error: "Could not derive a slug from name" }, 422);
+    const parent_id = typeof input.parent_id === "string" ? input.parent_id : null;
+    const image_url = typeof input.image_url === "string" ? input.image_url : null;
+
+    const dupe = await getDb()
+      .select({ id: categories.id })
+      .from(categories)
+      .where(eq(categories.slug, slug));
+    if (dupe.length > 0) {
+      return apiJson({ error: `A category with slug "${slug}" already exists` }, 409);
+    }
+
+    const [row] = await getDb()
+      .insert(categories)
+      .values({ name, slug, parent_id, image_url })
+      .returning({
+        id: categories.id,
+        name: categories.name,
+        slug: categories.slug,
+        parent_id: categories.parent_id,
+        image_url: categories.image_url,
+      });
+    return apiJson({ categories: row }, 201);
+  }
+
+  return apiJson({ error: "Method not allowed" }, 405);
+}
+
 function brandedErrorResponse(): Response {
   return new Response(renderErrorPage(), {
     status: 500,
@@ -766,6 +849,23 @@ export default {
       }
       try {
         return withSecurityHeaders(await handleProductsApi(request));
+      } catch (error) {
+        console.error(error);
+        return withSecurityHeaders(
+          new Response(JSON.stringify({ error: "Internal error" }), {
+            status: 500,
+            headers: { "content-type": "application/json", ...API_CORS },
+          }),
+        );
+      }
+    }
+
+    if (url.pathname === "/api/categories") {
+      if (request.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: API_CORS });
+      }
+      try {
+        return withSecurityHeaders(await handleCategoriesApi(request));
       } catch (error) {
         console.error(error);
         return withSecurityHeaders(
