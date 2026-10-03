@@ -148,6 +148,8 @@ export async function notifyPosOfOrder(order: {
   customerName?: string | null;
   customerPhone?: string | null;
   customerEmail?: string | null;
+  // Delivery address -- POS prints it on the invoice. Null for pickup.
+  customerAddress?: string | null;
   subtotal?: number;
   discount?: number;
   deliveryFee?: number;
