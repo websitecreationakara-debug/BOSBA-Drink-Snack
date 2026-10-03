@@ -348,6 +348,7 @@ export const createOrder = createServerFn({ method: "POST" })
         customerName: row.customer_name,
         customerPhone: row.customer_phone,
         customerEmail: row.customer_email,
+        customerAddress: row.address,
         subtotal,
         discount,
         deliveryFee: shipping,
