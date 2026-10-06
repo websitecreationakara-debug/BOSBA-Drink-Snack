@@ -64,7 +64,7 @@ const TIKTOK_PIXEL = `!function (w, d, t) {
 // fires the first PageView. Client-side navigations are tracked from
 // RootComponent; e-commerce events (ViewContent, AddToCart, InitiateCheckout,
 // Purchase) go through trackPixel() from @/lib/meta-pixel.
-const META_PIXEL_ID = "1088916156897289";
+const META_PIXEL_ID = "965650992440513";
 
 // The browser fires `beforeinstallprompt` very early — often before React
 // hydrates and our InstallPrompt listener attaches, so the event is lost and no
