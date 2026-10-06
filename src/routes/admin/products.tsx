@@ -745,7 +745,14 @@ function ProductsAdmin() {
                         </button>
                       )}
                     </div>
-                    <span className="font-medium">{p.title}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{p.title}</span>
+                      {p.product_code && (
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          {p.product_code}
+                        </span>
+                      )}
+                    </div>
                     {p.type === "variable" && (
                       <span className="text-[10px] font-bold uppercase tracking-wider text-brand border border-brand/40 rounded px-1.5 py-0.5">
                         Variable
@@ -922,7 +929,14 @@ function ProductsAdmin() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit Product" : "New Product"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {editing ? "Edit Product" : "New Product"}
+              {editing && (
+                <span className="text-xs font-mono font-normal text-muted-foreground">
+                  {products.find((p) => p.id === form.id)?.product_code}
+                </span>
+              )}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={save} className="space-y-4">
             <div>

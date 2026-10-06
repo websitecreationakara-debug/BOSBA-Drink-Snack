@@ -302,6 +302,13 @@
       "when": 1789783723056,
       "tag": "0042_fast_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1791276600992,
+      "tag": "0043_shocking_edwin_jarvis",
+      "breakpoints": true
     }
   ]
 }

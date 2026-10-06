@@ -1,5 +1,7 @@
 export type Product = {
   id: string;
+  // Admin-facing reference code, e.g. "BDS000001" — independent of id.
+  product_code: string | null;
   title: string;
   description: string | null;
   price: number;

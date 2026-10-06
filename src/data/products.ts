@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { eq, asc, desc, inArray } from "drizzle-orm";
+import { eq, asc, desc, inArray, like } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   products,
@@ -265,11 +265,31 @@ export const saveProductTabs = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const PRODUCT_CODE_PREFIX = "BDS";
+
+// Next sequential "BDS000001"-style code: highest existing numeric suffix + 1,
+// zero-padded to 6 digits. Admin-only reference, independent of the real
+// (UUID) id that POS sync actually links products by.
+async function nextProductCode(): Promise<string> {
+  const [last] = await getDb()
+    .select({ code: products.product_code })
+    .from(products)
+    .where(like(products.product_code, `${PRODUCT_CODE_PREFIX}%`))
+    .orderBy(desc(products.product_code))
+    .limit(1);
+  const lastNum = last?.code ? parseInt(last.code.slice(PRODUCT_CODE_PREFIX.length), 10) : 0;
+  return `${PRODUCT_CODE_PREFIX}${String(lastNum + 1).padStart(6, "0")}`;
+}
+
 export const createProduct = createServerFn({ method: "POST" })
   .inputValidator((d: ProductInput) => d)
   .handler(async ({ data }) => {
     await requireManager();
-    const [row] = await getDb().insert(products).values(data).returning({ id: products.id });
+    const product_code = await nextProductCode();
+    const [row] = await getDb()
+      .insert(products)
+      .values({ ...data, product_code })
+      .returning({ id: products.id });
     if (data.type !== "variable") {
       await notifyPosOfNewProduct(row.id, data.title, data.price, data.stock);
     }

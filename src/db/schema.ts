@@ -53,6 +53,9 @@ export const promotions = sqliteTable("promotions", {
 
 export const products = sqliteTable("products", {
   id: text("id").primaryKey().$defaultFn(uuid),
+  // Human-readable reference shown in the admin, e.g. "BDS000001".
+  // Independent of id (the real POS-linked key) -- display-only, sequential.
+  product_code: text("product_code").unique(),
   title: text("title").notNull(),
   description: text("description"),
   price: real("price").notNull().default(0),
