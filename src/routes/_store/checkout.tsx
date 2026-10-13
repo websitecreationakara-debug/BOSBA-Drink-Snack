@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useCart, itemKey, itemUnitPrice } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
-import { useStoreSettings, useMyAddresses } from "@/hooks/use-products";
+import { useStoreSettings, useMyAddresses, useBuyerEligibility } from "@/hooks/use-products";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Address } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -94,6 +94,10 @@ function Checkout() {
   const { data: addresses = [] } = useMyAddresses(!!user);
   const qc = useQueryClient();
   const { data: settings } = useStoreSettings();
+  // Orders are Cambodia-only; the server enforces it too (createOrder), this just
+  // tells visitors up front instead of failing after they fill in the form.
+  const { data: eligibility } = useBuyerEligibility();
+  const outsideCambodia = eligibility?.allowed === false;
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -275,7 +279,7 @@ function Checkout() {
 
   const placeOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (items.length === 0) return;
+    if (items.length === 0 || outsideCambodia) return;
     // Guard against a scheduled time that has already passed (e.g. the slot
     // lapsed while the form sat open).
     if (scheduledAt && new Date(scheduledAt).getTime() <= Date.now()) {
@@ -389,6 +393,18 @@ function Checkout() {
       </h1>
 
       <form onSubmit={placeOrder} className="order-3 lg:order-2 space-y-6">
+        {outsideCambodia && (
+          <div
+            role="alert"
+            className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+          >
+            <p className="font-semibold">Orders are available in Cambodia only</p>
+            <p className="mt-1">
+              We currently accept orders only from customers located in Cambodia. If you are in
+              Cambodia, please turn off any VPN or proxy and reload the page.
+            </p>
+          </div>
+        )}
         <section className="space-y-4 bg-muted rounded-2xl p-4 sm:p-6">
           <h2 className="font-display font-semibold text-lg">Delivery Details</h2>
 
@@ -704,7 +720,12 @@ function Checkout() {
           </section>
         )}
 
-        <Button type="submit" disabled={submitting} size="lg" className="w-full rounded-full">
+        <Button
+          type="submit"
+          disabled={submitting || outsideCambodia}
+          size="lg"
+          className="w-full rounded-full"
+        >
           {submitting
             ? "Placing order..."
             : payment === "khqr"

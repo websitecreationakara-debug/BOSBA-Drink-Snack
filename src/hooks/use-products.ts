@@ -11,6 +11,7 @@ import { listCategories } from "@/data/categories";
 import { listHeroSlides } from "@/data/banners";
 import { listPromotions } from "@/data/promotions";
 import { getSettings } from "@/data/settings";
+import { getBuyerEligibility } from "@/data/geo";
 import { countPendingOrders, countShippedOrders, listMyOrders } from "@/data/orders";
 import { listMyAddresses } from "@/data/addresses";
 import type {
@@ -97,6 +98,14 @@ export function useStoreSettings() {
   return useQuery({
     queryKey: ["store_settings"],
     queryFn: () => getSettings() as Promise<StoreSettings | null>,
+  });
+}
+
+export function useBuyerEligibility() {
+  return useQuery({
+    queryKey: ["buyer-eligibility"],
+    queryFn: () => getBuyerEligibility(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
