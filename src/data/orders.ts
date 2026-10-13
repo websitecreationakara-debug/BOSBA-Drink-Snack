@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { count, desc, eq, inArray } from "drizzle-orm";
+import { asc, count, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   orders,
+  order_messages,
   products,
   product_variations,
   promotions,
@@ -12,7 +13,7 @@ import {
 } from "@/db/schema";
 import { applyPromo } from "@/lib/commerce/promotions";
 import { promoCodeDiscount } from "@/lib/commerce/promo-code";
-import { notifyNewOrder, notifyOrderShipped } from "@/lib/integrations/notify";
+import { notifyNewOrder, notifyOrderShipped, sendCustomerMessage } from "@/lib/integrations/notify";
 import { notifyPosOfOrder, notifyPosOfOrderStatus } from "@/lib/integrations/pos-sync";
 import { assertBuyerInCambodia } from "@/lib/geo.server";
 import {
@@ -454,6 +455,46 @@ export const updateOrderTracking = createServerFn({ method: "POST" })
       });
     }
     return { ok: true };
+  });
+
+export const sendOrderMessage = createServerFn({ method: "POST" })
+  .inputValidator((d: { id: string; subject: string; message: string }) => d)
+  .handler(async ({ data }) => {
+    const staff = await requireStaff();
+    const subject = data.subject.trim();
+    const message = data.message.trim();
+    if (!subject || !message) throw new Error("Subject and message are required");
+    if (subject.length > 200 || message.length > 5000) throw new Error("Message is too long");
+    const [order] = await getDb().select().from(orders).where(eq(orders.id, data.id));
+    if (!order) throw new Error("Order not found");
+    const to = order.customer_email?.trim();
+    if (!to) throw new Error("This order has no customer email");
+    await sendCustomerMessage({
+      to,
+      customerName: order.customer_name,
+      orderId: order.id,
+      subject,
+      message,
+    });
+    await getDb().insert(order_messages).values({
+      order_id: order.id,
+      direction: "out",
+      subject,
+      body: message,
+      sender: staff.email,
+    });
+    return { ok: true };
+  });
+
+export const listOrderMessages = createServerFn({ method: "GET" })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    await requireOrderViewer();
+    return getDb()
+      .select()
+      .from(order_messages)
+      .where(eq(order_messages.order_id, data.id))
+      .orderBy(asc(order_messages.created_at));
   });
 
 export const deleteOrder = createServerFn({ method: "POST" })

@@ -309,6 +309,13 @@
       "when": 1791276600992,
       "tag": "0043_shocking_edwin_jarvis",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "6",
+      "when": 1791875772260,
+      "tag": "0044_unusual_scalphunter",
+      "breakpoints": true
     }
   ]
 }

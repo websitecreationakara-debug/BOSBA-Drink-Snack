@@ -14,6 +14,7 @@ import {
   categories,
 } from "./db/schema";
 import { publishQueuedSocialPosts } from "./data/social";
+import { handleInboundEmail, type InboundEmail } from "./lib/integrations/inbound-email.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -940,6 +941,12 @@ export default {
       console.error(error);
       return withSecurityHeaders(brandedErrorResponse());
     }
+  },
+
+  // Email Routing: customer replies to the sales mailbox (see wrangler docs /
+  // README note) are stored on their order for the admin Orders chat.
+  async email(message: InboundEmail, workerEnv: { SALES_FORWARD_TO?: string }) {
+    await handleInboundEmail(message, workerEnv.SALES_FORWARD_TO?.trim() || undefined);
   },
 
   // Cron Trigger (see wrangler.jsonc's `triggers.crons`, hourly on the hour)
