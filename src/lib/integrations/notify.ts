@@ -144,14 +144,14 @@ export async function notifyNewOrder(order: OrderNotification): Promise<void> {
   }
 }
 
-async function sendTelegram(text: string): Promise<"sent" | "skipped"> {
+async function sendTelegram(text: string, title = "🛎️ New order"): Promise<"sent" | "skipped"> {
   const token = env.TELEGRAM_BOT_TOKEN;
   const chatId = env.TELEGRAM_CHAT_ID;
   if (!token || !chatId) return "skipped";
   try {
     const payload: Record<string, unknown> = {
       chat_id: chatId,
-      text: `🌐 Website: ${siteName()}\n🛎️ New order\n\n${text}`,
+      text: `🌐 Website: ${siteName()}\n${title}\n\n${text}`,
       disable_web_page_preview: true,
     };
     // Forum supergroups route messages into a specific topic by thread id.
@@ -283,6 +283,42 @@ export async function sendCustomerMessage(input: {
     text: `Hi ${name},\n\n${input.message.trim()}\n\nRegarding order #${input.orderId.slice(0, 8)}`,
   });
   if (error) throw new Error(error.message || "Failed to send email");
+}
+
+// Tells the store a customer replied in the order chat — Telegram + admin email,
+// same channels as new orders. Never throws.
+export async function notifyCustomerReply(input: {
+  orderId: string;
+  customerName?: string | null;
+  customerEmail: string;
+  body: string;
+}): Promise<void> {
+  const short = input.orderId.slice(0, 8);
+  const preview = input.body.length > 500 ? `${input.body.slice(0, 500)}…` : input.body;
+  const who = `${input.customerName?.trim() || "Customer"} (${input.customerEmail})`;
+  await sendTelegram(`Order #${short}\n${who}\n\n${preview}`, "💬 Customer reply").catch(() => {});
+  const to = (env.ADMIN_NOTIFY_EMAIL ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!env.RESEND_API_KEY || to.length === 0) return;
+  try {
+    const resend = new Resend(env.RESEND_API_KEY);
+    const html = emailShell(`
+        <p style="margin:0 0 8px;font-size:13px;color:#888">🌐 ${escapeHtml(siteName())}</p>
+        <h2 style="margin:0 0 4px">💬 Customer reply — order #${short}</h2>
+        <p style="margin:0 0 12px;color:#555">${escapeHtml(who)}</p>
+        <p style="margin:0;line-height:1.5">${escapeHtml(preview).replace(/\r?\n/g, "<br />")}</p>
+        <p style="margin:16px 0 0;font-size:12px;color:#7a6a52">Open Admin → Orders and click the ✉ icon to answer.</p>`);
+    await resend.emails.send({
+      from: env.RESEND_FROM ?? "BOSBA Drink Snack <onboarding@resend.dev>",
+      to,
+      subject: `[${siteName()}] 💬 Customer reply on order #${short}`,
+      html,
+    });
+  } catch (e) {
+    console.error("[order-notify] reply email failed", e);
+  }
 }
 
 async function sendCustomerEmail(

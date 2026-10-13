@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   orders,
@@ -132,8 +132,17 @@ export const listOrders = createServerFn({ method: "GET" }).handler(async () => 
   const imageByProduct = new Map(prods.map((p) => [p.id, p.image_url]));
   const parentByVariation = new Map(vars.map((v) => [v.id, v.product_id]));
 
+  // Unread customer replies per order, for the "new reply" badge in the admin table.
+  const unreadRows = await db
+    .select({ order_id: order_messages.order_id, n: count() })
+    .from(order_messages)
+    .where(and(eq(order_messages.direction, "in"), isNull(order_messages.read_at)))
+    .groupBy(order_messages.order_id);
+  const unreadByOrder = new Map(unreadRows.map((r) => [r.order_id, r.n]));
+
   return parsed.map((o) => ({
     ...o,
+    unread_replies: unreadByOrder.get(o.id) ?? 0,
     items: o.items.map((it): OrderItemWithImage => {
       const product_id = parentByVariation.get(it.id) ?? it.id;
       return { ...it, product_id, image_url: imageByProduct.get(product_id) ?? null };
@@ -486,6 +495,32 @@ export const sendOrderMessage = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const countUnreadReplies = createServerFn({ method: "GET" }).handler(async () => {
+  await requireStaff();
+  const [r] = await getDb()
+    .select({ n: count() })
+    .from(order_messages)
+    .where(and(eq(order_messages.direction, "in"), isNull(order_messages.read_at)));
+  return r?.n ?? 0;
+});
+
+export const markOrderMessagesRead = createServerFn({ method: "POST" })
+  .inputValidator((d: { orderId: string }) => d)
+  .handler(async ({ data }) => {
+    await requireStaff();
+    await getDb()
+      .update(order_messages)
+      .set({ read_at: new Date().toISOString() })
+      .where(
+        and(
+          eq(order_messages.order_id, data.orderId),
+          eq(order_messages.direction, "in"),
+          isNull(order_messages.read_at),
+        ),
+      );
+    return { ok: true };
+  });
+
 export const listOrderMessages = createServerFn({ method: "GET" })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
@@ -495,6 +530,24 @@ export const listOrderMessages = createServerFn({ method: "GET" })
       .from(order_messages)
       .where(eq(order_messages.order_id, data.id))
       .orderBy(asc(order_messages.created_at));
+  });
+
+// Removes messages from the admin chat history only — an email that was already
+// sent can't be recalled from the customer's inbox.
+export const deleteOrderMessage = createServerFn({ method: "POST" })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    await requireStaff();
+    await getDb().delete(order_messages).where(eq(order_messages.id, data.id));
+    return { ok: true };
+  });
+
+export const clearOrderMessages = createServerFn({ method: "POST" })
+  .inputValidator((d: { orderId: string }) => d)
+  .handler(async ({ data }) => {
+    await requireStaff();
+    await getDb().delete(order_messages).where(eq(order_messages.order_id, data.orderId));
+    return { ok: true };
   });
 
 export const deleteOrder = createServerFn({ method: "POST" })
