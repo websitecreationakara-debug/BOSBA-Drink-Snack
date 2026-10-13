@@ -216,6 +216,8 @@ export const order_messages = sqliteTable("order_messages", {
   body: text("body").notNull(),
   // Staff member's email for "out" messages; the customer's address for "in".
   sender: text("sender"),
+  // Set when staff open the chat; a null read_at on an "in" message = unread reply.
+  read_at: text("read_at"),
   created_at: text("created_at").notNull().$defaultFn(nowIso),
 });
 

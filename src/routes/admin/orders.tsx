@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listOrders,
@@ -8,6 +8,9 @@ import {
   deleteOrder,
   sendOrderMessage,
   listOrderMessages,
+  markOrderMessagesRead,
+  deleteOrderMessage,
+  clearOrderMessages,
 } from "@/data/orders";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,6 +55,20 @@ function OrdersAdmin() {
     enabled: !!compose,
     refetchInterval: 10000,
   });
+  // Opening a chat (or a reply landing while it's open) marks the customer's
+  // messages as read, which clears the "new reply" badges.
+  const hasUnreadInThread = thread.some((m) => m.direction === "in" && !m.read_at);
+  useEffect(() => {
+    if (!compose || !hasUnreadInThread) return;
+    markOrderMessagesRead({ data: { orderId: compose.id } })
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ["order-messages", compose.id] });
+        qc.invalidateQueries({ queryKey: ["orders-admin"] });
+        qc.invalidateQueries({ queryKey: ["order-replies-unread"] });
+      })
+      .catch(() => {});
+  }, [compose, hasUnreadInThread, qc]);
+
   const { data: orders = [] } = useQuery({
     queryKey: ["orders-admin"],
     queryFn: () => listOrders(),
@@ -108,6 +125,33 @@ function OrdersAdmin() {
     }
   };
 
+  const removeMessage = async (id: string) => {
+    try {
+      await deleteOrderMessage({ data: { id } });
+    } catch (err) {
+      return toast.error(err instanceof Error ? err.message : "Failed to delete message");
+    }
+    qc.invalidateQueries({ queryKey: ["order-messages", compose?.id] });
+  };
+
+  const clearChat = async () => {
+    if (!compose) return;
+    const ok = await confirm({
+      title: "Clear this chat?",
+      description:
+        "All messages in this conversation will be removed from the admin. Emails already sent stay in the customer's inbox.",
+      confirmText: "Clear chat",
+    });
+    if (!ok) return;
+    try {
+      await clearOrderMessages({ data: { orderId: compose.id } });
+    } catch (err) {
+      return toast.error(err instanceof Error ? err.message : "Failed to clear chat");
+    }
+    qc.invalidateQueries({ queryKey: ["order-messages", compose.id] });
+    toast.success("Chat cleared");
+  };
+
   const removeOrder = async (id: string) => {
     const ok = await confirm({
       title: "Delete this order?",
@@ -147,6 +191,11 @@ function OrdersAdmin() {
                 <td className="px-6 py-3 font-mono text-xs">{o.id.slice(0, 8)}</td>
                 <td className="px-6 py-3">
                   <div className="font-medium">{o.customer_name ?? "—"}</div>
+                  {o.unread_replies > 0 && (
+                    <div className="mb-0.5 inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-[11px] font-bold text-destructive-foreground">
+                      💬 New reply
+                    </div>
+                  )}
                   {o.customer_email && (
                     <div className="text-xs text-muted-foreground">{o.customer_email}</div>
                   )}
@@ -246,10 +295,21 @@ function OrdersAdmin() {
                             customer_name: o.customer_name,
                           })
                         }
-                        title="Chat with customer (email from sales@bosbadrinksnack.com)"
-                        className="text-muted-foreground hover:text-brand transition-colors"
+                        title={
+                          o.unread_replies > 0
+                            ? "Customer replied — open chat"
+                            : "Chat with customer (email from sales@bosbadrinksnack.com)"
+                        }
+                        className={`relative transition-colors hover:text-brand ${
+                          o.unread_replies > 0 ? "text-brand" : "text-muted-foreground"
+                        }`}
                       >
                         <Mail className="size-4" />
+                        {o.unread_replies > 0 && (
+                          <span className="absolute -right-2 -top-2 inline-flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-4 text-destructive-foreground">
+                            {o.unread_replies}
+                          </span>
+                        )}
                       </button>
                     )}
                     <button
@@ -320,9 +380,19 @@ function OrdersAdmin() {
                     }`}
                   >
                     <div className="whitespace-pre-wrap break-words">{m.body}</div>
-                    <div className="mt-1 text-[10px] opacity-70">
-                      {m.direction === "out" ? "Sales" : "Customer"} ·{" "}
-                      {new Date(m.created_at).toLocaleString()}
+                    <div className="mt-1 flex items-center gap-2 text-[10px] opacity-70">
+                      <span>
+                        {m.direction === "out" ? "Sales" : "Customer"} ·{" "}
+                        {new Date(m.created_at).toLocaleString()}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeMessage(m.id)}
+                        title="Delete this message"
+                        className="hover:text-destructive"
+                      >
+                        <Trash2 className="size-3" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -343,6 +413,16 @@ function OrdersAdmin() {
             />
           </div>
           <DialogFooter>
+            {thread.length > 0 && (
+              <Button
+                variant="ghost"
+                onClick={clearChat}
+                disabled={sending}
+                className="text-destructive sm:mr-auto"
+              >
+                Clear chat
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setCompose(null)} disabled={sending}>
               Close
             </Button>

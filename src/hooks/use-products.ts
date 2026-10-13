@@ -12,7 +12,12 @@ import { listHeroSlides } from "@/data/banners";
 import { listPromotions } from "@/data/promotions";
 import { getSettings } from "@/data/settings";
 import { getBuyerEligibility } from "@/data/geo";
-import { countPendingOrders, countShippedOrders, listMyOrders } from "@/data/orders";
+import {
+  countPendingOrders,
+  countShippedOrders,
+  countUnreadReplies,
+  listMyOrders,
+} from "@/data/orders";
 import { listMyAddresses } from "@/data/addresses";
 import type {
   Product,
@@ -132,6 +137,16 @@ export function useShippedOrderCount() {
     queryKey: ["orders-shipped-count"],
     queryFn: () => countShippedOrders() as Promise<number>,
     staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useUnreadReplyCount(enabled: boolean) {
+  return useQuery({
+    queryKey: ["order-replies-unread"],
+    queryFn: () => countUnreadReplies() as Promise<number>,
+    enabled,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: true,
   });
 }
 

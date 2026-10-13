@@ -5,6 +5,7 @@ import PostalMime from "postal-mime";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { orders, order_messages } from "@/db/schema";
+import { notifyCustomerReply } from "@/lib/integrations/notify";
 
 // Structural subset of Cloudflare's ForwardableEmailMessage (what we actually use).
 export type InboundEmail = {
@@ -48,7 +49,7 @@ export async function handleInboundEmail(message: InboundEmail, forwardTo?: stri
         let order = tag
           ? (
               await db
-                .select({ id: orders.id })
+                .select({ id: orders.id, name: orders.customer_name })
                 .from(orders)
                 .where(and(like(orders.id, `${tag}%`), bySender))
                 .limit(1)
@@ -56,7 +57,7 @@ export async function handleInboundEmail(message: InboundEmail, forwardTo?: stri
           : undefined;
         order ??= (
           await db
-            .select({ id: orders.id })
+            .select({ id: orders.id, name: orders.customer_name })
             .from(orders)
             .where(bySender)
             .orderBy(desc(orders.created_at))
@@ -69,6 +70,12 @@ export async function handleInboundEmail(message: InboundEmail, forwardTo?: stri
             subject: subject || null,
             body,
             sender,
+          });
+          await notifyCustomerReply({
+            orderId: order.id,
+            customerName: order.name,
+            customerEmail: sender,
+            body,
           });
         }
       }

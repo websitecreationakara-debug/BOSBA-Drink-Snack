@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate, Outlet, useRouterState } from "@tan
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
-import { usePendingOrderCount } from "@/hooks/use-products";
+import { usePendingOrderCount, useUnreadReplyCount } from "@/hooks/use-products";
 import { playChime } from "@/lib/chime";
 import {
   LayoutDashboard,
@@ -87,7 +87,9 @@ function AdminLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   const { data: pendingCount = 0 } = usePendingOrderCount(!loading && !!user && isStaff);
+  const { data: unreadReplies = 0 } = useUnreadReplyCount(!loading && !!user && isStaff);
   const prevCount = useRef<number | null>(null);
+  const prevReplies = useRef<number | null>(null);
 
   // Whether this account has a password (credential provider). TOTP setup needs
   // one, so Google-only admins can't be forced through the 2FA gate — they rely
@@ -170,6 +172,14 @@ function AdminLayout() {
     }
     prevCount.current = pendingCount;
   }, [pendingCount]);
+
+  useEffect(() => {
+    if (prevReplies.current !== null && unreadReplies > prevReplies.current) {
+      playChime();
+      toast.success("💬 A customer replied to your message.", { duration: 6000 });
+    }
+    prevReplies.current = unreadReplies;
+  }, [unreadReplies]);
 
   if (loading || !user || !canAccessAdmin) {
     return (
@@ -292,7 +302,7 @@ function AdminLayout() {
             }
 
             const active = n.exact ? path === n.to : path.startsWith(n.to);
-            const badge = n.to === "/admin/orders" ? pendingCount : 0;
+            const badge = n.to === "/admin/orders" ? pendingCount + unreadReplies : 0;
             return (
               <Link
                 key={n.to}
