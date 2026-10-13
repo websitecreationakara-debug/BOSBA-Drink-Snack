@@ -187,6 +187,47 @@ async function handlePosOrderStatus(request: Request): Promise<Response> {
   });
 }
 
+// Inbound side of order delete sync (POS -> site direction): NOVA POS calls this
+// when staff delete a synced order there, so the same order doesn't linger in this
+// site's admin. Deliberately a plain row delete with no side effects (no restock,
+// no notification) -- POS already gave the stock back and pushes the new counts
+// through /api/stock-sync, so restocking here too would double-count it. Deleting
+// an order that's already gone is fine (ok, nothing to do).
+async function handlePosOrderDelete(request: Request): Promise<Response> {
+  const secret = (env as { STOCK_SYNC_SECRET?: string }).STOCK_SYNC_SECRET;
+  const auth = request.headers.get("authorization");
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  let body: { siteOrderId?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  if (typeof body.siteOrderId !== "string" || !body.siteOrderId.trim()) {
+    return new Response(JSON.stringify({ error: "Invalid payload" }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  await getDb().delete(orders).where(eq(orders.id, body.siteOrderId));
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
 // Lets POS's Stock page search this site's real catalog when a staff member
 // links a POS product to its website counterpart, instead of needing someone
 // to look the id up by hand. Same auth/boundary approach as handleStockSync.
@@ -818,6 +859,20 @@ export default {
     if (url.pathname === "/api/pos-order-status" && request.method === "POST") {
       try {
         return withSecurityHeaders(await handlePosOrderStatus(request));
+      } catch (error) {
+        console.error(error);
+        return withSecurityHeaders(
+          new Response(JSON.stringify({ error: "Internal error" }), {
+            status: 500,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      }
+    }
+
+    if (url.pathname === "/api/pos-order-delete" && request.method === "POST") {
+      try {
+        return withSecurityHeaders(await handlePosOrderDelete(request));
       } catch (error) {
         console.error(error);
         return withSecurityHeaders(
