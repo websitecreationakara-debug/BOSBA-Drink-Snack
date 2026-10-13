@@ -366,6 +366,51 @@ function shapeApiProduct(
   };
 }
 
+// Optional `variations[]` / `images[]` on POST /api/products -- lets a caller
+// recreate a variable product together with its sizes in one request (POS's
+// "move product to another business" does this). Rows with no usable label/url
+// are skipped; inserted one at a time to stay under D1's bound-parameter limit.
+async function insertCreateChildren(
+  db: ReturnType<typeof getDb>,
+  productId: string,
+  body: unknown,
+): Promise<void> {
+  const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+  const num = (x: unknown): number | null => {
+    if (x === null || x === undefined || x === "") return null;
+    const n = Number(x);
+    return Number.isFinite(n) ? n : null;
+  };
+  const int = (x: unknown): number | null => {
+    const n = num(x);
+    return n === null ? null : Math.trunc(n);
+  };
+  if (Array.isArray(b.variations)) {
+    for (const [i, raw] of b.variations.entries()) {
+      const v = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+      const weight = typeof v.weight === "string" ? v.weight.trim() : "";
+      if (!weight) continue;
+      await db.insert(product_variations).values({
+        product_id: productId,
+        weight,
+        flavor: typeof v.flavor === "string" && v.flavor.trim() ? v.flavor.trim() : null,
+        price: num(v.price) ?? 0,
+        sale_price: num(v.sale_price),
+        image_url: typeof v.image_url === "string" && v.image_url ? v.image_url : null,
+        stock: int(v.stock),
+        pcs: int(v.pcs),
+        sort_order: i,
+      });
+    }
+  }
+  if (Array.isArray(b.images)) {
+    for (const [i, url] of b.images.entries()) {
+      if (typeof url !== "string" || !url.trim()) continue;
+      await db.insert(product_images).values({ product_id: productId, url: url.trim(), sort_order: i });
+    }
+  }
+}
+
 async function withChildren(rows: ApiProductRow[]) {
   const ids = rows.map((r) => r.id);
   if (ids.length === 0) return rows.map((p) => shapeApiProduct(p, [], [], []));
@@ -674,6 +719,7 @@ async function handleProductsApi(request: Request): Promise<Response> {
       updated_at: now,
     };
     const [row] = await db.insert(products).values(insert).returning();
+    await insertCreateChildren(db, row.id, body);
     const [shaped] = await withChildren([row]);
     return apiJson({ product: shaped }, 201);
   }
