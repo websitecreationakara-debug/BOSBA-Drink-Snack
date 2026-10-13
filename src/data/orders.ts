@@ -13,10 +13,8 @@ import {
 import { applyPromo } from "@/lib/commerce/promotions";
 import { promoCodeDiscount } from "@/lib/commerce/promo-code";
 import { notifyNewOrder, notifyOrderShipped } from "@/lib/integrations/notify";
-import {
-  notifyPosOfOrder,
-  notifyPosOfOrderStatus,
-} from "@/lib/integrations/pos-sync";
+import { notifyPosOfOrder, notifyPosOfOrderStatus } from "@/lib/integrations/pos-sync";
+import { assertBuyerInCambodia } from "@/lib/geo.server";
 import {
   getSessionUser,
   requireAdmin,
@@ -145,6 +143,7 @@ export const listOrders = createServerFn({ method: "GET" }).handler(async () => 
 export const createOrder = createServerFn({ method: "POST" })
   .inputValidator((d: CreateOrderInput) => d)
   .handler(async ({ data }) => {
+    assertBuyerInCambodia();
     // Guest checkout: a session is optional. Logged-in orders are stamped with
     // the user id; guest orders carry null and rely on the typed contact fields.
     const user = await getSessionUser();
@@ -338,7 +337,15 @@ export const createOrder = createServerFn({ method: "POST" })
       }
       const parentId = variationParentById.get(i.id);
       return parentId
-        ? [{ siteProductId: parentId, variationId: i.id, quantity: i.qty, unitPrice: i.price, title: i.title }]
+        ? [
+            {
+              siteProductId: parentId,
+              variationId: i.id,
+              quantity: i.qty,
+              unitPrice: i.price,
+              title: i.title,
+            },
+          ]
         : [];
     });
     if (posItems.length > 0) {
