@@ -247,6 +247,44 @@ export async function notifyOrderShipped(order: ShippedNotification): Promise<vo
   }
 }
 
+// Sales mailbox: staff-written messages to a customer go out from here, and
+// Reply-To points back at it so the customer's answer lands in the sales inbox.
+// The domain must be verified in Resend. Overridable via SALES_EMAIL_FROM.
+const SALES_EMAIL = "sales@bosbadrinksnack.com";
+const salesFrom = () => env.SALES_EMAIL_FROM?.trim() || `${siteName()} <${SALES_EMAIL}>`;
+
+// Unlike the automatic notifications above, this throws on failure — a human
+// clicked Send and needs to know if it didn't go out.
+export async function sendCustomerMessage(input: {
+  to: string;
+  customerName?: string | null;
+  orderId: string;
+  subject: string;
+  message: string;
+}): Promise<void> {
+  if (!env.RESEND_API_KEY) throw new Error("Email is not configured (RESEND_API_KEY missing)");
+  const resend = new Resend(env.RESEND_API_KEY);
+  const name = input.customerName?.trim() || "there";
+  // The order tag in the subject is how the customer's reply finds its way back
+  // to this order's chat (see inbound-email.server.ts).
+  const tag = `#${input.orderId.slice(0, 8)}`;
+  const subject = input.subject.trim();
+  const body = escapeHtml(input.message.trim()).replace(/\r?\n/g, "<br />");
+  const html = emailShell(`
+        <p style="margin:0 0 12px">Hi ${escapeHtml(name)},</p>
+        <p style="margin:0 0 16px;line-height:1.5">${body}</p>
+        <p style="margin:16px 0 0;font-size:12px;color:#7a6a52">Regarding order #${input.orderId.slice(0, 8)} · just reply to this email to reach our sales team.</p>`);
+  const { error } = await resend.emails.send({
+    from: salesFrom(),
+    to: input.to,
+    replyTo: SALES_EMAIL,
+    subject: subject.includes(tag) ? subject : `${subject} [${tag}]`,
+    html,
+    text: `Hi ${name},\n\n${input.message.trim()}\n\nRegarding order #${input.orderId.slice(0, 8)}`,
+  });
+  if (error) throw new Error(error.message || "Failed to send email");
+}
+
 async function sendCustomerEmail(
   order: OrderNotification,
   short: string,

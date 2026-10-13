@@ -20,6 +20,10 @@ declare global {
       BETTER_AUTH_URL?: string;
       RESEND_API_KEY: string;
       RESEND_FROM?: string;
+      // Optional: copy every inbound sales@ email to this verified Email Routing address.
+      SALES_FORWARD_TO?: string;
+      // Optional override of the sales sender, e.g. "BOSBA Drink Snack <sales@bosbadrinksnack.com>".
+      SALES_EMAIL_FROM?: string;
       ADMIN_NOTIFY_EMAIL?: string;
       TELEGRAM_BOT_TOKEN?: string;
       TELEGRAM_CHAT_ID?: string;

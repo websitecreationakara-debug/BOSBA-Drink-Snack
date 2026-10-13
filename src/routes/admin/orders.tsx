@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listOrders, updateOrderStatus, updateOrderTracking, deleteOrder } from "@/data/orders";
+import {
+  listOrders,
+  updateOrderStatus,
+  updateOrderTracking,
+  deleteOrder,
+  sendOrderMessage,
+  listOrderMessages,
+} from "@/data/orders";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useConfirm } from "@/components/common/confirm-dialog";
 import {
@@ -11,9 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { MapPin, Trash2, FileDown } from "lucide-react";
+import { MapPin, Trash2, FileDown, Mail } from "lucide-react";
 import { formatShippingAddress } from "@/lib/utils";
 import { downloadInvoice } from "@/lib/pdf/invoice";
 
@@ -23,6 +38,20 @@ function OrdersAdmin() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const [preview, setPreview] = useState<{ url: string; title: string } | null>(null);
+  const [compose, setCompose] = useState<{
+    id: string;
+    email: string;
+    name: string | null;
+  } | null>(null);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const { data: thread = [] } = useQuery({
+    queryKey: ["order-messages", compose?.id],
+    queryFn: () => listOrderMessages({ data: { id: compose!.id } }),
+    enabled: !!compose,
+    refetchInterval: 10000,
+  });
   const { data: orders = [] } = useQuery({
     queryKey: ["orders-admin"],
     queryFn: () => listOrders(),
@@ -55,6 +84,27 @@ function OrdersAdmin() {
       await downloadInvoice(order);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate invoice");
+    }
+  };
+
+  const openCompose = (o: { id: string; customer_email: string; customer_name: string | null }) => {
+    setCompose({ id: o.id, email: o.customer_email, name: o.customer_name });
+    setSubject(`Regarding your BOSBA Drink Snack order #${o.id.slice(0, 8)}`);
+    setMessage("");
+  };
+
+  const sendMessage = async () => {
+    if (!compose) return;
+    setSending(true);
+    try {
+      await sendOrderMessage({ data: { id: compose.id, subject, message } });
+      toast.success(`Email sent to ${compose.email}`);
+      setMessage("");
+      qc.invalidateQueries({ queryKey: ["order-messages", compose.id] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send email");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -187,6 +237,21 @@ function OrdersAdmin() {
                         <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>
+                    {o.customer_email && (
+                      <button
+                        onClick={() =>
+                          openCompose({
+                            id: o.id,
+                            customer_email: o.customer_email!,
+                            customer_name: o.customer_name,
+                          })
+                        }
+                        title="Chat with customer (email from sales@bosbadrinksnack.com)"
+                        className="text-muted-foreground hover:text-brand transition-colors"
+                      >
+                        <Mail className="size-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => printInvoice(o)}
                       title="Download invoice (PDF)"
@@ -226,6 +291,67 @@ function OrdersAdmin() {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={!!compose} onOpenChange={(open) => !open && !sending && setCompose(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Chat with {compose?.name || compose?.email}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="text-xs text-muted-foreground">
+              Order #{compose?.id.slice(0, 8)} · emails go from{" "}
+              <span className="font-medium">sales@bosbadrinksnack.com</span> to{" "}
+              <span className="font-medium">{compose?.email}</span>. Their replies appear here.
+            </div>
+            <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border bg-muted/40 p-3">
+              {thread.length === 0 && (
+                <p className="py-4 text-center text-xs text-muted-foreground">
+                  No messages yet — write the first one below.
+                </p>
+              )}
+              {thread.map((m) => (
+                <div
+                  key={m.id}
+                  className={`flex ${m.direction === "out" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-3 py-2 ${
+                      m.direction === "out" ? "bg-brand text-brand-foreground" : "border bg-card"
+                    }`}
+                  >
+                    <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                    <div className="mt-1 text-[10px] opacity-70">
+                      {m.direction === "out" ? "Sales" : "Customer"} ·{" "}
+                      {new Date(m.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Subject"
+              maxLength={200}
+            />
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Write your message…"
+              rows={4}
+              maxLength={5000}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompose(null)} disabled={sending}>
+              Close
+            </Button>
+            <Button onClick={sendMessage} disabled={sending || !subject.trim() || !message.trim()}>
+              {sending ? "Sending…" : "Send email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!preview} onOpenChange={(open) => !open && setPreview(null)}>
         <DialogContent className="max-w-lg">

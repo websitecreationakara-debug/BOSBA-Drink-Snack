@@ -202,6 +202,23 @@ export const orders = sqliteTable("orders", {
   created_at: text("created_at").notNull().$defaultFn(nowIso),
 });
 
+// Email thread between staff and the customer who placed an order. "out" =
+// staff -> customer (sent from the sales mailbox via Resend); "in" = the
+// customer's reply, received by the Worker's email() handler (Cloudflare Email
+// Routing on the sales mailbox). Shown as a chat in the admin Orders dialog.
+export const order_messages = sqliteTable("order_messages", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  order_id: text("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  direction: text("direction").notNull(),
+  subject: text("subject"),
+  body: text("body").notNull(),
+  // Staff member's email for "out" messages; the customer's address for "in".
+  sender: text("sender"),
+  created_at: text("created_at").notNull().$defaultFn(nowIso),
+});
+
 // Saved delivery addresses for logged-in customers (address book), so repeat
 // buyers don't re-type at checkout. Fields mirror the delivery block captured on
 // orders. Every row belongs to a user — guests never create these. Exactly one
