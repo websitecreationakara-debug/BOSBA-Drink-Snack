@@ -6,10 +6,12 @@ import { eq } from "drizzle-orm";
 import { renderErrorPage } from "./lib/error-page";
 import { getAuth } from "./lib/auth";
 import { getDb } from "./db";
-import { products, categories, social_posts } from "./db/schema";
+import { products, product_variations, categories, social_posts } from "./db/schema";
 import { slugify } from "./lib/utils";
 import { absoluteMediaUrl } from "./lib/integrations/social/shared";
 import { padForTiktok } from "./lib/integrations/social/tiktok-image.server";
+import { productFromPrice, groupVariations } from "./lib/commerce/variants";
+import { metaDescription, metaAvailability, metaRetailerId } from "./lib/meta-catalog";
 
 const SITE = "https://bosbadrinksnack.com";
 
@@ -159,6 +161,68 @@ const assetlinksMiddleware = createMiddleware().server(async ({ next }) => {
   });
 });
 
+// Scheduled product feed for Meta/Google Commerce Manager — lists every
+// published product directly from the DB so the whole catalog shows up as
+// soon as the feed is fetched, instead of depending on the Pixel ever
+// seeing a page view for each individual product (see lib/integrations/meta-pixel.ts).
+// Mirrors BOSBA Premium Foods' start.ts productFeedMiddleware.
+// Columns follow Meta's catalog feed spec: https://www.facebook.com/business/help/120325381656392
+const csvField = (v: string) => `"${v.replace(/"/g, '""')}"`;
+const FEED_HEADER = [
+  "id",
+  "title",
+  "description",
+  "availability",
+  "condition",
+  "price",
+  "link",
+  "image_link",
+  "brand",
+];
+
+const productFeedMiddleware = createMiddleware().server(async ({ next }) => {
+  const request = getRequest();
+  if (new URL(request.url).pathname !== "/product-feed.csv") return next();
+
+  const db = getDb();
+  const [prods, variations] = await Promise.all([
+    db.select().from(products).where(eq(products.status, "published")),
+    db.select().from(product_variations),
+  ]);
+  const variationsByProduct = groupVariations(variations);
+
+  const rows = prods.flatMap((p) => {
+    const price = productFromPrice(p, variationsByProduct.get(p.id) ?? []);
+    // No valid price yet (e.g. a variable product with no priced variations)
+    // — Meta requires a real price on every row, so skip it rather than
+    // submit a false $0.00.
+    if (price <= 0) return [];
+    if (!p.image_url) return []; // image_link is also required
+    return [
+      [
+        metaRetailerId(p),
+        p.title,
+        metaDescription(p),
+        metaAvailability(p),
+        "new",
+        `${price.toFixed(2)} USD`,
+        `${SITE}/product/${slugify(p.title) || p.id}`,
+        absoluteMediaUrl(p.image_url),
+        "BOSBA Drink&Snack",
+      ],
+    ];
+  });
+
+  const csv = [FEED_HEADER, ...rows].map((row) => row.map(csvField).join(",")).join("\n");
+
+  return new Response(csv, {
+    headers: {
+      "content-type": "text/csv; charset=utf-8",
+      "cache-control": "public, max-age=1800",
+    },
+  });
+});
+
 // Dynamic sitemap built from published products + categories so search engines
 // always see current URLs. Cached for an hour at the edge.
 const sitemapMiddleware = createMiddleware().server(async ({ next }) => {
@@ -221,5 +285,6 @@ export const startInstance = createStart(() => ({
     tiktokImageMiddleware,
     assetlinksMiddleware,
     sitemapMiddleware,
+    productFeedMiddleware,
   ],
 }));
