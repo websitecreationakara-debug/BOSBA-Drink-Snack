@@ -22,6 +22,7 @@ import { validatePromoCode } from "@/data/promo-codes";
 import { promoCodeDiscount } from "@/lib/commerce/promo-code";
 import { cn } from "@/lib/utils";
 import { PIXEL_CURRENCY, trackPixel } from "@/lib/integrations/meta-pixel";
+import { metaRetailerId } from "@/lib/meta-catalog";
 import { toast } from "sonner";
 import { LocationMap } from "@/components/checkout/location-map";
 import {
@@ -153,9 +154,9 @@ function Checkout() {
     if (firedInitiateCheckout.current || items.length === 0) return;
     firedInitiateCheckout.current = true;
     trackPixel("InitiateCheckout", {
-      content_ids: items.map((i) => i.product.id),
+      content_ids: items.map((i) => metaRetailerId(i.product)),
       content_type: "product",
-      contents: items.map((i) => ({ id: i.product.id, quantity: i.qty })),
+      contents: items.map((i) => ({ id: metaRetailerId(i.product), quantity: i.qty })),
       num_items: items.reduce((a, i) => a + i.qty, 0),
       value: Number(subtotal.toFixed(2)),
       currency: PIXEL_CURRENCY,
@@ -350,6 +351,10 @@ function Checkout() {
           promo_code: applied?.code ?? null,
           scheduled_at: scheduledAt,
           items: orderItems,
+          // Catalog retailer ids for the Purchase pixel event, captured here
+          // since `orderItems` only keeps the product/variation id (needed
+          // elsewhere for stock/POS sync), not the catalog-matching id.
+          meta_content_ids: items.map((i) => metaRetailerId(i.product)),
           customer_name: customerName,
           customer_email: customerEmail,
           customer_phone: phoneRef.current?.value ?? "",

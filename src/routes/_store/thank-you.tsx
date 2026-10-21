@@ -13,6 +13,7 @@ type LastOrder = {
   id: string;
   total: number;
   items: { id: string; title: string; qty: number; price: number }[];
+  meta_content_ids?: string[];
   customer_name: string;
   customer_email?: string;
   customer_phone?: string;
@@ -40,12 +41,18 @@ function ThankYou() {
       const flagKey = `bosba:pixel-purchase:${parsed.id}`;
       if (!sessionStorage.getItem(flagKey)) {
         sessionStorage.setItem(flagKey, "1");
+        // meta_content_ids (catalog retailer ids) falls back to the raw item
+        // ids for orders placed before this field existed.
+        const retailerIds = parsed.meta_content_ids ?? parsed.items.map((i) => i.id);
         trackPixel(
           "Purchase",
           {
-            content_ids: parsed.items.map((i) => i.id),
+            content_ids: retailerIds,
             content_type: "product",
-            contents: parsed.items.map((i) => ({ id: i.id, quantity: i.qty })),
+            contents: parsed.items.map((i, idx) => ({
+              id: retailerIds[idx] ?? i.id,
+              quantity: i.qty,
+            })),
             num_items: parsed.items.reduce((a, i) => a + i.qty, 0),
             value: Number(Number(parsed.total).toFixed(2)),
             currency: PIXEL_CURRENCY,

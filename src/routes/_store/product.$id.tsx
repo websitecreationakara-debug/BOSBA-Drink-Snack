@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { cn, slugify } from "@/lib/utils";
 import { PIXEL_CURRENCY, trackPixel } from "@/lib/integrations/meta-pixel";
+import { metaRetailerId } from "@/lib/meta-catalog";
 import { preOrderChatUrl } from "@/lib/integrations/sales-chat";
 import { extractYoutubeId, youtubeThumbnail, youtubeEmbedSrc } from "@/lib/youtube";
 import { useI18n } from "@/lib/i18n";
@@ -160,17 +161,21 @@ function ProductDetail() {
     return () => window.removeEventListener("resize", check);
   }, [product?.description, product?.id, locale]);
 
-  // Meta Pixel: one ViewContent per product viewed.
+  // Meta Pixel: one ViewContent per product viewed. Keyed on product.id, not
+  // the `product` object itself — a background refetch (TanStack Query)
+  // returns a new object with identical data and would otherwise double-fire
+  // this for the same page view.
   useEffect(() => {
     if (!product) return;
     trackPixel("ViewContent", {
-      content_ids: [product.id],
+      content_ids: [metaRetailerId(product)],
       content_name: product.title,
       content_type: "product",
       value: Number((product.sale_price ?? product.price ?? 0).toFixed(2)),
       currency: PIXEL_CURRENCY,
     });
-  }, [product]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   const shipThreshold = Number(settings?.free_shipping_threshold ?? 50);
 
