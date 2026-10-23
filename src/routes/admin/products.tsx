@@ -155,12 +155,18 @@ function ProductsAdmin() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
-  // Inline stock edit in the list — simple products only. Empty string while
+  // Inline stock edit in the list (a variable product's shared pool too). Empty string while
   // editing means "leave untracked" (∞), matching stock == null semantics.
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
   // Escape unmounts the input, which still fires a native blur — this skips
   // the blur-triggered save that would otherwise persist the abandoned edit.
   const skipStockBlurSave = useRef(false);
+  // Edit dialog: variations/gallery/tabs load after it opens. The ref drops results from a
+  // superseded open; the flag keeps Save disabled until they're all in.
+  const editLoadId = useRef(0);
+  // "Add stock" box: on save, stock becomes current stock + this amount.
+  const [addStock, setAddStock] = useState("");
+  const [childrenLoading, setChildrenLoading] = useState(false);
 
   const variationsByProduct = groupVariations(allVariations);
 
@@ -284,6 +290,9 @@ function ProductsAdmin() {
   };
 
   const openNew = () => {
+    editLoadId.current++;
+    setAddStock("");
+    setChildrenLoading(false);
     setForm(empty);
     setVars([]);
     setTabs([]);
@@ -293,16 +302,25 @@ function ProductsAdmin() {
     setOpen(true);
   };
   const openEdit = async (p: Product) => {
+    const loadId = ++editLoadId.current;
+    setAddStock("");
     setPicker(false);
     setGalleryPicker(false);
     setGallery([]);
     setTabs([]);
-    getProductImages({ data: { productId: p.id } }).then((rows) =>
-      setGallery(rows.map((r) => r.url)),
-    );
-    getProductTabs({ data: { productId: p.id } }).then((rows) =>
-      setTabs(rows.map((r) => ({ id: r.id, title: r.title, body: r.body }))),
-    );
+    // Clear the previous product's rows so they can't be shown (or saved) against this one,
+    // and block Save until everything below has loaded — saving early would replace the
+    // product's real variations/gallery/tabs with the empty placeholders.
+    setVars([]);
+    setChildrenLoading(true);
+    const loadGallery = getProductImages({ data: { productId: p.id } }).then((rows) => {
+      if (loadId === editLoadId.current) setGallery(rows.map((r) => r.url));
+    });
+    const loadTabs = getProductTabs({ data: { productId: p.id } }).then((rows) => {
+      if (loadId === editLoadId.current) {
+        setTabs(rows.map((r) => ({ id: r.id, title: r.title, body: r.body })));
+      }
+    });
     setForm({
       id: p.id,
       title: p.title,
@@ -324,22 +342,32 @@ function ProductsAdmin() {
       video_url: p.video_url ?? "",
     });
     setOpen(true);
-    if (p.type === "variable") {
-      const rows = await getVariations({ data: { productId: p.id, raw: true } });
-      setVars(
-        rows.map((v) => ({
-          id: v.id,
-          weight: v.weight,
-          flavor: v.flavor ?? "",
-          price: String(v.price),
-          sale_price: v.sale_price != null ? String(v.sale_price) : "",
-          stock: v.stock != null ? String(v.stock) : "",
-          pcs: v.pcs != null ? String(v.pcs) : "",
-          image_url: v.image_url ?? "",
-        })),
-      );
-    } else {
-      setVars([]);
+    const loadVars =
+      p.type === "variable"
+        ? getVariations({ data: { productId: p.id, raw: true } }).then((rows) => {
+            if (loadId !== editLoadId.current) return;
+            setVars(
+              rows.map((v) => ({
+                id: v.id,
+                weight: v.weight,
+                flavor: v.flavor ?? "",
+                price: String(v.price),
+                sale_price: v.sale_price != null ? String(v.sale_price) : "",
+                stock: v.stock != null ? String(v.stock) : "",
+                pcs: v.pcs != null ? String(v.pcs) : "",
+                image_url: v.image_url ?? "",
+              })),
+            );
+          })
+        : Promise.resolve();
+    try {
+      await Promise.all([loadGallery, loadTabs, loadVars]);
+      if (loadId === editLoadId.current) setChildrenLoading(false);
+    } catch (err) {
+      if (loadId !== editLoadId.current) return;
+      toast.error(err instanceof Error ? err.message : "Failed to load product details");
+      setOpen(false);
+      setChildrenLoading(false);
     }
   };
 
@@ -382,17 +410,26 @@ function ProductsAdmin() {
         image_url: v.image_url.trim() === "" ? null : v.image_url.trim(),
       }));
 
+  // Current stock (blank = unlimited) plus whatever was typed in "Add stock". Adding to an
+  // unlimited product starts the count from the added amount.
+  const nextStock = () => {
+    const current = form.stock.trim() === "" ? null : Number(form.stock);
+    if (addStock.trim() === "") return current;
+    return (current ?? 0) + Number(addStock);
+  };
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const variable = form.type === "variable";
     const payload = {
       title: form.title,
       description: form.description || null,
-      // Variable products carry price/stock/weight on their variations, not here.
+      // Variable products carry price/weight on their variations, not here; stock
+      // is one pool on the product, shared by every variation.
       price: variable ? 0 : Number(form.price),
       sale_price: variable || !form.sale_price ? null : Number(form.sale_price),
       category_id: form.category_id || null,
-      stock: variable || form.stock.trim() === "" ? null : Number(form.stock),
+      stock: nextStock(),
       status: form.status,
       image_url: form.image_url || null,
       badge: form.badge || null,
@@ -581,14 +618,7 @@ function ProductsAdmin() {
     const n = (variationsByProduct.get(p.id) ?? []).length;
     return `${n} variation${n === 1 ? "" : "s"}`;
   };
-  const stockLabel = (p: Product) => {
-    if (p.type !== "variable") return p.stock == null ? "∞" : p.stock;
-    const vs = variationsByProduct.get(p.id) ?? [];
-    if (!vs.length) return "—";
-    const tracked = vs.filter((v) => v.stock != null);
-    if (tracked.length === 0) return "∞";
-    return tracked.reduce((a, v) => a + (v.stock ?? 0), 0);
-  };
+  const stockLabel = (p: Product) => (p.stock == null ? "∞" : p.stock);
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -786,9 +816,7 @@ function ProductsAdmin() {
                   {weightLabel(p)}
                 </td>
                 <td className="px-4 py-3">
-                  {p.type === "variable" ? (
-                    stockLabel(p)
-                  ) : editingStock?.id === p.id ? (
+                  {editingStock?.id === p.id ? (
                     <Input
                       autoFocus
                       type="number"
@@ -1069,17 +1097,6 @@ function ProductsAdmin() {
                     />
                   </div>
                   <div>
-                    <Label>Stock (blank = unlimited · 0 = out of stock)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="Unlimited"
-                      value={form.stock}
-                      onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                    />
-                  </div>
-                  <div>
                     <Label>Weight</Label>
                     <Input
                       placeholder="e.g. 250g, 1kg"
@@ -1099,6 +1116,36 @@ function ProductsAdmin() {
                   </div>
                 </>
               )}
+              <div className={isVariable ? "col-span-2" : undefined}>
+                <Label>
+                  Stock{isVariable ? " (shared by all variations)" : ""} (blank = unlimited · 0 =
+                  out of stock)
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Unlimited"
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Add stock (+)"
+                    value={addStock}
+                    onChange={(e) => setAddStock(e.target.value)}
+                  />
+                </div>
+                {addStock.trim() !== "" && Number(addStock) > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Stock after saving: {form.stock.trim() === "" ? 0 : Number(form.stock)} +{" "}
+                    {Number(addStock)} = {nextStock()}
+                  </p>
+                )}
+              </div>
               <div>
                 <Label>Category</Label>
                 <Select
@@ -1213,26 +1260,27 @@ function ProductsAdmin() {
                     <Plus className="size-4 mr-1.5" /> Add variation
                   </Button>
                 </div>
-                {vars.length === 0 ? (
+                {childrenLoading ? (
+                  <p className="text-xs text-muted-foreground">Loading variations…</p>
+                ) : vars.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    Add at least one weight, each with its own price and stock. Optionally set a
-                    Flavor too, if this product should let customers pick a flavor as well as a size
-                    (e.g. "Lemon" + "6 cans").
+                    Add at least one weight, each with its own price (stock is shared — set it
+                    above). Optionally set a Flavor too, if this product should let customers pick a
+                    flavor as well as a size (e.g. "Lemon" + "6 cans").
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
                       <span>Flavor</span>
                       <span>Weight</span>
                       <span>Price</span>
                       <span>Sale</span>
-                      <span>Stock</span>
                       <span>Pcs/box</span>
                       <span></span>
                     </div>
                     {vars.map((v, i) => (
                       <div key={i} className="space-y-1.5 pb-2 border-b last:border-b-0 last:pb-0">
-                        <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2">
+                        <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-2">
                           <Input
                             placeholder="Lemon (optional)"
                             value={v.flavor}
@@ -1275,18 +1323,6 @@ function ProductsAdmin() {
                                 rows.map((r, j) =>
                                   j === i ? { ...r, sale_price: e.target.value } : r,
                                 ),
-                              )
-                            }
-                          />
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="∞"
-                            value={v.stock}
-                            onChange={(e) =>
-                              setVars((rows) =>
-                                rows.map((r, j) => (j === i ? { ...r, stock: e.target.value } : r)),
                               )
                             }
                           />
@@ -1634,8 +1670,8 @@ function ProductsAdmin() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full">
-              {editing ? "Save changes" : "Create product"}
+            <Button type="submit" className="w-full" disabled={childrenLoading}>
+              {childrenLoading ? "Loading…" : editing ? "Save changes" : "Create product"}
             </Button>
           </form>
         </DialogContent>

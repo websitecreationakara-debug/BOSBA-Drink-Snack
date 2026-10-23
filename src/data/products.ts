@@ -305,7 +305,9 @@ export const updateProduct = createServerFn({ method: "POST" })
       .update(products)
       .set({ ...rest, updated_at: new Date().toISOString() })
       .where(eq(products.id, id));
-    if (rest.stock != null) await notifyPosOfStockEdit(id, rest.stock);
+    // POS keys a variable product's stock per variation, so a product-level
+    // (shared pool) count has nothing to land on there.
+    if (rest.stock != null && rest.type !== "variable") await notifyPosOfStockEdit(id, rest.stock);
     return { ok: true };
   });
 
@@ -322,17 +324,24 @@ export const setProductStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Quick inline stock edit from the admin list — simple products only (variable
-// products carry stock per-variation, edited via saveVariations instead).
+// Quick inline stock edit from the admin list. For a variable product this is
+// the one stock pool shared by all its variations.
 export const setProductStock = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; stock: number | null }) => d)
   .handler(async ({ data }) => {
     await requireManager();
-    await getDb()
+    const db = getDb();
+    await db
       .update(products)
       .set({ stock: data.stock, updated_at: new Date().toISOString() })
       .where(eq(products.id, data.id));
-    if (data.stock != null) await notifyPosOfStockEdit(data.id, data.stock);
+    const [row] = await db
+      .select({ type: products.type })
+      .from(products)
+      .where(eq(products.id, data.id));
+    if (data.stock != null && row?.type !== "variable") {
+      await notifyPosOfStockEdit(data.id, data.stock);
+    }
     return { ok: true };
   });
 

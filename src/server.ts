@@ -358,7 +358,8 @@ function shapeApiProduct(
         price: v.price,
         sale_price: v.sale_price,
         image_url: v.image_url,
-        stock: v.stock,
+        // Variations share the product's single stock pool.
+        stock: p.stock,
         pcs: v.pcs,
       })),
     images: images.filter((i) => i.product_id === p.id).map((i) => i.url),
