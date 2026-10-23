@@ -10,6 +10,7 @@ import {
 } from "@/db/schema";
 import { slugify, isUuid } from "@/lib/utils";
 import { applyPromo } from "@/lib/commerce/promotions";
+import { groupStockValue, stockGroupKey, stockRollup } from "@/lib/commerce/variants";
 import { requireManager } from "./_auth";
 import {
   notifyPosOfNewProduct,
@@ -173,13 +174,23 @@ export const saveVariations = createServerFn({ method: "POST" })
     if (toDelete.length)
       await db.delete(product_variations).where(inArray(product_variations.id, toDelete));
 
+    // Variations in one stock group (same flavor / ml-L size) share a count, so
+    // every row of a group is written with that group's value.
+    const members = new Map<string, VariationInput[]>();
     for (const v of data.variations) {
+      const key = stockGroupKey(v);
+      members.set(key, [...(members.get(key) ?? []), v]);
+    }
+    const groupStock = (v: VariationInput) => groupStockValue(members.get(stockGroupKey(v)) ?? [v]);
+
+    for (const v of data.variations) {
+      const stock = groupStock(v);
       const fields = {
         weight: v.weight,
         flavor: v.flavor,
         price: v.price,
         sale_price: v.sale_price,
-        stock: v.stock,
+        stock,
         pcs: v.pcs,
         sort_order: v.sort_order,
         image_url: v.image_url,
@@ -194,13 +205,18 @@ export const saveVariations = createServerFn({ method: "POST" })
         if (before) {
           const changes: { price?: number; stock?: number | null } = {};
           if (before.price !== v.price) changes.price = v.price;
-          if (before.stock !== v.stock) changes.stock = v.stock;
+          if (before.stock !== stock) changes.stock = stock;
           if (Object.keys(changes).length > 0) {
             await notifyPosOfVariationEdit(data.productId, v.id, changes);
           }
         }
       } else await db.insert(product_variations).values({ product_id: data.productId, ...fields });
     }
+    // Keep the product-level rollup (what lists, cards and feeds read) in step.
+    await db
+      .update(products)
+      .set({ stock: stockRollup(data.variations.map((v) => ({ ...v, stock: groupStock(v) }))) })
+      .where(eq(products.id, data.productId));
     return { ok: true };
   });
 
@@ -305,8 +321,8 @@ export const updateProduct = createServerFn({ method: "POST" })
       .update(products)
       .set({ ...rest, updated_at: new Date().toISOString() })
       .where(eq(products.id, id));
-    // POS keys a variable product's stock per variation, so a product-level
-    // (shared pool) count has nothing to land on there.
+    // A variable product's product-level stock is just a rollup of its variations
+    // (POS keys those per variation), so there's nothing to push for it.
     if (rest.stock != null && rest.type !== "variable") await notifyPosOfStockEdit(id, rest.stock);
     return { ok: true };
   });
@@ -324,24 +340,17 @@ export const setProductStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Quick inline stock edit from the admin list. For a variable product this is
-// the one stock pool shared by all its variations.
+// Quick inline stock edit from the admin list — simple products only (a variable
+// product's stock is per stock group, edited via saveVariations instead).
 export const setProductStock = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; stock: number | null }) => d)
   .handler(async ({ data }) => {
     await requireManager();
-    const db = getDb();
-    await db
+    await getDb()
       .update(products)
       .set({ stock: data.stock, updated_at: new Date().toISOString() })
       .where(eq(products.id, data.id));
-    const [row] = await db
-      .select({ type: products.type })
-      .from(products)
-      .where(eq(products.id, data.id));
-    if (data.stock != null && row?.type !== "variable") {
-      await notifyPosOfStockEdit(data.id, data.stock);
-    }
+    if (data.stock != null) await notifyPosOfStockEdit(data.id, data.stock);
     return { ok: true };
   });
 

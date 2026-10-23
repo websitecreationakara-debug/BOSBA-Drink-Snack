@@ -330,6 +330,13 @@
       "when": 1792661550099,
       "tag": "0046_variable_shared_stock",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "6",
+      "when": 1792727778389,
+      "tag": "0047_variation_stock_groups",
+      "breakpoints": true
     }
   ]
 }
