@@ -12,12 +12,6 @@ function priceRange(vs: ProductVariation[]): string {
   return min === max ? min.toFixed(2) : `${min.toFixed(2)}–${max.toFixed(2)}`;
 }
 
-function stockTotal(vs: ProductVariation[]): number | string {
-  if (!vs.length) return "";
-  const tracked = vs.filter((v) => v.stock != null);
-  return tracked.length === 0 ? "∞" : tracked.reduce((a, v) => a + (v.stock ?? 0), 0);
-}
-
 export async function downloadProductsXlsx(
   products: Product[],
   categories: Category[],
@@ -45,7 +39,7 @@ export async function downloadProductsXlsx(
       Rating: p.rating ?? "",
       Price: variable ? priceRange(vs) : p.price.toFixed(2),
       "Sale Price": variable ? "" : (p.sale_price?.toFixed(2) ?? ""),
-      Stock: variable ? stockTotal(vs) : (p.stock ?? "∞"),
+      Stock: p.stock ?? "∞",
       Weight: variable ? "" : (p.weight ?? ""),
       "Pcs/box": variable ? "" : (p.pcs ?? ""),
       Variations: variable ? vs.length : "",
@@ -66,7 +60,6 @@ export async function downloadProductsXlsx(
       Weight: v.weight,
       Price: v.price.toFixed(2),
       "Sale Price": v.sale_price?.toFixed(2) ?? "",
-      Stock: v.stock ?? "∞",
       "Pcs/box": v.pcs ?? "",
     }));
   });

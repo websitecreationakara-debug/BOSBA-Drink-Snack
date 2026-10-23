@@ -24,9 +24,8 @@ export function ProductCard({
   // Variable products can't be added from the grid — the customer must pick a
   // weight, so the card leads with "from $X" and links through to the page.
   const variable = product.type === "variable";
-  // Simple products track their own stock; 0 = out of stock. Variable products
-  // carry stock on their variations, so the grid card never blocks them here.
-  const soldOut = !variable && product.stock === 0 && !product.pre_order;
+  // 0 = out of stock. A variable product's stock is one pool shared by all its variations.
+  const soldOut = product.stock === 0 && !product.pre_order;
   const hasSale = product.sale_price != null && product.sale_price < product.price;
   const discount = hasSale
     ? Math.round(((product.price - product.sale_price!) / product.price) * 100)

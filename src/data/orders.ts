@@ -182,7 +182,6 @@ export const createOrder = createServerFn({ method: "POST" })
           id: product_variations.id,
           price: product_variations.price,
           sale_price: product_variations.sale_price,
-          stock: product_variations.stock,
           product_id: product_variations.product_id,
         })
         .from(product_variations)
@@ -195,7 +194,7 @@ export const createOrder = createServerFn({ method: "POST" })
     const parentIds = [...new Set(varRows.map((v) => v.product_id))];
     const parents = parentIds.length
       ? await db
-          .select({ id: products.id, promotion_id: products.promotion_id })
+          .select({ id: products.id, promotion_id: products.promotion_id, stock: products.stock })
           .from(products)
           .where(inArray(products.id, parentIds))
       : [];
@@ -239,15 +238,23 @@ export const createOrder = createServerFn({ method: "POST" })
     // Inventory guard. null stock = untracked (always available); a number is a
     // tracked count. Block the order if any tracked line is short — checked
     // against the summed quantity per id, before anything is written.
+    // A variable product shares one stock pool on the parent row across all its
+    // variations, so a variation line counts against (and deducts from) the
+    // parent's stock, not the variation's own.
     const stockById = new Map<string, number | null>();
     for (const p of prodRows) stockById.set(p.id, p.stock);
-    for (const v of varRows) stockById.set(v.id, v.stock);
+    for (const p of parents) stockById.set(p.id, p.stock);
+    const poolIdByLine = new Map<string, string>(varRows.map((v) => [v.id, v.product_id]));
     const neededById = new Map<string, number>();
-    for (const i of items) neededById.set(i.id, (neededById.get(i.id) ?? 0) + i.qty);
+    for (const i of items) {
+      const poolId = poolIdByLine.get(i.id) ?? i.id;
+      neededById.set(poolId, (neededById.get(poolId) ?? 0) + i.qty);
+    }
     for (const [id, need] of neededById) {
       const stock = stockById.get(id);
       if (stock != null && need > stock) {
-        const title = items.find((i) => i.id === id)?.title ?? "An item";
+        const title =
+          items.find((i) => (poolIdByLine.get(i.id) ?? i.id) === id)?.title ?? "An item";
         throw new Error(
           stock <= 0 ? `${title} is out of stock.` : `Only ${stock} of "${title}" left in stock.`,
         );
@@ -321,10 +328,10 @@ export const createOrder = createServerFn({ method: "POST" })
       [...neededById].map(([id, need]) => {
         const stock = stockById.get(id);
         if (stock == null) return null;
-        const next = Math.max(0, stock - need);
-        return productIdSet.has(id)
-          ? db.update(products).set({ stock: next }).where(eq(products.id, id))
-          : db.update(product_variations).set({ stock: next }).where(eq(product_variations.id, id));
+        return db
+          .update(products)
+          .set({ stock: Math.max(0, stock - need) })
+          .where(eq(products.id, id));
       }),
     );
 
