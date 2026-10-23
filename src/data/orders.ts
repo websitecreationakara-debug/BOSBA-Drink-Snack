@@ -1,3 +1,4 @@
+import { groupStockValue, stockGroupKey, stockRollup } from "@/lib/commerce/variants";
 import { createServerFn } from "@tanstack/react-start";
 import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db";
@@ -194,9 +195,23 @@ export const createOrder = createServerFn({ method: "POST" })
     const parentIds = [...new Set(varRows.map((v) => v.product_id))];
     const parents = parentIds.length
       ? await db
-          .select({ id: products.id, promotion_id: products.promotion_id, stock: products.stock })
+          .select({ id: products.id, promotion_id: products.promotion_id })
           .from(products)
           .where(inArray(products.id, parentIds))
+      : [];
+    // Stock is counted per stock group (same flavor / ml-L size), so load every
+    // sibling of the ordered variations, not just the ordered rows.
+    const siblings = parentIds.length
+      ? await db
+          .select({
+            id: product_variations.id,
+            product_id: product_variations.product_id,
+            flavor: product_variations.flavor,
+            weight: product_variations.weight,
+            stock: product_variations.stock,
+          })
+          .from(product_variations)
+          .where(inArray(product_variations.product_id, parentIds))
       : [];
     const promoIdByParent = new Map(parents.map((p) => [p.id, p.promotion_id]));
     const promoIds = [
@@ -237,14 +252,26 @@ export const createOrder = createServerFn({ method: "POST" })
 
     // Inventory guard. null stock = untracked (always available); a number is a
     // tracked count. Block the order if any tracked line is short — checked
-    // against the summed quantity per id, before anything is written.
-    // A variable product shares one stock pool on the parent row across all its
-    // variations, so a variation line counts against (and deducts from) the
-    // parent's stock, not the variation's own.
+    // against the summed quantity per stock pool, before anything is written.
+    // A simple product is its own pool; a variation line draws from its stock
+    // group (see stockGroupKey), shared with the siblings in that group.
     const stockById = new Map<string, number | null>();
     for (const p of prodRows) stockById.set(p.id, p.stock);
-    for (const p of parents) stockById.set(p.id, p.stock);
-    const poolIdByLine = new Map<string, string>(varRows.map((v) => [v.id, v.product_id]));
+    const groupKeyOf = (v: { product_id: string; flavor: string | null; weight: string }) =>
+      `${v.product_id}::${stockGroupKey(v)}`;
+    const groupMembers = new Map<string, typeof siblings>();
+    for (const v of siblings) {
+      const key = groupKeyOf(v);
+      groupMembers.set(key, [...(groupMembers.get(key) ?? []), v]);
+    }
+    for (const [key, members] of groupMembers) stockById.set(key, groupStockValue(members));
+    const siblingById = new Map(siblings.map((v) => [v.id, v]));
+    const poolIdByLine = new Map<string, string>(
+      varRows.map((v) => [
+        v.id,
+        groupKeyOf(siblingById.get(v.id) ?? { ...v, flavor: null, weight: "" }),
+      ]),
+    );
     const neededById = new Map<string, number>();
     for (const i of items) {
       const poolId = poolIdByLine.get(i.id) ?? i.id;
@@ -323,15 +350,37 @@ export const createOrder = createServerFn({ method: "POST" })
     // Deduct tracked inventory now that the order is committed. Untracked
     // (null) lines are skipped; counts are clamped at 0 as a belt-and-braces
     // guard even though the check above already prevents oversell.
-    const productIdSet = new Set(prodRows.map((p) => p.id));
+    const nextByPool = new Map<string, number>();
+    for (const [id, need] of neededById) {
+      const stock = stockById.get(id);
+      if (stock != null) nextByPool.set(id, Math.max(0, stock - need));
+    }
     await Promise.all(
-      [...neededById].map(([id, need]) => {
-        const stock = stockById.get(id);
-        if (stock == null) return null;
+      [...nextByPool].map(([id, next]) => {
+        const members = groupMembers.get(id);
+        return members
+          ? db
+              .update(product_variations)
+              .set({ stock: next })
+              .where(
+                inArray(
+                  product_variations.id,
+                  members.map((m) => m.id),
+                ),
+              )
+          : db.update(products).set({ stock: next }).where(eq(products.id, id));
+      }),
+    );
+    // Refresh the product-level rollup of each variable product that was touched.
+    await Promise.all(
+      parentIds.map((pid) => {
+        const rows = siblings
+          .filter((v) => v.product_id === pid)
+          .map((v) => ({ ...v, stock: nextByPool.get(groupKeyOf(v)) ?? v.stock }));
         return db
           .update(products)
-          .set({ stock: Math.max(0, stock - need) })
-          .where(eq(products.id, id));
+          .set({ stock: stockRollup(rows) })
+          .where(eq(products.id, pid));
       }),
     );
 
@@ -347,6 +396,7 @@ export const createOrder = createServerFn({ method: "POST" })
     // parent's siteProductId + variation_id (see NOVA-POS migration 0039),
     // so sending the variation id alone (as siteProductId) would never match
     // anything there and silently vanish.
+    const productIdSet = new Set(prodRows.map((p) => p.id));
     const variationParentById = new Map(varRows.map((v) => [v.id, v.product_id]));
     const posItems = items.flatMap((i) => {
       if (productIdSet.has(i.id)) {

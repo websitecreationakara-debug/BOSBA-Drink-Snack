@@ -18,7 +18,12 @@ import {
 } from "@/data/products";
 import { listMedia, uploadMedia } from "@/data/media";
 import { compressImage } from "@/lib/image";
-import { groupVariations } from "@/lib/commerce/variants";
+import {
+  groupVariations,
+  stockGroupKey,
+  stockGroupLabel,
+  stockRollup,
+} from "@/lib/commerce/variants";
 import { downloadProductsXlsx } from "@/lib/pdf/products-export";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -164,8 +169,10 @@ function ProductsAdmin() {
   // Edit dialog: variations/gallery/tabs load after it opens. The ref drops results from a
   // superseded open; the flag keeps Save disabled until they're all in.
   const editLoadId = useRef(0);
-  // "Add stock" box: on save, stock becomes current stock + this amount.
+  // "Add stock" box: on save, stock becomes current stock + this amount. One box for a
+  // simple product, one per stock group (keyed by stockGroupKey) for a variable one.
   const [addStock, setAddStock] = useState("");
+  const [groupAdd, setGroupAdd] = useState<Record<string, string>>({});
   const [childrenLoading, setChildrenLoading] = useState(false);
 
   const variationsByProduct = groupVariations(allVariations);
@@ -292,6 +299,7 @@ function ProductsAdmin() {
   const openNew = () => {
     editLoadId.current++;
     setAddStock("");
+    setGroupAdd({});
     setChildrenLoading(false);
     setForm(empty);
     setVars([]);
@@ -304,6 +312,7 @@ function ProductsAdmin() {
   const openEdit = async (p: Product) => {
     const loadId = ++editLoadId.current;
     setAddStock("");
+    setGroupAdd({});
     setPicker(false);
     setGalleryPicker(false);
     setGallery([]);
@@ -395,6 +404,37 @@ function ProductsAdmin() {
     });
   };
 
+  // Stock groups among the variations being edited: variations with the same flavor (and,
+  // for ml/L sizes, the same size) share one count. Each row carries its group's value in
+  // `stock`; the group's displayed value is its first filled-in row.
+  const stockGroups = () => {
+    const groups = new Map<string, { label: string; indexes: number[] }>();
+    vars.forEach((v, i) => {
+      if (v.weight.trim() === "") return;
+      const key = stockGroupKey({ flavor: v.flavor, weight: v.weight });
+      const g = groups.get(key);
+      if (g) g.indexes.push(i);
+      else
+        groups.set(key, {
+          label: stockGroupLabel({ flavor: v.flavor, weight: v.weight }),
+          indexes: [i],
+        });
+    });
+    return groups;
+  };
+  const groupCurrent = (indexes: number[]) =>
+    indexes.map((i) => vars[i].stock.trim()).find((x) => x !== "") ?? "";
+  const groupNextFor = (key: string, indexes: number[]) => {
+    const current = groupCurrent(indexes);
+    const add = (groupAdd[key] ?? "").trim();
+    if (current === "" && add === "") return null;
+    return (current === "" ? 0 : Number(current)) + (add === "" ? 0 : Number(add));
+  };
+  const groupNext = (v: VarRow) => {
+    const key = stockGroupKey({ flavor: v.flavor, weight: v.weight });
+    return groupNextFor(key, stockGroups().get(key)?.indexes ?? []);
+  };
+
   const variationPayload = () =>
     vars
       .filter((v) => v.weight.trim() !== "")
@@ -404,7 +444,7 @@ function ProductsAdmin() {
         flavor: v.flavor.trim() || null,
         price: Number(v.price) || 0,
         sale_price: v.sale_price.trim() === "" ? null : Number(v.sale_price),
-        stock: v.stock.trim() === "" ? null : Number(v.stock),
+        stock: groupNext(v),
         pcs: v.pcs.trim() === "" ? null : Number(v.pcs),
         sort_order: i,
         image_url: v.image_url.trim() === "" ? null : v.image_url.trim(),
@@ -429,7 +469,8 @@ function ProductsAdmin() {
       price: variable ? 0 : Number(form.price),
       sale_price: variable || !form.sale_price ? null : Number(form.sale_price),
       category_id: form.category_id || null,
-      stock: nextStock(),
+      // A variable product's own stock is the rollup of its stock groups.
+      stock: variable ? stockRollup(variationPayload()) : nextStock(),
       status: form.status,
       image_url: form.image_url || null,
       badge: form.badge || null,
@@ -816,7 +857,9 @@ function ProductsAdmin() {
                   {weightLabel(p)}
                 </td>
                 <td className="px-4 py-3">
-                  {editingStock?.id === p.id ? (
+                  {p.type === "variable" ? (
+                    stockLabel(p)
+                  ) : editingStock?.id === p.id ? (
                     <Input
                       autoFocus
                       type="number"
@@ -1116,36 +1159,35 @@ function ProductsAdmin() {
                   </div>
                 </>
               )}
-              <div className={isVariable ? "col-span-2" : undefined}>
-                <Label>
-                  Stock{isVariable ? " (shared by all variations)" : ""} (blank = unlimited · 0 =
-                  out of stock)
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Unlimited"
-                    value={form.stock}
-                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Add stock (+)"
-                    value={addStock}
-                    onChange={(e) => setAddStock(e.target.value)}
-                  />
+              {!isVariable && (
+                <div>
+                  <Label>Stock (blank = unlimited · 0 = out of stock)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Unlimited"
+                      value={form.stock}
+                      onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                    />
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Add stock (+)"
+                      value={addStock}
+                      onChange={(e) => setAddStock(e.target.value)}
+                    />
+                  </div>
+                  {addStock.trim() !== "" && Number(addStock) > 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Stock after saving: {form.stock.trim() === "" ? 0 : Number(form.stock)} +{" "}
+                      {Number(addStock)} = {nextStock()}
+                    </p>
+                  )}
                 </div>
-                {addStock.trim() !== "" && Number(addStock) > 0 && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Stock after saving: {form.stock.trim() === "" ? 0 : Number(form.stock)} +{" "}
-                    {Number(addStock)} = {nextStock()}
-                  </p>
-                )}
-              </div>
+              )}
               <div>
                 <Label>Category</Label>
                 <Select
@@ -1264,9 +1306,9 @@ function ProductsAdmin() {
                   <p className="text-xs text-muted-foreground">Loading variations…</p>
                 ) : vars.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    Add at least one weight, each with its own price (stock is shared — set it
-                    above). Optionally set a Flavor too, if this product should let customers pick a
-                    flavor as well as a size (e.g. "Lemon" + "6 cans").
+                    Add at least one weight, each with its own price. Optionally set a Flavor too,
+                    if this product should let customers pick a flavor as well as a size (e.g.
+                    "Lemon" + "6 cans").
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -1448,6 +1490,56 @@ function ProductsAdmin() {
                         )}
                       </div>
                     ))}
+                    <div className="space-y-2 rounded-lg bg-muted/40 p-3">
+                      <Label className="text-sm font-bold">Stock</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Variations with the same flavor share one count (ml/L sizes count
+                        separately). Blank = unlimited · 0 = out of stock.
+                      </p>
+                      {[...stockGroups()].map(([key, g]) => {
+                        const current = groupCurrent(g.indexes);
+                        const add = (groupAdd[key] ?? "").trim();
+                        return (
+                          <div key={key} className="space-y-1">
+                            <div className="grid grid-cols-[1fr_1fr_1fr] items-center gap-2">
+                              <span className="truncate text-sm font-medium" title={g.label}>
+                                {g.label}
+                              </span>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="1"
+                                placeholder="Unlimited"
+                                value={current}
+                                onChange={(e) =>
+                                  setVars((rows) =>
+                                    rows.map((r, j) =>
+                                      g.indexes.includes(j) ? { ...r, stock: e.target.value } : r,
+                                    ),
+                                  )
+                                }
+                              />
+                              <Input
+                                type="number"
+                                min="0"
+                                step="1"
+                                placeholder="Add stock (+)"
+                                value={groupAdd[key] ?? ""}
+                                onChange={(e) =>
+                                  setGroupAdd((a) => ({ ...a, [key]: e.target.value }))
+                                }
+                              />
+                            </div>
+                            {add !== "" && Number(add) > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                After saving: {current === "" ? 0 : Number(current)} + {Number(add)}{" "}
+                                = {groupNextFor(key, g.indexes)}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
                 <input

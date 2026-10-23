@@ -60,6 +60,7 @@ export async function downloadProductsXlsx(
       Weight: v.weight,
       Price: v.price.toFixed(2),
       "Sale Price": v.sale_price?.toFixed(2) ?? "",
+      Stock: v.stock ?? "∞",
       "Pcs/box": v.pcs ?? "",
     }));
   });

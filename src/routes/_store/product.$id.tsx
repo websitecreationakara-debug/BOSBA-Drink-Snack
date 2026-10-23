@@ -230,8 +230,9 @@ function ProductDetail() {
   const basePrice = variable ? (selected?.price ?? 0) : product.price;
   const salePrice = variable ? (selected?.sale_price ?? null) : product.sale_price;
   // null = untracked (always available); 0 = out of stock; >0 = tracked count.
-  // Variable products share one pool across all variations.
-  const activeStock = product.stock;
+  // A variable product's stock is per stock group (flavor / ml-L size), so it
+  // follows the selected variation.
+  const activeStock = variable ? (selected?.stock ?? null) : product.stock;
   const preOrder = product.pre_order;
   const soldOut = activeStock === 0 && !preOrder;
   const weightLabel = variable ? selected?.weight : product.weight;

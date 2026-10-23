@@ -14,6 +14,7 @@ import {
   categories,
 } from "./db/schema";
 import { publishQueuedSocialPosts } from "./data/social";
+import { stockGroupKey, stockRollup } from "./lib/commerce/variants";
 import { handleInboundEmail, type InboundEmail } from "./lib/integrations/inbound-email.server";
 
 type ServerEntry = {
@@ -358,8 +359,7 @@ function shapeApiProduct(
         price: v.price,
         sale_price: v.sale_price,
         image_url: v.image_url,
-        // Variations share the product's single stock pool.
-        stock: p.stock,
+        stock: v.stock,
         pcs: v.pcs,
       })),
     images: images.filter((i) => i.product_id === p.id).map((i) => i.url),
@@ -616,6 +616,31 @@ async function handleVariationApi(
     .update(product_variations)
     .set(parsed.value)
     .where(eq(product_variations.id, variationId));
+  // Variations of one stock group (same flavor / ml-L size) share a count, so a
+  // stock change applies to the whole group; then refresh the product rollup.
+  if ("stock" in parsed.value) {
+    const all = await db
+      .select()
+      .from(product_variations)
+      .where(eq(product_variations.product_id, target.id));
+    const edited = all.find((v) => v.id === variationId);
+    if (edited) {
+      const key = stockGroupKey(edited);
+      const mates = all.filter((v) => stockGroupKey(v) === key);
+      await db
+        .update(product_variations)
+        .set({ stock: edited.stock })
+        .where(inArray(product_variations.id, mates.map((v) => v.id)));
+      await db
+        .update(products)
+        .set({
+          stock: stockRollup(
+            all.map((v) => (stockGroupKey(v) === key ? { ...v, stock: edited.stock } : v)),
+          ),
+        })
+        .where(eq(products.id, target.id));
+    }
+  }
   // Bump the parent's own updated_at too -- POS's catalog poll diffs on this
   // field, so a variation-only change would otherwise go unnoticed until
   // something else touched the parent row.
