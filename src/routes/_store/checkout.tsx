@@ -72,6 +72,11 @@ const slotMinutes = (t: string) => {
 // pick a slot that's already passed, or one that's only minutes away).
 const LEAD_MINUTES = 30;
 
+// ASAP delivery isn't offered past store close — too late to fulfil same-time.
+// Customers past this hour can still pre-order a future slot/day. Enforced
+// again server-side in createOrder since this is just the UI guard.
+const STORE_CLOSE_MINUTES = 21 * 60; // 9:00 PM
+
 // Temporarily hide the KHQR/COD payment selector until online payment goes live.
 // When false, every order is Cash on Delivery. Flip back to true to re-enable.
 const PAYMENT_METHODS_ENABLED = false;
@@ -130,6 +135,18 @@ function Checkout() {
   const appliedDefault = useRef(false);
   const scheduledAt =
     schedMode === "schedule" && schedDate && schedTime ? `${schedDate}T${schedTime}` : null;
+
+  const asapClosed = (() => {
+    if (deliveryMethod !== "delivery") return false;
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes() >= STORE_CLOSE_MINUTES;
+  })();
+
+  // If ASAP is no longer offered (store closed) but still selected — e.g. the
+  // page was open before close — fall back to pre-order scheduling.
+  useEffect(() => {
+    if (asapClosed && schedMode === "asap") setSchedMode("schedule");
+  }, [asapClosed, schedMode]);
 
   // For a same-day delivery, only offer slots at least LEAD_MINUTES from now so a
   // customer can't schedule a time that's already passed. Future dates: all slots.
@@ -281,6 +298,12 @@ function Checkout() {
   const placeOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0 || outsideCambodia) return;
+    // ASAP delivery isn't offered after store close — same cutoff re-checked
+    // server-side in createOrder.
+    if (schedMode === "asap" && asapClosed) {
+      toast.error("We're closed for ASAP delivery right now — please choose a pre-order time.");
+      return;
+    }
     // Guard against a scheduled time that has already passed (e.g. the slot
     // lapsed while the form sat open).
     if (scheduledAt && new Date(scheduledAt).getTime() <= Date.now()) {
@@ -607,23 +630,35 @@ function Checkout() {
                     { key: "asap", label: "As soon as possible", icon: Zap },
                     { key: "schedule", label: "Schedule (pre-order)", icon: CalendarClock },
                   ] as const
-                ).map((opt) => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => setSchedMode(opt.key)}
-                    className={cn(
-                      "flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition-colors",
-                      schedMode === opt.key
-                        ? "border-brand bg-brand/10 text-brand"
-                        : "border-border hover:bg-background",
-                    )}
-                  >
-                    <opt.icon className="size-4" />
-                    {opt.label}
-                  </button>
-                ))}
+                ).map((opt) => {
+                  const disabled = opt.key === "asap" && asapClosed;
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => setSchedMode(opt.key)}
+                      className={cn(
+                        "flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition-colors",
+                        disabled
+                          ? "cursor-not-allowed opacity-50 border-border"
+                          : schedMode === opt.key
+                            ? "border-brand bg-brand/10 text-brand"
+                            : "border-border hover:bg-background",
+                      )}
+                    >
+                      <opt.icon className="size-4" />
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
+              {asapClosed && (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  We're closed for ASAP delivery right now (open until 9 PM) — please pick a
+                  pre-order time instead.
+                </p>
+              )}
 
               {schedMode === "schedule" && (
                 <div className="mt-3 grid grid-cols-2 gap-3">

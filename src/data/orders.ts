@@ -66,6 +66,16 @@ function scheduledAtToIso(scheduledAt: string | null): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+// ASAP delivery isn't offered after store close — mirrors the UI guard in
+// checkout.tsx, re-checked here since a scripted request would skip it
+// entirely. The Worker runtime clock is UTC regardless of visitor location,
+// so convert to Cambodia's fixed +7h offset (no DST) before comparing.
+const STORE_CLOSE_MINUTES = 21 * 60; // 9:00 PM, Cambodia time
+function cambodiaMinutesNow(): number {
+  const d = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  return d.getUTCHours() * 60 + d.getUTCMinutes();
+}
+
 const parseItems = (row: typeof orders.$inferSelect) => ({
   ...row,
   items: JSON.parse(row.items || "[]") as OrderItem[],
@@ -152,7 +162,17 @@ export const listOrders = createServerFn({ method: "GET" }).handler(async () => 
 });
 
 export const createOrder = createServerFn({ method: "POST" })
-  .inputValidator((d: CreateOrderInput) => d)
+  .inputValidator((d: CreateOrderInput) => {
+    const deliveryMethod = d.delivery_method === "pickup" ? "pickup" : "delivery";
+    if (
+      deliveryMethod === "delivery" &&
+      !d.scheduled_at &&
+      cambodiaMinutesNow() >= STORE_CLOSE_MINUTES
+    ) {
+      throw new Error("We're closed for ASAP delivery right now — please choose a pre-order time.");
+    }
+    return d;
+  })
   .handler(async ({ data }) => {
     assertBuyerInCambodia();
     // Guest checkout: a session is optional. Logged-in orders are stamped with
