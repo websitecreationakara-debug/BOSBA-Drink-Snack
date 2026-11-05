@@ -298,6 +298,12 @@ function Checkout() {
   const placeOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0 || outsideCambodia) return;
+    // Pickup has no ASAP option — without a chosen time we'd have no idea
+    // when the customer is actually coming to collect the order.
+    if (deliveryMethod === "pickup" && !scheduledAt) {
+      toast.error("Please pick a date and time for your pickup.");
+      return;
+    }
     // ASAP delivery isn't offered after store close — same cutoff re-checked
     // server-side in createOrder.
     if (schedMode === "asap" && asapClosed) {
@@ -446,7 +452,12 @@ function Checkout() {
               <button
                 key={opt.key}
                 type="button"
-                onClick={() => setDeliveryMethod(opt.key)}
+                onClick={() => {
+                  setDeliveryMethod(opt.key);
+                  // Pickup has no ASAP option — we'd otherwise have no idea
+                  // when the customer is actually coming to collect it.
+                  if (opt.key === "pickup") setSchedMode("schedule");
+                }}
                 className={cn(
                   "flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition-colors",
                   deliveryMethod === opt.key
@@ -621,46 +632,50 @@ function Checkout() {
               </>
             )}
             <div className="sm:col-span-2">
-              <Label>Delivery time</Label>
-              {/* One per row on phones — "As soon as possible" doesn't fit in a
-                  half-width button at 360px. */}
-              <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {(
-                  [
-                    { key: "asap", label: "As soon as possible", icon: Zap },
-                    { key: "schedule", label: "Schedule (pre-order)", icon: CalendarClock },
-                  ] as const
-                ).map((opt) => {
-                  const disabled = opt.key === "asap" && asapClosed;
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => setSchedMode(opt.key)}
-                      className={cn(
-                        "flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition-colors",
-                        disabled
-                          ? "cursor-not-allowed opacity-50 border-border"
-                          : schedMode === opt.key
-                            ? "border-brand bg-brand/10 text-brand"
-                            : "border-border hover:bg-background",
-                      )}
-                    >
-                      <opt.icon className="size-4" />
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {asapClosed && (
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  We're closed for ASAP delivery right now (open until 9 PM) — please pick a
-                  pre-order time instead.
-                </p>
+              <Label>{deliveryMethod === "pickup" ? "Pickup time" : "Delivery time"}</Label>
+              {deliveryMethod === "delivery" && (
+                <>
+                  {/* One per row on phones — "As soon as possible" doesn't fit in a
+                      half-width button at 360px. */}
+                  <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {(
+                      [
+                        { key: "asap", label: "As soon as possible", icon: Zap },
+                        { key: "schedule", label: "Schedule (pre-order)", icon: CalendarClock },
+                      ] as const
+                    ).map((opt) => {
+                      const disabled = opt.key === "asap" && asapClosed;
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => setSchedMode(opt.key)}
+                          className={cn(
+                            "flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition-colors",
+                            disabled
+                              ? "cursor-not-allowed opacity-50 border-border"
+                              : schedMode === opt.key
+                                ? "border-brand bg-brand/10 text-brand"
+                                : "border-border hover:bg-background",
+                          )}
+                        >
+                          <opt.icon className="size-4" />
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {asapClosed && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      We're closed for ASAP delivery right now (open until 9 PM) — please pick a
+                      pre-order time instead.
+                    </p>
+                  )}
+                </>
               )}
 
-              {schedMode === "schedule" && (
+              {(schedMode === "schedule" || deliveryMethod === "pickup") && (
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">Date</Label>
