@@ -161,6 +161,10 @@ export async function notifyPosOfOrder(order: {
   // would otherwise parse as UTC and silently shift by this site's actual
   // offset from UTC.
   deliveryAt?: string | null;
+  // Meta's click-id cookie (_fbc), or the fbclid-derived equivalent -- see
+  // deriveFbc() in lib/integrations/meta-capi.ts. Forwarded as-is to POS's
+  // own Meta Conversions API send (metaConversions.ts), which sends it unhashed.
+  fbc?: string | null;
 }): Promise<void> {
   const secret = (env as { STOCK_SYNC_SECRET?: string }).STOCK_SYNC_SECRET;
   if (!secret || order.items.length === 0) return;
