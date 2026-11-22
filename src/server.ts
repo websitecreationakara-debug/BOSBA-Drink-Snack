@@ -412,27 +412,48 @@ async function insertCreateChildren(
   }
 }
 
+// D1 caps the number of bound parameters per statement, so passing every
+// product id to a single inArray(...) 500s once the catalog grows large
+// enough (this bit bosbapremiumfoods.com's status=all endpoint past ~100
+// products, same D1-backed fork). Batch the lookup instead.
+const CHILD_LOOKUP_BATCH_SIZE = 50;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 async function withChildren(rows: ApiProductRow[]) {
   const ids = rows.map((r) => r.id);
   if (ids.length === 0) return rows.map((p) => shapeApiProduct(p, [], [], []));
   const db = getDb();
-  const [vs, ims, tbs] = await Promise.all([
-    db
-      .select()
-      .from(product_variations)
-      .where(inArray(product_variations.product_id, ids))
-      .orderBy(asc(product_variations.sort_order)),
-    db
-      .select()
-      .from(product_images)
-      .where(inArray(product_images.product_id, ids))
-      .orderBy(asc(product_images.sort_order)),
-    db
-      .select()
-      .from(product_tabs)
-      .where(inArray(product_tabs.product_id, ids))
-      .orderBy(asc(product_tabs.sort_order)),
-  ]);
+  const batches = chunk(ids, CHILD_LOOKUP_BATCH_SIZE);
+  const vs: (typeof product_variations.$inferSelect)[] = [];
+  const ims: (typeof product_images.$inferSelect)[] = [];
+  const tbs: (typeof product_tabs.$inferSelect)[] = [];
+  for (const batch of batches) {
+    const [vsPart, imsPart, tbsPart] = await Promise.all([
+      db
+        .select()
+        .from(product_variations)
+        .where(inArray(product_variations.product_id, batch))
+        .orderBy(asc(product_variations.sort_order)),
+      db
+        .select()
+        .from(product_images)
+        .where(inArray(product_images.product_id, batch))
+        .orderBy(asc(product_images.sort_order)),
+      db
+        .select()
+        .from(product_tabs)
+        .where(inArray(product_tabs.product_id, batch))
+        .orderBy(asc(product_tabs.sort_order)),
+    ]);
+    vs.push(...vsPart);
+    ims.push(...imsPart);
+    tbs.push(...tbsPart);
+  }
   return rows.map((p) => shapeApiProduct(p, vs, ims, tbs));
 }
 
